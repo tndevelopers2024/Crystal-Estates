@@ -13,7 +13,7 @@ import {
 function getSourceBadgeClass(source) {
   switch (source) {
     case 'Website':
-      return 'bg-blue-50 text-blue-600 border border-blue-100'
+      return 'bg-[#E2EDE8] text-[#0F3D2E] border border-[#C8DED5]'
     case 'WhatsApp':
       return 'bg-emerald-50 text-emerald-600 border border-emerald-100'
     case 'Facebook':
@@ -45,7 +45,7 @@ export default function LeadCard({ lead, onClick, onDragStart }) {
         if (onDragStart) onDragStart(lead)
       }}
       onClick={() => onClick(lead)}
-      className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-blue-300 transition-all cursor-grab active:cursor-grabbing group relative"
+      className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-[#0F3D2E]/40 transition-all cursor-grab active:cursor-grabbing group relative"
     >
       {/* Top Header: Source Pill + 3-dots */}
       <div className="flex items-center justify-between mb-2.5">
@@ -71,7 +71,7 @@ export default function LeadCard({ lead, onClick, onDragStart }) {
       </div>
 
       {/* Customer Name */}
-      <h4 className="text-sm font-bold text-slate-800 mb-2 group-hover:text-[#0B57D0] transition-colors leading-tight">
+      <h4 className="text-sm font-bold text-slate-800 mb-2 group-hover:text-[#0F3D2E] transition-colors leading-tight">
         {lead.name}
       </h4>
 
@@ -93,7 +93,7 @@ export default function LeadCard({ lead, onClick, onDragStart }) {
 
         {lead.property && (
           <div className="flex items-center gap-1.5 pt-0.5 text-slate-700 font-medium">
-            <Building2 className="w-3 h-3 text-[#0B57D0] shrink-0" />
+            <Building2 className="w-3 h-3 text-[#0F3D2E] shrink-0" />
             <span className="truncate">{lead.property}</span>
           </div>
         )}
@@ -132,7 +132,7 @@ export default function LeadCard({ lead, onClick, onDragStart }) {
             <div
               className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white shadow-xs shrink-0"
               style={{
-                backgroundColor: lead.assignedAgent.color || '#0B57D0',
+                backgroundColor: lead.assignedAgent.color || '#0F3D2E',
               }}
               title={`Assigned to ${lead.assignedAgent.name}`}
             >

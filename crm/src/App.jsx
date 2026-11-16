@@ -34,7 +34,7 @@ function EditPropertyRouteWrapper({ properties, loading, onSave, onCancel }) {
   if (loading && !property) {
     return (
       <div className="flex items-center justify-center p-16 text-slate-500 text-xs font-semibold">
-        <div className="animate-spin w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full mr-3" />
+        <div className="animate-spin w-5 h-5 border-2 border-[#0F3D2E] border-t-transparent rounded-full mr-3" />
         Loading property specifications...
       </div>
     )

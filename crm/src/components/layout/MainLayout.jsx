@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import Sidebar from './Sidebar'
 import Header from './Header'
 
@@ -21,18 +21,22 @@ export default function MainLayout({
   dynamicBadges = {},
   children,
 }) {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
   return (
-    <div className="flex min-h-screen bg-[#F4F6F9] font-sans antialiased">
+    <div className="flex h-screen w-full overflow-hidden bg-[#F4F6F9] font-sans antialiased">
       {/* ── Fixed Sidebar ── */}
       <Sidebar
         activeNav={activeNav}
         onSelectNav={onSelectNav}
         onOpenUpload={onOpenUpload}
         dynamicBadges={dynamicBadges}
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
       />
 
-      {/* ── Main Scrollable Content Area ── */}
-      <div className="flex-1 flex flex-col min-w-0">
+      {/* ── Main Layout Column (Offset on md+ screens to match fixed sidebar) ── */}
+      <div className="flex-1 flex flex-col h-screen min-w-0 md:ml-[240px] overflow-hidden">
         <Header
           activeNav={activeNav}
           isAddOrEditPage={isAddOrEditPage}
@@ -48,9 +52,11 @@ export default function MainLayout({
           onSimulateEnquiry={onSimulateEnquiry}
           isSimulating={isSimulating}
           notificationCount={notificationCount}
+          onToggleMobileMenu={() => setIsMobileMenuOpen((prev) => !prev)}
         />
 
-        <main className="flex-1 p-8 overflow-y-auto">
+        {/* ── Independently Scrollable Main Content Area ── */}
+        <main className="flex-1 min-h-0 overflow-y-auto p-4 md:p-8 crm-main-content">
           {children}
         </main>
       </div>

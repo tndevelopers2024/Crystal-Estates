@@ -36,7 +36,7 @@ export default function PlaceholderView({ sectionId, onBack }) {
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_8px_rgba(0,0,0,0.04)] p-10 text-center max-w-lg mx-auto mt-10">
-      <div className="w-14 h-14 rounded-2xl bg-blue-50 text-[#0B57D0] flex items-center justify-center mx-auto mb-4">
+      <div className="w-14 h-14 rounded-2xl bg-[#E2EDE8] text-[#0F3D2E] flex items-center justify-center mx-auto mb-4">
         <Icon className="w-7 h-7" />
       </div>
       <h3 className="text-lg font-bold text-slate-900">{title} Workspace</h3>
@@ -48,7 +48,7 @@ export default function PlaceholderView({ sectionId, onBack }) {
         <button
           type="button"
           onClick={onBack}
-          className="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-[#0B57D0] hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition"
+          className="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-[#0F3D2E] hover:bg-[#16533D] text-white text-xs font-bold rounded-xl shadow-sm transition"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Back to Properties</span>

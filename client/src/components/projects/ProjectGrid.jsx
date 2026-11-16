@@ -1,25 +1,18 @@
 'use client'
 
 import React, { useState } from 'react'
-import { FolderSearch, RotateCcw } from 'lucide-react'
+import { FolderSearch, RotateCcw, ArrowDown } from 'lucide-react'
 import ProjectCard from './ProjectCard'
-import { Button } from '../ui'
 
 /**
- * Reusable ProjectGrid Component with Skeletons, Empty State, and Pagination/Load More
- * @param {Array<object>} projects
- * @param {boolean} [loading=false]
- * @param {string} [emptyMessage="No land projects match your search criteria."]
- * @param {function} [onReset] - Handler to reset filters in empty state
- * @param {number} [initialCount=6]
- * @param {number} [pageSize=6]
+ * Reusable ProjectGrid Component with Modern Skeletons, Empty State, and Pagination/Load More
  */
 export function ProjectGrid({
   projects = [],
   loading = false,
   emptyMessage = 'No land projects match your search criteria.',
   onReset,
-  initialCount = 6,
+  initialCount = 9,
   pageSize = 6,
   className = '',
 }) {
@@ -27,16 +20,16 @@ export function ProjectGrid({
 
   if (loading) {
     return (
-      <div className={`project-grid ${className}`.trim()} aria-busy="true">
+      <div className={`modern-projects-grid ${className}`.trim()} aria-busy="true">
         {[1, 2, 3, 4, 5, 6].map((n) => (
-          <div key={n} className="project-card project-card--skeleton">
-            <div className="skeleton-media" />
-            <div className="skeleton-body" style={{ padding: '20px' }}>
-              <div className="skeleton-line" style={{ width: '40%', height: '12px', marginBottom: '10px' }} />
-              <div className="skeleton-line" style={{ width: '70%', height: '20px', marginBottom: '16px' }} />
-              <div className="skeleton-line" style={{ width: '90%', height: '14px', marginBottom: '8px' }} />
-              <div className="skeleton-line" style={{ width: '60%', height: '14px', marginBottom: '20px' }} />
-              <div className="skeleton-line" style={{ width: '100%', height: '36px', borderRadius: '999px' }} />
+          <div key={n} className="news-project-card news-project-card--skeleton">
+            <div className="news-project-card__skeleton-media" />
+            <div className="news-project-card__content" style={{ padding: '20px 0 0 0' }}>
+              <div className="news-project-card__skeleton-line" style={{ width: '45%', height: '14px', marginBottom: '14px' }} />
+              <div className="news-project-card__skeleton-line" style={{ width: '80%', height: '22px', marginBottom: '14px' }} />
+              <div className="news-project-card__skeleton-line" style={{ width: '95%', height: '14px', marginBottom: '8px' }} />
+              <div className="news-project-card__skeleton-line" style={{ width: '60%', height: '14px', marginBottom: '24px' }} />
+              <div className="news-project-card__skeleton-line" style={{ width: '100%', height: '48px', borderRadius: '16px' }} />
             </div>
           </div>
         ))}
@@ -46,17 +39,21 @@ export function ProjectGrid({
 
   if (!projects || projects.length === 0) {
     return (
-      <div className="project-grid-empty" role="status">
-        <div className="project-grid-empty__icon">
-          <FolderSearch size={40} />
+      <div className="modern-projects-empty" role="status">
+        <div className="modern-projects-empty__icon">
+          <FolderSearch size={42} />
         </div>
-        <h3 className="project-grid-empty__title">No Projects Found</h3>
-        <p className="project-grid-empty__desc">{emptyMessage}</p>
+        <h3 className="modern-projects-empty__title">No Projects Found</h3>
+        <p className="modern-projects-empty__desc">{emptyMessage}</p>
         {onReset && (
-          <Button variant="outline" size="sm" onClick={onReset} className="project-grid-empty__btn">
-            <RotateCcw size={14} />
+          <button
+            type="button"
+            onClick={onReset}
+            className="modern-projects-empty__btn"
+          >
+            <RotateCcw size={15} />
             <span>Reset All Filters</span>
-          </Button>
+          </button>
         )}
       </div>
     )
@@ -70,18 +67,23 @@ export function ProjectGrid({
   }
 
   return (
-    <div className="project-grid-wrapper">
-      <div className={`project-grid ${className}`.trim()}>
+    <div className="modern-projects-grid-wrapper">
+      <div className={`modern-projects-grid ${className}`.trim()}>
         {visibleProjects.map((proj) => (
           <ProjectCard key={proj.id || proj._id} project={proj} />
         ))}
       </div>
 
       {hasMore && (
-        <div className="project-grid__load-more">
-          <Button variant="outline" onClick={handleLoadMore}>
-            <span>Load More Projects ({projects.length - visibleCount} remaining)</span>
-          </Button>
+        <div className="modern-projects-load-more">
+          <button
+            type="button"
+            onClick={handleLoadMore}
+            className="modern-projects-load-more-btn"
+          >
+            <span>Load More Land Projects ({projects.length - visibleCount} remaining)</span>
+            <ArrowDown size={16} />
+          </button>
         </div>
       )}
     </div>
@@ -89,4 +91,3 @@ export function ProjectGrid({
 }
 
 export default ProjectGrid
-

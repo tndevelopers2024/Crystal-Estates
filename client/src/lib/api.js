@@ -30,20 +30,21 @@ export function formatPrice(amount) {
  */
 export function formatArea(plot) {
   if (!plot) return 'Individual Plots'
+  const sanitize = (val) => String(val || '').replace(/\.{2,}/g, ' ').replace(/\s+/g, ' ').trim()
   if (plot.totalLandArea && String(plot.totalLandArea).trim().length > 0) {
-    return String(plot.totalLandArea).trim()
+    return sanitize(plot.totalLandArea)
   }
   if (plot.availableArea && String(plot.availableArea).trim().length > 0) {
-    return String(plot.availableArea).trim()
+    return sanitize(plot.availableArea)
   }
   if (plot.area !== undefined && plot.area !== null && String(plot.area).trim().length > 0) {
     const num = Number(plot.area)
     if (!isNaN(num)) {
       return `${num.toLocaleString('en-IN')} ${plot.unit || 'sq.ft'}`
     }
-    return String(plot.area)
+    return sanitize(plot.area)
   }
-  if (plot.plotSizes) return String(plot.plotSizes)
+  if (plot.plotSizes) return sanitize(plot.plotSizes)
   return 'Individual Plots'
 }
 

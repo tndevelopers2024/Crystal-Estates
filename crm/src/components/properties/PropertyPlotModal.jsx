@@ -393,7 +393,7 @@ export default function PropertyPlotModal({
         {/* ── Top Header Bar ── */}
         <div className="px-5 py-4 border-b border-slate-200 bg-white flex items-center justify-between gap-3 shrink-0">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-2xl bg-blue-50 text-[#0B57D0] flex items-center justify-center shrink-0 border border-blue-100 shadow-2xs">
+            <div className="w-10 h-10 rounded-2xl bg-[#E2EDE8] text-[#0F3D2E] flex items-center justify-center shrink-0 border border-[#C8DED5] shadow-2xs">
               <Layers className="w-5 h-5" />
             </div>
             <div className="min-w-0">
@@ -407,7 +407,7 @@ export default function PropertyPlotModal({
                   </span>
                 )}
                 {property.type && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#E2EDE8] text-[#0F3D2E] border border-[#C8DED5] shrink-0">
                     {property.type}
                   </span>
                 )}
@@ -424,7 +424,7 @@ export default function PropertyPlotModal({
               href={targetLayoutLink}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-50 hover:bg-blue-100 text-[#0B57D0] font-bold text-xs rounded-xl border border-blue-200 shadow-2xs transition active:scale-[0.98]"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#E2EDE8] hover:bg-[#d1e4dc] text-[#0F3D2E] font-bold text-xs rounded-xl border border-[#C8DED5] shadow-2xs transition active:scale-[0.98]"
               title="Open full interactive layout in a new tab"
             >
               <ExternalLink className="w-3.5 h-3.5" />
@@ -456,7 +456,7 @@ export default function PropertyPlotModal({
                   onClick={() => setActivePhaseIndex(idx)}
                   className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border shrink-0 ${
                     isActive
-                      ? 'bg-[#0B57D0] text-white border-[#0B57D0] shadow-xs'
+                      ? 'bg-[#0F3D2E] text-white border-[#0F3D2E] shadow-xs'
                       : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                   }`}
                 >
@@ -524,7 +524,7 @@ export default function PropertyPlotModal({
                     href={targetLayoutLink}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-xs font-bold text-[#0B57D0] hover:underline inline-flex items-center gap-1"
+                    className="text-xs font-bold text-[#0F3D2E] hover:text-[#B8964E] hover:underline inline-flex items-center gap-1"
                   >
                     <span>Full Layout</span>
                     <ExternalLink className="w-3 h-3" />
@@ -693,7 +693,7 @@ export default function PropertyPlotModal({
                           <tr
                             key={p.plotNo || p.id}
                             className={`transition cursor-pointer ${
-                              isCurrent ? 'bg-blue-50/70' : 'hover:bg-slate-50/80'
+                              isCurrent ? 'bg-[#E2EDE8]/60' : 'hover:bg-slate-50/80'
                             }`}
                             onClick={() => handleEditClick(p)}
                           >
@@ -724,7 +724,7 @@ export default function PropertyPlotModal({
                                 <button
                                   type="button"
                                   onClick={() => handleEditClick(p)}
-                                  className="p-1.5 text-slate-500 hover:text-[#0B57D0] hover:bg-blue-100/60 rounded-lg transition"
+                                  className="p-1.5 text-slate-500 hover:text-[#0F3D2E] hover:bg-[#E2EDE8] rounded-lg transition"
                                   title="Edit plot"
                                 >
                                   <Edit2 className="w-3.5 h-3.5" />
@@ -797,7 +797,7 @@ export default function PropertyPlotModal({
                       value={plotNo}
                       onChange={(e) => setPlotNo(e.target.value)}
                       placeholder="e.g. 1"
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0B57D0] focus:bg-white transition"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white transition"
                     />
                   </div>
 
@@ -808,7 +808,7 @@ export default function PropertyPlotModal({
                     <select
                       value={status}
                       onChange={(e) => setStatus(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0B57D0] focus:bg-white cursor-pointer transition"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white cursor-pointer transition"
                     >
                       {STATUS_OPTIONS.map((st) => (
                         <option key={st.id} value={st.id}>
@@ -828,7 +828,7 @@ export default function PropertyPlotModal({
                     <select
                       value={facing}
                       onChange={(e) => setFacing(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0B57D0] focus:bg-white cursor-pointer transition"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white cursor-pointer transition"
                     >
                       {FACING_OPTIONS.map((f) => (
                         <option key={f} value={f}>
@@ -847,7 +847,7 @@ export default function PropertyPlotModal({
                       value={area}
                       onChange={(e) => setArea(e.target.value)}
                       placeholder="e.g. 1200 sq.ft"
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0B57D0] focus:bg-white transition"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white transition"
                     />
                   </div>
                 </div>
@@ -863,7 +863,7 @@ export default function PropertyPlotModal({
                       value={dimensions}
                       onChange={(e) => setDimensions(e.target.value)}
                       placeholder="e.g. 30'0&quot; x 40'0&quot;"
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0B57D0] focus:bg-white transition"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white transition"
                     />
                   </div>
 
@@ -876,7 +876,7 @@ export default function PropertyPlotModal({
                       value={price}
                       onChange={(e) => setPrice(e.target.value)}
                       placeholder="e.g. ₹ 42.00 Lakhs"
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0B57D0] focus:bg-white transition"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white transition"
                     />
                   </div>
                 </div>
@@ -892,7 +892,7 @@ export default function PropertyPlotModal({
                       value={roadWidth}
                       onChange={(e) => setRoadWidth(e.target.value)}
                       placeholder="e.g. 30 ft Road"
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0B57D0] focus:bg-white transition"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white transition"
                     />
                   </div>
 
@@ -903,7 +903,7 @@ export default function PropertyPlotModal({
                     <select
                       value={plotType}
                       onChange={(e) => setPlotType(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0B57D0] focus:bg-white cursor-pointer transition"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white cursor-pointer transition"
                     >
                       {PLOT_TYPES.map((t) => (
                         <option key={t} value={t}>
@@ -918,7 +918,7 @@ export default function PropertyPlotModal({
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="block text-xs font-bold text-slate-700">
-                      SVG Path Boundary (<code className="font-mono text-blue-700 font-semibold">d="..."</code>) <span className="text-rose-500">*</span>
+                      SVG Path Boundary (<code className="font-mono text-[#0F3D2E] font-semibold">d="..."</code>) <span className="text-rose-500">*</span>
                     </label>
                     <span className="text-[10px] text-slate-400">Paste path or &lt;path&gt; tag</span>
                   </div>
@@ -928,7 +928,7 @@ export default function PropertyPlotModal({
                     value={svgPath}
                     onChange={(e) => setSvgPath(e.target.value)}
                     placeholder='e.g. M 702.90862 324.75473 60.6439 -0.93659 v 46.36098 h -60.6439 l -0.23415 -45.19024 z'
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-800 focus:outline-none focus:border-[#0B57D0] focus:bg-white resize-y transition"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white resize-y transition"
                   />
                 </div>
 
@@ -986,7 +986,7 @@ export default function PropertyPlotModal({
                 type="submit"
                 form="plot-editor-form"
                 disabled={isSubmitting}
-                className="px-5 py-2.5 bg-[#0B57D0] hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-sm transition active:scale-[0.98] disabled:opacity-50 flex items-center gap-1.5"
+                className="px-5 py-2.5 bg-[#0F3D2E] hover:bg-[#16533D] text-white font-bold rounded-xl text-xs shadow-sm transition active:scale-[0.98] disabled:opacity-50 flex items-center gap-1.5"
               >
                 {isSubmitting ? (
                   <span>Saving to Database...</span>

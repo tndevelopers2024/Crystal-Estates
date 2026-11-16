@@ -80,7 +80,7 @@ export default function AddLeadModal({
                 .join('')
                 .slice(0, 2)
                 .toUpperCase(),
-              color: '#0B57D0',
+              color: '#0F3D2E',
             }
           : { name: 'Unassigned', initials: 'UN', color: '#64748B' })
 
@@ -182,7 +182,7 @@ export default function AddLeadModal({
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="e.g. Ramesh Kumar"
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#0B57D0] focus:bg-white transition"
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#0F3D2E] focus:bg-white transition"
               />
             </div>
 
@@ -197,7 +197,7 @@ export default function AddLeadModal({
                 value={mobile}
                 onChange={(e) => setMobile(e.target.value)}
                 placeholder="+91 98400 12345"
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#0B57D0] focus:bg-white transition"
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#0F3D2E] focus:bg-white transition"
               />
             </div>
           </div>
@@ -212,7 +212,7 @@ export default function AddLeadModal({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="e.g. name@example.com"
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#0B57D0] focus:bg-white transition"
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#0F3D2E] focus:bg-white transition"
             />
           </div>
 
@@ -227,7 +227,7 @@ export default function AddLeadModal({
                 <select
                   value={project}
                   onChange={(e) => setProject(e.target.value)}
-                  className="w-full appearance-none px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0B57D0] focus:bg-white cursor-pointer pr-8"
+                  className="w-full appearance-none px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white cursor-pointer pr-8"
                 >
                   <option value="">Select project...</option>
                   {dynamicProjects.map((pName) => (
@@ -249,7 +249,7 @@ export default function AddLeadModal({
                 <select
                   value={source}
                   onChange={(e) => setSource(e.target.value)}
-                  className="w-full appearance-none px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0B57D0] focus:bg-white cursor-pointer pr-8"
+                  className="w-full appearance-none px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white cursor-pointer pr-8"
                 >
                   {dynamicSources.map((src) => (
                     <option key={src} value={src}>
@@ -274,7 +274,7 @@ export default function AddLeadModal({
                 value={budgetLakhs}
                 onChange={(e) => setBudgetLakhs(e.target.value)}
                 placeholder="e.g. 85"
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#0B57D0] focus:bg-white transition"
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#0F3D2E] focus:bg-white transition"
               />
             </div>
 
@@ -287,7 +287,7 @@ export default function AddLeadModal({
                 <select
                   value={assignTo}
                   onChange={(e) => setAssignTo(e.target.value)}
-                  className="w-full appearance-none px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0B57D0] focus:bg-white cursor-pointer pr-8"
+                  className="w-full appearance-none px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white cursor-pointer pr-8"
                 >
                   {dynamicAgents.map((ag) => (
                     <option key={ag.name} value={ag.name}>
@@ -312,7 +312,7 @@ export default function AddLeadModal({
               <select
                 value={stage}
                 onChange={(e) => setStage(e.target.value)}
-                className="w-full appearance-none px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0B57D0] focus:bg-white cursor-pointer pr-8"
+                className="w-full appearance-none px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white cursor-pointer pr-8"
               >
                 {dynamicStages.map((st) => (
                   <option key={st.id} value={st.id}>
@@ -331,7 +331,7 @@ export default function AddLeadModal({
                 type="checkbox"
                 checked={sendWhatsApp}
                 onChange={(e) => setSendWhatsApp(e.target.checked)}
-                className="w-4 h-4 rounded border-slate-300 text-[#0B57D0] focus:ring-[#0B57D0]"
+                className="w-4 h-4 rounded border-slate-300 text-[#0F3D2E] focus:ring-[#0F3D2E]"
               />
               <span>Send automated WhatsApp welcome message</span>
             </label>
@@ -349,7 +349,7 @@ export default function AddLeadModal({
             <button
               type="submit"
               disabled={submitting}
-              className="px-5 py-2 bg-[#0B57D0] hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-sm transition active:scale-[0.98] disabled:opacity-50"
+              className="px-5 py-2 bg-[#0F3D2E] hover:bg-[#16533D] text-white font-bold rounded-xl text-xs shadow-sm transition active:scale-[0.98] disabled:opacity-50"
             >
               {submitting ? 'Saving...' : 'Add lead'}
             </button>

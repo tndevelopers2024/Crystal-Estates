@@ -136,7 +136,7 @@ export default function RecordPaymentModal({
                 <select
                   value={paymentFor}
                   onChange={(e) => setPaymentFor(e.target.value)}
-                  className="w-full appearance-none px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0B57D0] focus:bg-white cursor-pointer pr-8"
+                  className="w-full appearance-none px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white cursor-pointer pr-8"
                 >
                   {PAYMENT_FOR_OPTIONS.map((opt) => (
                     <option key={opt} value={opt}>
@@ -161,7 +161,7 @@ export default function RecordPaymentModal({
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="e.g. 200000"
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#0B57D0] focus:bg-white transition"
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#0F3D2E] focus:bg-white transition"
               />
             </div>
           </div>
@@ -177,7 +177,7 @@ export default function RecordPaymentModal({
                 <select
                   value={mode}
                   onChange={(e) => setMode(e.target.value)}
-                  className="w-full appearance-none px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0B57D0] focus:bg-white cursor-pointer pr-8"
+                  className="w-full appearance-none px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white cursor-pointer pr-8"
                 >
                   {MODE_OPTIONS.map((m) => (
                     <option key={m} value={m}>
@@ -199,7 +199,7 @@ export default function RecordPaymentModal({
                 value={referenceNo}
                 onChange={(e) => setReferenceNo(e.target.value)}
                 placeholder="e.g. UPI 2114 6215 4997 or Cheque #123456"
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#0B57D0] focus:bg-white transition"
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#0F3D2E] focus:bg-white transition"
               />
             </div>
           </div>
@@ -214,7 +214,7 @@ export default function RecordPaymentModal({
               value={unitAllotted}
               onChange={(e) => setUnitAllotted(e.target.value)}
               placeholder="e.g. Plot #12 or Unit 4B"
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#0B57D0] focus:bg-white transition"
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#0F3D2E] focus:bg-white transition"
             />
           </div>
 
@@ -225,7 +225,7 @@ export default function RecordPaymentModal({
                 type="checkbox"
                 checked={sendWhatsApp}
                 onChange={(e) => setSendWhatsApp(e.target.checked)}
-                className="w-4 h-4 rounded border-slate-300 text-[#0B57D0] focus:ring-[#0B57D0]"
+                className="w-4 h-4 rounded border-slate-300 text-[#0F3D2E] focus:ring-[#0F3D2E]"
               />
               <span>Send receipt on WhatsApp</span>
             </label>
@@ -235,7 +235,7 @@ export default function RecordPaymentModal({
                 type="checkbox"
                 checked={sendEmail}
                 onChange={(e) => setSendEmail(e.target.checked)}
-                className="w-4 h-4 rounded border-slate-300 text-[#0B57D0] focus:ring-[#0B57D0]"
+                className="w-4 h-4 rounded border-slate-300 text-[#0F3D2E] focus:ring-[#0F3D2E]"
               />
               <span>Email receipt</span>
             </label>
@@ -245,7 +245,7 @@ export default function RecordPaymentModal({
                 type="checkbox"
                 checked={moveLeadToWon}
                 onChange={(e) => setMoveLeadToWon(e.target.checked)}
-                className="w-4 h-4 rounded border-slate-300 text-[#0B57D0] focus:ring-[#0B57D0]"
+                className="w-4 h-4 rounded border-slate-300 text-[#0F3D2E] focus:ring-[#0F3D2E]"
               />
               <span>Move lead to Won</span>
             </label>
@@ -263,7 +263,7 @@ export default function RecordPaymentModal({
             <button
               type="submit"
               disabled={submitting}
-              className="inline-flex items-center gap-1.5 px-5 py-2 bg-[#0B57D0] hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-sm transition active:scale-[0.98] disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-5 py-2 bg-[#0F3D2E] hover:bg-[#16533D] text-white font-bold rounded-xl text-xs shadow-sm transition active:scale-[0.98] disabled:opacity-50"
             >
               <Check className="w-3.5 h-3.5" />
               <span>{submitting ? 'Saving...' : 'Save payment'}</span>

@@ -1,7 +1,7 @@
 import React from 'react'
 import Image from 'next/image'
-import { Target, Compass } from 'lucide-react'
-import { PageHero, Section, Badge } from '../../components/ui'
+import Link from 'next/link'
+import { Target, Compass, ArrowUpRight, ShieldCheck } from 'lucide-react'
 import StatsBar from '../../components/sections/StatsBar'
 import TestimonialsSection from '../../components/TestimonialsSection'
 
@@ -28,207 +28,163 @@ export const metadata = {
 
 export default function AboutPage() {
   return (
-    <main>
-      <PageHero
-        title="About Crystal Estates"
-        subtitle="ASSETS CREATOR — Over a decade of verified clear-titled land transactions, DTCP/CMDA approvals, and generational agro-forestry investments across Chennai."
-        breadcrumb={[
-          { label: 'Home', href: '/' },
-          { label: 'About Us' },
-        ]}
-      />
+    <main className="about-page-wrapper">
+      {/* 1. Modern Minimalist Hero matching reference image */}
+      <section className="about-hero-section">
+        <div className="about-hero-container">
+          {/* Breadcrumb Navigation */}
+          <nav aria-label="Breadcrumb" className="about-hero__breadcrumb">
+            <Link href="/">Home</Link>
+            <span className="about-hero__breadcrumb-sep">/</span>
+            <span className="about-hero__breadcrumb-current">About Us</span>
+          </nav>
 
-      {/* 1. Company Profile Section */}
-      <Section
-        title="The Assets Creator Story"
-        subtitle="Bridging the gap between discerning land buyers and 100% legally transparent plots and farmland across Tamil Nadu."
-        center
-      >
-        <div style={{ maxWidth: '860px', margin: '0 auto', fontSize: '16px', lineHeight: '1.8', color: 'var(--ink-2)' }}>
-          <p style={{ marginBottom: '18px' }}>
-            Established with an uncompromising ethos of transparency, <strong>Crystal Estates</strong> operates with a singular focus: <em>land and plot sales only</em>. In an industry often clouded by ambiguous titles, unverified layouts, and hidden fees, we set out to build a safe haven for family investors, NRI buyers, and agricultural land stewards.
-          </p>
-          <p style={{ marginBottom: '18px' }}>
-            Headquartered in Valasaravakkam, Chennai, we curate premium residential plotted developments approved by CMDA and DTCP, alongside flagship managed sandalwood farm lands near Vedanthangal. Every piece of land we offer is preceded by rigorous legal vetting, revenue record verification, individual patta, and physical demarcation stones.
-          </p>
-        </div>
-      </Section>
-
-      {/* 2. Vision & Mission Cards */}
-      <Section variant="light" style={{ background: '#fcfaf6' }}>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-            gap: '32px',
-          }}
-        >
-          {/* Vision */}
-          <div
-            style={{
-              background: '#ffffff',
-              borderRadius: '16px',
-              padding: '36px 32px',
-              border: '1.5px solid rgba(184, 150, 78, 0.35)',
-              boxShadow: 'var(--shadow-sm)',
-              position: 'relative',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
-            }}
-          >
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-              <div
-                style={{
-                  width: '44px',
-                  height: '44px',
-                  borderRadius: '10px',
-                  background: 'var(--green-50)',
-                  color: 'var(--green-900)',
-                  display: 'grid',
-                  placeItems: 'center',
-                }}
-              >
-                <Compass size={22} />
-              </div>
-              <Badge tone="gold">Our Vision</Badge>
-            </div>
-
-            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '24px', color: 'var(--green-900)', margin: 0 }}>
-              &ldquo;To be the most trusted name in land transactions in Tamil Nadu.&rdquo;
-            </h3>
-
-            <p style={{ fontSize: '14.5px', color: 'var(--ink-2)', lineHeight: '1.7', margin: 0 }}>
-              We envision a future where every landowner steps onto their property with complete certainty, knowing their asset is secured by bulletproof legal titles, strategic growth locations, and enduring generational value.
+          {/* Large Editorial Heading & Subtitle */}
+          <div className="about-hero__header">
+            <h1 className="about-hero__title">
+              About Crystal Estates
+            </h1>
+            <p className="about-hero__subtitle">
+              ASSETS CREATOR — Over a decade of verified clear-titled land transactions, DTCP/CMDA approvals, and generational agro-forestry investments across Chennai.
             </p>
+            <Link href="/projects" className="about-hero__cta">
+              <span>Explore Projects</span>
+              <span className="about-hero__cta-arrow" aria-hidden="true">
+                <ArrowUpRight size={16} />
+              </span>
+            </Link>
           </div>
 
-          {/* Mission */}
-          <div
-            style={{
-              background: '#ffffff',
-              borderRadius: '16px',
-              padding: '36px 32px',
-              border: '1.5px solid rgba(15, 61, 46, 0.25)',
-              boxShadow: 'var(--shadow-sm)',
-              position: 'relative',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
-            }}
-          >
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-              <div
-                style={{
-                  width: '44px',
-                  height: '44px',
-                  borderRadius: '10px',
-                  background: 'var(--gold-light)',
-                  color: 'var(--gold-hover)',
-                  display: 'grid',
-                  placeItems: 'center',
-                }}
-              >
-                <Target size={22} />
-              </div>
-              <Badge tone="primary">Our Mission</Badge>
-            </div>
-
-            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '24px', color: 'var(--green-900)', margin: 0 }}>
-              &ldquo;Clear-title land, honest pricing, complete documentation.&rdquo;
-            </h3>
-
-            <p style={{ fontSize: '14.5px', color: 'var(--ink-2)', lineHeight: '1.7', margin: 0 }}>
-              We dedicate our expertise to providing frictionless land ownership through strict legal due diligence, zero hidden surcharges, spot registration guidance, and end-to-end patta transfer support for every client.
-            </p>
+          {/* Wide Hero Image matching reference architectural banner */}
+          <div className="about-hero__image-wrap">
+            <Image
+              src="/images/hero-estate.jpg"
+              alt="Crystal Estates Land & Property"
+              fill
+              priority
+              sizes="(max-width: 768px) 100vw, 1360px"
+              className="about-hero__image"
+            />
           </div>
         </div>
-      </Section>
+      </section>
 
-      {/* 3. Management Message with Photo */}
-      <Section title="Leadership Perspective" subtitle="Direct from the founders and management desk" center>
-        <div
-          style={{
-            maxWidth: '960px',
-            margin: '0 auto',
-            background: '#ffffff',
-            borderRadius: '20px',
-            border: '1px solid rgba(227, 221, 209, 0.9)',
-            padding: 'clamp(28px, 4vw, 48px)',
-            boxShadow: 'var(--shadow-md)',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: '36px',
-            alignItems: 'center',
-          }}
-        >
-          <div style={{ position: 'relative' }}>
-            <div
-              style={{
-                borderRadius: '16px',
-                overflow: 'hidden',
-                aspectRatio: '4 / 5',
-                maxHeight: '380px',
-                background: 'var(--green-900)',
-                border: '3px solid var(--gold-border)',
-                boxShadow: 'var(--shadow-sm)',
-                position: 'relative',
-              }}
-            >
-              <Image
-                src="/images/vedanthangal.jpg"
-                alt="Crystal Estates Management"
-                fill
-                sizes="(max-width: 768px) 100vw, 400px"
-                style={{ objectFit: 'cover' }}
-              />
-            </div>
-            <div
-              style={{
-                position: 'absolute',
-                bottom: '-14px',
-                left: '20px',
-                right: '20px',
-                background: 'var(--green-900)',
-                color: '#ffffff',
-                padding: '8px 16px',
-                borderRadius: '8px',
-                textAlign: 'center',
-                fontSize: '12px',
-                fontWeight: '600',
-                letterSpacing: '0.04em',
-              }}
-            >
-              MANAGEMENT & TITLE ADVISORY
-            </div>
-          </div>
+      {/* 2. Split Purpose Section matching reference layout (Left: Story & Architecture Image, Right: Feature Cards) */}
+      <section className="about-purpose-section">
+        <div className="about-purpose-container">
+          <div className="about-purpose-grid">
+            {/* Left Column: Purpose Story & Architectural Image Card */}
+            <div className="about-purpose-left">
+              <h2 className="about-purpose__title">
+                The Assets Creator Story
+              </h2>
+              <p className="about-purpose__lead">
+                Bridging the gap between discerning land buyers and 100% legally transparent plots and farmland across Tamil Nadu.
+              </p>
+              <p className="about-purpose__text">
+                Established with an uncompromising ethos of transparency, <strong>Crystal Estates</strong> operates with a singular focus: <em>land and plot sales only</em>. In an industry often clouded by ambiguous titles, unverified layouts, and hidden fees, we set out to build a safe haven for family investors, NRI buyers, and agricultural land stewards.
+              </p>
+              <p className="about-purpose__text">
+                Headquartered in Valasaravakkam, Chennai, we curate premium residential plotted developments approved by CMDA and DTCP, alongside flagship managed sandalwood farm lands near Vedanthangal. Every piece of land we offer is preceded by rigorous legal vetting, revenue record verification, individual patta, and physical demarcation stones.
+              </p>
 
-          <div>
-            <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--gold)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-              MANAGEMENT MESSAGE
-            </span>
-            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(22px, 3vw, 28px)', color: 'var(--green-900)', margin: '8px 0 16px' }}>
-              Building Generational Security on Clear Soil
-            </h3>
-            <blockquote style={{ fontSize: '15px', color: 'var(--ink-2)', lineHeight: '1.75', fontStyle: 'italic', marginBottom: '18px' }}>
-              &ldquo;Land is not merely an investment; it is the physical foundation upon which families build their future and pass down wealth. At Crystal Estates, our promise as ASSETS CREATORS is simple: we never compromise on parent deeds, we never sell land we wouldn’t proudly buy ourselves, and we stand beside every landowner from first site visit to the final patta transfer.&rdquo;
-            </blockquote>
-            <div style={{ borderTop: '1px solid var(--line)', paddingTop: '14px' }}>
-              <div style={{ fontFamily: 'var(--font-display)', fontSize: '17px', fontWeight: '700', color: 'var(--green-900)' }}>
-                Ramesh Kumar &amp; Directors
+              {/* Lower Architecture Image Card matching reference bottom-left image */}
+              <div className="about-purpose__image-card">
+                <Image
+                  src="/images/somamangalam.jpg"
+                  alt="Crystal Estates Prime Corridors"
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 650px"
+                  className="about-purpose__image"
+                />
               </div>
-              <div style={{ fontSize: '13px', color: 'var(--muted)' }}>
-                Crystal Estates — Chennai, Tamil Nadu
+            </div>
+
+            {/* Right Column: Stack of Rounded Feature Cards */}
+            <div className="about-purpose-right">
+              {/* Vision Card */}
+              <div className="about-feature-card">
+                <div className="about-feature-card__icon" aria-hidden="true">
+                  <Compass size={22} />
+                </div>
+                <span className="about-feature-card__badge">
+                  Our Vision
+                </span>
+                <h3 className="about-feature-card__title">
+                  &ldquo;To be the most trusted name in land transactions in Tamil Nadu.&rdquo;
+                </h3>
+                <p className="about-feature-card__text">
+                  We envision a future where every landowner steps onto their property with complete certainty, knowing their asset is secured by bulletproof legal titles, strategic growth locations, and enduring generational value.
+                </p>
+              </div>
+
+              {/* Mission Card */}
+              <div className="about-feature-card">
+                <div className="about-feature-card__icon" aria-hidden="true">
+                  <Target size={22} />
+                </div>
+                <span className="about-feature-card__badge">
+                  Our Mission
+                </span>
+                <h3 className="about-feature-card__title">
+                  &ldquo;Clear-title land, honest pricing, complete documentation.&rdquo;
+                </h3>
+                <p className="about-feature-card__text">
+                  We dedicate our expertise to providing frictionless land ownership through strict legal due diligence, zero hidden surcharges, spot registration guidance, and end-to-end patta transfer support for every client.
+                </p>
               </div>
             </div>
           </div>
         </div>
-      </Section>
+      </section>
+
+      {/* 3. Leadership Perspective Section */}
+      <section className="about-leadership-section">
+        <div className="about-leadership-container">
+          <div className="about-leadership-card">
+            <div className="about-leadership__photo-wrap">
+              <div className="about-leadership__photo-box">
+                <Image
+                  src="/images/vedanthangal.jpg"
+                  alt="Crystal Estates Management"
+                  fill
+                  sizes="(max-width: 768px) 100vw, 400px"
+                  style={{ objectFit: 'cover' }}
+                />
+              </div>
+              <div className="about-leadership__photo-badge">
+                <ShieldCheck size={14} className="about-leadership__photo-badge-icon" />
+                <span>MANAGEMENT &amp; TITLE ADVISORY</span>
+              </div>
+            </div>
+
+            <div>
+              <span className="about-leadership__tag">
+                MANAGEMENT MESSAGE
+              </span>
+              <h3 className="about-leadership__headline">
+                Building Generational Security on Clear Soil
+              </h3>
+              <blockquote className="about-leadership__quote">
+                &ldquo;Land is not merely an investment; it is the physical foundation upon which families build their future and pass down wealth. At Crystal Estates, our promise as ASSETS CREATORS is simple: we never compromise on parent deeds, we never sell land we wouldn’t proudly buy ourselves, and we stand beside every landowner from first site visit to the final patta transfer.&rdquo;
+              </blockquote>
+              <div className="about-leadership__author-box">
+                <div className="about-leadership__author-name">
+                  Ramesh Kumar &amp; Directors
+                </div>
+                <div className="about-leadership__author-sub">
+                  Crystal Estates — Chennai, Tamil Nadu
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* 4. StatsBar */}
       <StatsBar />
 
-      {/* 5. TestimonialsSection directly above Footer */}
+      {/* 5. TestimonialsSection */}
       <TestimonialsSection
         title="What Our Landowners Say"
         subtitle="Verified experiences from families and investors who have built lasting land assets with Crystal Estates across Chennai & Kanchipuram."

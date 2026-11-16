@@ -1,6 +1,5 @@
 import React from 'react'
-import { PageHero, Container, Section } from '../../components/ui'
-import NewsCard from '../../components/news/NewsCard'
+import NewsClientView from '../../components/news/NewsClientView'
 import TestimonialsSection from '../../components/TestimonialsSection'
 import { newsArticles } from '../../data/news'
 
@@ -27,36 +26,15 @@ export const metadata = {
 
 export default function NewsPage() {
   return (
-    <main>
-      <PageHero
-        title="News & Land Insights"
-        subtitle="Market trends, legal guidelines, patta verification insights, and agro-forestry updates across Chennai and Tamil Nadu."
-        breadcrumb={[
-          { label: 'Home', href: '/' },
-          { label: 'News & Updates' },
-        ]}
-      />
+    <main className="modern-news-page">
+      <NewsClientView articles={newsArticles} />
 
-      <Section>
-        <Container>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
-              gap: '32px',
-            }}
-          >
-            {newsArticles.map((art) => (
-              <NewsCard key={art.id} article={art} />
-            ))}
-          </div>
-        </Container>
-      </Section>
-
-      <TestimonialsSection
-        title="Trusted Land Advice"
-        subtitle="Transparent insights and authentic buyer satisfaction have made Crystal Estates Chennai’s premier land asset creator."
-      />
+      <div style={{ marginTop: 'clamp(48px, 6vw, 84px)' }}>
+        <TestimonialsSection
+          title="Trusted Land Advice"
+          subtitle="Transparent insights and authentic buyer satisfaction have made Crystal Estates Chennai’s premier land asset creator."
+        />
+      </div>
     </main>
   )
 }

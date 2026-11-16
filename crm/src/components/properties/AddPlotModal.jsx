@@ -208,7 +208,7 @@ export default function AddPlotModal({
                   if (error) setError(null)
                 }}
                 placeholder="e.g. 1, 12B, A-102"
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0B57D0] focus:bg-white"
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white"
               />
             </div>
 
@@ -219,7 +219,7 @@ export default function AddPlotModal({
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0B57D0] focus:bg-white cursor-pointer"
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white cursor-pointer"
               >
                 {PLOT_STATUS_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -240,7 +240,7 @@ export default function AddPlotModal({
               <select
                 value={facing}
                 onChange={(e) => setFacing(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0B57D0] focus:bg-white cursor-pointer"
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white cursor-pointer"
               >
                 {FACING_OPTIONS.map((f) => (
                   <option key={f} value={f}>
@@ -259,7 +259,7 @@ export default function AddPlotModal({
                 value={area}
                 onChange={(e) => setArea(e.target.value)}
                 placeholder="e.g. 1200 sq.ft or 2.5 Cents"
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0B57D0] focus:bg-white"
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white"
               />
             </div>
           </div>
@@ -276,14 +276,14 @@ export default function AddPlotModal({
                   value={width}
                   onChange={(e) => handleDimensionsChange(e.target.value, length)}
                   placeholder="Width (e.g. 30'0&quot;)"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0B57D0] focus:bg-white"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white"
                 />
                 <input
                   type="text"
                   value={length}
                   onChange={(e) => handleDimensionsChange(width, e.target.value)}
                   placeholder="Length (e.g. 40'0&quot;)"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0B57D0] focus:bg-white"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white"
                 />
               </div>
             </div>
@@ -297,7 +297,7 @@ export default function AddPlotModal({
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
                 placeholder="e.g. ₹ 42.00 Lakhs"
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0B57D0] focus:bg-white"
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white"
               />
             </div>
           </div>
@@ -313,7 +313,7 @@ export default function AddPlotModal({
                 value={roadWidth}
                 onChange={(e) => setRoadWidth(e.target.value)}
                 placeholder="e.g. 30 ft Road, 40 ft Main Road"
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0B57D0] focus:bg-white"
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white"
               />
             </div>
 
@@ -324,7 +324,7 @@ export default function AddPlotModal({
               <select
                 value={type}
                 onChange={(e) => setType(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0B57D0] focus:bg-white cursor-pointer"
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white cursor-pointer"
               >
                 {PLOT_TYPES.map((t) => (
                   <option key={t} value={t}>
@@ -339,7 +339,7 @@ export default function AddPlotModal({
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="text-xs font-bold text-slate-700">
-                SVG Path Boundary (<code className="font-mono text-blue-700 font-semibold">d="..."</code>) <span className="text-rose-500">*</span>
+                SVG Path Boundary (<code className="font-mono text-[#0F3D2E] font-semibold">d="..."</code>) <span className="text-rose-500">*</span>
               </label>
               <span className="text-[11px] text-slate-400">
                 Paste path &apos;d&apos; attribute or complete &lt;path&gt; tag
@@ -351,7 +351,7 @@ export default function AddPlotModal({
               value={svgPath}
               onChange={handleSvgPathChange}
               placeholder='e.g. M 100 200 L 150 200 L 150 260 L 100 260 Z OR <path d="M 100 200..." />'
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-800 focus:outline-none focus:border-[#0B57D0] focus:bg-white resize-y"
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white resize-y"
             />
           </div>
 
@@ -415,7 +415,7 @@ export default function AddPlotModal({
             </button>
             <button
               type="submit"
-              className="px-5 py-2 bg-[#0B57D0] hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-sm transition active:scale-[0.98]"
+              className="px-5 py-2 bg-[#0F3D2E] hover:bg-[#16533D] text-white font-bold rounded-xl text-xs shadow-sm transition active:scale-[0.98]"
             >
               {initialData ? 'Update Plot' : 'Save Plot'}
             </button>

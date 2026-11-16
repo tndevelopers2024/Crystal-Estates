@@ -26,8 +26,8 @@ function getStatusPillStyle(status) {
     case 'Scheduled':
     case 'Confirmed':
       return {
-        selectClass: 'bg-blue-50 text-blue-800 border-blue-300 hover:bg-blue-100/80',
-        dotClass: 'bg-blue-500',
+        selectClass: 'bg-[#E2EDE8] text-[#0F3D2E] border-[#C8DED5] hover:bg-[#d1e4dc]',
+        dotClass: 'bg-[#0F3D2E]',
         label: 'Scheduled',
       }
     case 'Cancelled':
@@ -177,7 +177,7 @@ export default function SiteVisitsView({
             <div
               className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 shadow-2xs"
               style={{
-                backgroundColor: visit.assignedAgent?.color || '#0B57D0',
+                backgroundColor: visit.assignedAgent?.color || '#0F3D2E',
               }}
             >
               {visit.leadInitials || 'CE'}
@@ -185,7 +185,7 @@ export default function SiteVisitsView({
             <div className="min-w-0">
               <div
                 onClick={() => handleOpenLeadDrawer(visit)}
-                className="text-sm font-bold text-slate-900 hover:text-[#0B57D0] cursor-pointer transition-colors truncate leading-tight"
+                className="text-sm font-bold text-slate-900 hover:text-[#0F3D2E] cursor-pointer transition-colors truncate leading-tight"
               >
                 {visit.leadName}
               </div>
@@ -253,7 +253,7 @@ export default function SiteVisitsView({
                 <button
                   type="button"
                   onClick={() => handleConfirmVisit(visit)}
-                  className="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 text-xs font-bold shadow-2xs transition"
+                  className="px-3 py-1.5 rounded-xl bg-[#E2EDE8] hover:bg-[#d1e4dc] border border-[#C8DED5] text-[#0F3D2E] text-xs font-bold shadow-2xs transition"
                 >
                   Schedule
                 </button>
@@ -320,7 +320,7 @@ export default function SiteVisitsView({
                 <button
                   type="button"
                   onClick={() => setIsScheduleModalOpen(true)}
-                  className="inline-flex md:hidden items-center gap-1.5 px-3 py-1.5 bg-[#0B57D0] hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-sm transition"
+                  className="inline-flex md:hidden items-center gap-1.5 px-3 py-1.5 bg-[#0F3D2E] hover:bg-[#16533D] text-white font-bold rounded-xl text-xs shadow-sm transition"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Schedule visit</span>
@@ -334,7 +334,7 @@ export default function SiteVisitsView({
               </div>
             ) : (
               <div className="p-10 text-center bg-white rounded-2xl border border-slate-200/90 shadow-2xs">
-                <div className="w-11 h-11 rounded-2xl bg-blue-50 text-[#0B57D0] flex items-center justify-center mx-auto mb-3">
+                <div className="w-11 h-11 rounded-2xl bg-[#E2EDE8] text-[#0F3D2E] flex items-center justify-center mx-auto mb-3">
                   <Calendar className="w-5 h-5" />
                 </div>
                 <h4 className="text-sm font-bold text-slate-800">
@@ -347,7 +347,7 @@ export default function SiteVisitsView({
                   <button
                     type="button"
                     onClick={() => setIsScheduleModalOpen(true)}
-                    className="mt-4 px-4 py-2 bg-[#0B57D0] text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition"
+                    className="mt-4 px-4 py-2 bg-[#0F3D2E] text-white rounded-xl text-xs font-bold hover:bg-[#16533D] transition"
                   >
                     + Schedule visit
                   </button>

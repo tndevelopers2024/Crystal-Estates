@@ -1,47 +1,188 @@
+# ==========================================
 # Dependencies
+# ==========================================
 node_modules/
+*/node_modules/
 client/node_modules/
 server/node_modules/
 crm/node_modules/
+.pnp
+.pnp.js
 
-# Uploads
-server/uploads/
-
-
-# Next.js / Vite Build Outputs
-.next/
-client/.next/
-client/out/
-client/build/
-crm/dist/
-dist/
-
-# Environment Variables
+# ==========================================
+# Environment Variables & Secrets
+# ==========================================
 .env
+.env.*
 .env*.local
-client/.env*.local
+*.env.local
 client/.env
+client/.env*.local
 server/.env
 server/.env*.local
 crm/.env
 crm/.env*.local
+!.env.example
+!client/.env.example
+!server/.env.example
+!crm/.env.example
 
-# Testing & Reports
+# ==========================================
+# Test Files & Test Scripts
+# ==========================================
+# Test directories & test runners
+test/
+tests/
+__tests__/
 coverage/
 playwright-report/
 test-results/
+blob-report/
+.playwright/
+playwright/.cache/
 
+# Test & spec source files
+*.test.js
+*.test.jsx
+*.test.ts
+*.test.tsx
+*.test.mjs
+*.spec.js
+*.spec.jsx
+*.spec.ts
+*.spec.tsx
+*.spec.mjs
+test_*.js
+test_*.mjs
+test-*.js
+test-*.mjs
+tests-*.js
+tests-*.mjs
+client/tests-hero.mjs
+
+# Test SVG plots & fixture assets
+**/test-*.svg
+**/test_*.svg
+**/test-*.png
+**/test_*.png
+
+# ==========================================
+# Seed Files & Database Scripts
+# ==========================================
+# Database seed files & scripts
+server/scripts/
+seeds/
+seeders/
+*.seed.js
+*.seed.mjs
+*.seed.ts
+seed_*.js
+seed_*.mjs
+seed-*.js
+seed-*.mjs
+
+# ==========================================
+# Scratch, Debug, Migration & Ad-hoc Scripts
+# ==========================================
+# Root-level one-off utility & migration scripts
+/*.mjs
+!/client/next.config.mjs
+compare_*.mjs
+compare_*.js
+inspect_*.mjs
+inspect_*.js
+parse_*.mjs
+parse_*.js
+read_*.mjs
+read_*.js
+update_*.mjs
+update_*.js
+apply_*.mjs
+apply_*.js
+debug_*.mjs
+debug_*.js
+verify_*.mjs
+verify_*.js
+take_*.mjs
+take_*.js
+scratch/
+*/scratch/
+.scratch/
+
+# ==========================================
+# Uploads & Temporary Uploaded Layouts
+# ==========================================
+server/uploads/
+server/uploads/*
+**/public/documents/layout-*-*.*
+**/public/documents/doc-*.*
+**/public/plots/layout-*-*.*
+**/public/plots/*_Phase-*.*
+**/public/plots/*_clean_*.*
+**/public/plots/test-*.*
+**/public/images/plots/plot-*-1794*.*
+
+# ==========================================
+# Next.js / Vite Build Outputs & Caches
+# ==========================================
+.next/
+client/.next/
+out/
+client/out/
+build/
+client/build/
+dist/
+crm/dist/
+dist-ssr/
+.turbo/
+.vite/
+*.tsbuildinfo
+.eslintcache
+
+# ==========================================
 # Logs
+# ==========================================
 *.log
 npm-debug.log*
 yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
+# ==========================================
 # Media & Large Files
+# ==========================================
 *.mp4
 *.mov
 *.avi
 *.mkv
 
-# OS Files
+# ==========================================
+# Editor, IDE, Agent & OS Files
+# ==========================================
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+.cursor/
+.gemini/
+
+# ==========================================
+# Temporary & Backup Files
+# ==========================================
+*.tmp
+*.temp
+*.bak
+*.patch
+*.diff

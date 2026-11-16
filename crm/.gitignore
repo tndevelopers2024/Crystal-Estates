@@ -1,7 +1,53 @@
-node_modules
-dist
-dist-ssr
+# Dependencies
+node_modules/
+
+# Vite build outputs
+dist/
+dist-ssr/
+.vite/
+
+# Environment variables
 *.local
 .env
 .env.local
+.env*.local
+!.env.example
 
+# Testing
+coverage/
+playwright-report/
+test-results/
+*.test.*
+*.spec.*
+test_*.js
+test_*.mjs
+test-*.js
+test-*.mjs
+
+# Uploads & temporary layout vectors
+public/documents/layout-*-*.*
+public/documents/doc-*.*
+public/plots/layout-*-*.*
+public/plots/*_Phase-*.*
+public/plots/*_clean_*.*
+public/plots/test-*.*
+public/images/plots/plot-*-1794*.*
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS & Editor Files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+*.swo
+*.tmp
+*.bak

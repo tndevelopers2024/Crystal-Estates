@@ -36,8 +36,8 @@ function getTypeBadge(type = 'Call') {
       }
     default:
       return {
-        bg: 'bg-blue-50 text-blue-700 border-blue-100',
-        dot: 'bg-blue-500',
+        bg: 'bg-[#E2EDE8] text-[#0F3D2E] border-[#C8DED5]',
+        dot: 'bg-[#0F3D2E]',
         label: 'Call',
       }
   }
@@ -269,13 +269,13 @@ export default function FollowUpsView({
                 return (
                   <tr
                     key={item.id}
-                    className="hover:bg-blue-50/30 transition-colors group"
+                    className="hover:bg-[#E2EDE8]/30 transition-colors group"
                   >
                     {/* Lead */}
                     <td className="py-3 px-4">
                       <div
                         onClick={() => setSelectedLead(item.fullLead)}
-                        className="font-bold text-slate-900 group-hover:text-[#0B57D0] cursor-pointer leading-tight transition-colors"
+                        className="font-bold text-slate-900 group-hover:text-[#0F3D2E] cursor-pointer leading-tight transition-colors"
                       >
                         {item.leadName}
                       </div>
@@ -324,7 +324,7 @@ export default function FollowUpsView({
                           className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-2xs shrink-0"
                           style={{
                             backgroundColor:
-                              item.assignedAgent?.color || '#0B57D0',
+                              item.assignedAgent?.color || '#0F3D2E',
                           }}
                         >
                           {item.assignedAgent?.initials || 'UN'}
@@ -370,7 +370,7 @@ export default function FollowUpsView({
                           className={`inline-flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-bold transition shadow-2xs active:scale-[0.98] ${
                             item.completed
                               ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                              : 'bg-[#0B57D0] hover:bg-blue-700 text-white'
+                              : 'bg-[#0F3D2E] hover:bg-[#16533D] text-white'
                           }`}
                         >
                           <Check className="w-3.5 h-3.5" />
@@ -398,7 +398,7 @@ export default function FollowUpsView({
             onClick={() => setActiveTab('open')}
             className={`px-4 py-1.5 rounded-xl text-xs transition font-bold ${
               activeTab === 'open'
-                ? 'bg-blue-50 text-[#0B57D0] border border-blue-200 shadow-2xs'
+                ? 'bg-[#E2EDE8] text-[#0F3D2E] border border-[#C8DED5] shadow-2xs'
                 : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
@@ -410,7 +410,7 @@ export default function FollowUpsView({
             onClick={() => setActiveTab('completed')}
             className={`px-4 py-1.5 rounded-xl text-xs transition font-bold ${
               activeTab === 'completed'
-                ? 'bg-blue-50 text-[#0B57D0] border border-blue-200 shadow-2xs'
+                ? 'bg-[#E2EDE8] text-[#0F3D2E] border border-[#C8DED5] shadow-2xs'
                 : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
@@ -422,7 +422,7 @@ export default function FollowUpsView({
         <button
           type="button"
           onClick={() => setIsNewFollowUpModalOpen(true)}
-          className="inline-flex md:hidden items-center gap-1.5 px-3 py-1.5 bg-[#0B57D0] hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-sm transition"
+          className="inline-flex md:hidden items-center gap-1.5 px-3 py-1.5 bg-[#0F3D2E] hover:bg-[#16533D] text-white font-bold rounded-xl text-xs shadow-sm transition"
         >
           <Plus className="w-3.5 h-3.5" />
           <span>New follow-up</span>
@@ -451,7 +451,7 @@ export default function FollowUpsView({
               <button
                 type="button"
                 onClick={() => setIsNewFollowUpModalOpen(true)}
-                className="mt-4 px-4 py-2 bg-[#0B57D0] text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition"
+                className="mt-4 px-4 py-2 bg-[#0F3D2E] text-white rounded-xl text-xs font-bold hover:bg-[#16533D] transition"
               >
                 + Schedule Follow-up
               </button>

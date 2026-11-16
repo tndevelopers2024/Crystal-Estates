@@ -47,7 +47,7 @@ function getSourceBadge(source = 'Website') {
     case 'walk-in':
       return { bg: 'bg-teal-100', text: 'text-teal-700', border: 'border-teal-200' }
     default:
-      return { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200' }
+      return { bg: 'bg-[#E2EDE8]', text: 'text-[#0F3D2E]', border: 'border-[#C8DED5]' }
   }
 }
 
@@ -189,7 +189,7 @@ export default function LeadDrawer({
     const agentObj = dynamicAgents.find((a) => a.name === agentName) || (agentName ? {
       name: agentName,
       initials: agentName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase(),
-      color: '#0B57D0',
+      color: '#0F3D2E',
     } : {
       name: 'Unassigned',
       initials: 'UN',
@@ -388,7 +388,7 @@ export default function LeadDrawer({
                 className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-xs shrink-0"
                 style={{
                   backgroundColor:
-                    lead.assignedAgent?.color || '#0B57D0',
+                    lead.assignedAgent?.color || '#0F3D2E',
                 }}
               >
                 {leadInitials}
@@ -434,7 +434,7 @@ export default function LeadDrawer({
                 <select
                   value={stage}
                   onChange={(e) => handleStageChange(e.target.value)}
-                  className="w-full appearance-none px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0B57D0] shadow-2xs cursor-pointer pr-7"
+                  className="w-full appearance-none px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] shadow-2xs cursor-pointer pr-7"
                 >
                   {dynamicStages.map((st) => (
                     <option key={st.id} value={st.id}>
@@ -455,7 +455,7 @@ export default function LeadDrawer({
                 <select
                   value={assignedAgent}
                   onChange={(e) => handleAgentChange(e.target.value)}
-                  className="w-full appearance-none px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0B57D0] shadow-2xs cursor-pointer pr-7"
+                  className="w-full appearance-none px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] shadow-2xs cursor-pointer pr-7"
                 >
                   {dynamicAgents.map((ag) => (
                     <option key={ag.name} value={ag.name}>
@@ -478,7 +478,7 @@ export default function LeadDrawer({
               href={`tel:${lead.phone}`}
               className="py-2.5 px-2 bg-white hover:bg-slate-50 border border-slate-200/90 rounded-2xl flex flex-col items-center justify-center gap-1.5 text-slate-700 transition shadow-2xs group no-underline"
             >
-              <Phone className="w-4 h-4 text-slate-600 group-hover:text-blue-600 transition" />
+              <Phone className="w-4 h-4 text-slate-600 group-hover:text-[#0F3D2E] transition" />
               <span className="text-[11px] font-semibold text-slate-700">Call</span>
             </a>
 
@@ -498,7 +498,7 @@ export default function LeadDrawer({
               href={`mailto:${lead.email}`}
               className="py-2.5 px-2 bg-white hover:bg-slate-50 border border-slate-200/90 rounded-2xl flex flex-col items-center justify-center gap-1.5 text-slate-700 transition shadow-2xs group no-underline"
             >
-              <Mail className="w-4 h-4 text-slate-600 group-hover:text-blue-600 transition" />
+              <Mail className="w-4 h-4 text-slate-600 group-hover:text-[#0F3D2E] transition" />
               <span className="text-[11px] font-semibold text-slate-700">Email</span>
             </a>
 
@@ -508,7 +508,7 @@ export default function LeadDrawer({
               onClick={() => setIsRecordPaymentModalOpen(true)}
               className="py-2.5 px-2 bg-white hover:bg-slate-50 border border-slate-200/90 rounded-2xl flex flex-col items-center justify-center gap-1.5 text-slate-700 transition shadow-2xs group"
             >
-              <span className="w-4 h-4 text-xs font-bold flex items-center justify-center text-slate-600 group-hover:text-[#0B57D0]">
+              <span className="w-4 h-4 text-xs font-bold flex items-center justify-center text-slate-600 group-hover:text-[#0F3D2E]">
                 ₹
               </span>
               <span className="text-[11px] font-semibold text-slate-700">Record payment</span>
@@ -522,7 +522,7 @@ export default function LeadDrawer({
               }}
               className="py-2.5 px-2 bg-white hover:bg-slate-50 border border-slate-200/90 rounded-2xl flex flex-col items-center justify-center gap-1.5 text-slate-700 transition shadow-2xs group"
             >
-              <Upload className="w-4 h-4 text-slate-600 group-hover:text-blue-600 transition" />
+              <Upload className="w-4 h-4 text-slate-600 group-hover:text-[#0F3D2E] transition" />
               <span className="text-[11px] font-semibold text-slate-700">Send document</span>
             </button>
 
@@ -532,7 +532,7 @@ export default function LeadDrawer({
               onClick={() => setIsFollowUpModalOpen(true)}
               className="py-2.5 px-2 bg-white hover:bg-slate-50 border border-slate-200/90 rounded-2xl flex flex-col items-center justify-center gap-1.5 text-slate-700 transition shadow-2xs group"
             >
-              <Calendar className="w-4 h-4 text-slate-600 group-hover:text-blue-600 transition" />
+              <Calendar className="w-4 h-4 text-slate-600 group-hover:text-[#0F3D2E] transition" />
               <span className="text-[11px] font-semibold text-slate-700">Follow-up</span>
             </button>
           </div>
@@ -593,7 +593,7 @@ export default function LeadDrawer({
                 <button
                   type="button"
                   onClick={() => setIsRecordPaymentModalOpen(true)}
-                  className="text-xs font-bold text-[#0B57D0] hover:text-blue-700 transition"
+                  className="text-xs font-bold text-[#0F3D2E] hover:text-[#16533D] transition"
                 >
                   + Record
                 </button>
@@ -642,7 +642,7 @@ export default function LeadDrawer({
                 <button
                   type="button"
                   onClick={() => alert(`Share brochure with ${lead.email || lead.name}`)}
-                  className="text-xs font-bold text-[#0B57D0] hover:text-blue-700 transition"
+                  className="text-xs font-bold text-[#0F3D2E] hover:text-[#16533D] transition"
                 >
                   + Send
                 </button>
@@ -663,7 +663,7 @@ export default function LeadDrawer({
                 <button
                   type="button"
                   onClick={() => setIsFollowUpModalOpen(true)}
-                  className="text-xs font-bold text-[#0B57D0] hover:text-blue-700 transition"
+                  className="text-xs font-bold text-[#0F3D2E] hover:text-[#16533D] transition"
                 >
                   + Add
                 </button>
@@ -681,7 +681,7 @@ export default function LeadDrawer({
                       }`}
                     >
                       <div className="flex items-start gap-2.5">
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-[#0B57D0] shrink-0 mt-0.5">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#E2EDE8] text-[#0F3D2E] shrink-0 mt-0.5">
                           {fu.type || 'Call'}
                         </span>
                         <div>
@@ -733,11 +733,11 @@ export default function LeadDrawer({
                   value={noteInput}
                   onChange={(e) => setNoteInput(e.target.value)}
                   placeholder="e.g. Prefers east-facing, needs 2 car parks"
-                  className="flex-1 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs placeholder:text-slate-400 focus:outline-none focus:border-[#0B57D0] focus:bg-white transition"
+                  className="flex-1 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs placeholder:text-slate-400 focus:outline-none focus:border-[#0F3D2E] focus:bg-white transition"
                 />
                 <button
                   type="submit"
-                  className="px-4 py-2.5 bg-[#0B57D0] hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-sm transition active:scale-[0.98] shrink-0"
+                  className="px-4 py-2.5 bg-[#0F3D2E] hover:bg-[#16533D] text-white font-bold rounded-xl text-xs shadow-sm transition active:scale-[0.98] shrink-0"
                 >
                   Add
                 </button>
@@ -753,7 +753,7 @@ export default function LeadDrawer({
                 {activities.map((act) => (
                   <div key={act.id} className="relative">
                     {/* Timeline bullet */}
-                    <div className="w-2.5 h-2.5 rounded-full bg-white border-2 border-blue-500 absolute -left-5 top-1 shadow-2xs" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-white border-2 border-[#0F3D2E] absolute -left-5 top-1 shadow-2xs" />
                     <div>
                       <div className="text-xs font-semibold text-slate-800 leading-tight">
                         {act.text}

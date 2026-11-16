@@ -28,7 +28,7 @@ export default function PropertyGrid({
           <button
             type="button"
             onClick={onClearSearch}
-            className="mt-4 px-4 py-2 bg-[#0B57D0] text-white text-xs font-semibold rounded-xl hover:bg-blue-700 transition"
+            className="mt-4 px-4 py-2 bg-[#0F3D2E] text-white text-xs font-semibold rounded-xl hover:bg-[#16533D] transition"
           >
             Clear Search
           </button>

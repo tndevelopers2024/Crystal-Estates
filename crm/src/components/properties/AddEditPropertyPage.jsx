@@ -613,7 +613,7 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
           <button
             type="button"
             onClick={onCancel}
-            className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-[#0B57D0] hover:border-[#0B57D0] transition shadow-2xs"
+            className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-[#0F3D2E] hover:border-[#0F3D2E] transition shadow-2xs"
             title="Back to Properties"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -622,11 +622,11 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
             <div className="flex items-center gap-2 text-xs text-slate-400 font-semibold mb-0.5">
               <span>Properties</span>
               <span>/</span>
-              <span className="text-[#0B57D0]">{isEdit ? 'Edit Project' : 'Add New Property'}</span>
+              <span className="text-[#0F3D2E] font-medium">{isEdit ? 'Edit Project' : 'Add New Property'}</span>
             </div>
             <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
               {isEdit ? `Edit: ${formData.name || 'Project'}` : 'Add New Property'}
-              <span className="text-xs font-mono font-bold bg-blue-50 text-[#0B57D0] px-2.5 py-0.5 rounded-lg border border-blue-100">
+              <span className="text-xs font-mono font-bold bg-[#E2EDE8] text-[#0F3D2E] px-2.5 py-0.5 rounded-lg border border-[#C8DED5]">
                 {formData.projectId}
               </span>
             </h2>
@@ -647,7 +647,7 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
             type="button"
             onClick={handleSubmit}
             disabled={isSubmitting || !formData.name.trim()}
-            className="inline-flex items-center gap-2 px-5 py-2 bg-[#0B57D0] hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md transition disabled:opacity-50"
+            className="inline-flex items-center gap-2 px-5 py-2 bg-[#0F3D2E] hover:bg-[#16533D] text-white font-bold text-xs rounded-xl shadow-md transition disabled:opacity-50"
           >
             {isSubmitting ? (
               <>
@@ -691,7 +691,7 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
               onClick={() => setActiveTab(tab.id)}
               className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-bold transition whitespace-nowrap ${
                 isActive
-                  ? 'bg-[#0B57D0] text-white shadow-sm'
+                  ? 'bg-[#0F3D2E] text-white shadow-sm'
                   : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
               }`}
             >
@@ -714,7 +714,7 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
                   <button
                     type="button"
                     onClick={handleRegenerateId}
-                    className="text-[11px] text-blue-600 hover:underline flex items-center gap-1 font-semibold"
+                    className="text-[11px] text-[#0F3D2E] hover:text-[#B8964E] hover:underline flex items-center gap-1 font-semibold"
                   >
                     <RefreshCw className="w-3 h-3" />
                     Regenerate
@@ -740,7 +740,7 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
                   onChange={handleChange}
                   required
                   placeholder="Enter project / layout name"
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-xs font-medium focus:border-blue-500"
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-xs font-medium focus:border-[#0F3D2E] focus:ring-1 focus:ring-[#0F3D2E]"
                 />
               </div>
             </div>
@@ -784,7 +784,7 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
             {/* Location Hierarchy */}
             <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-4">
               <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
-                <MapPin className="w-4 h-4 text-[#0B57D0]" />
+                <MapPin className="w-4 h-4 text-[#0F3D2E]" />
                 <span>4. Location Hierarchy (District, Taluk, Village)</span>
               </div>
 
@@ -861,7 +861,7 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
                     value={formData.mapLocation}
                     onChange={handleChange}
                     placeholder="Paste Google Maps link, iframe embed URL, or coordinates (e.g. 12.9784, 80.2185)"
-                    className="w-full px-3.5 py-2 pl-9 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-[#0B57D0]"
+                    className="w-full px-3.5 py-2 pl-9 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-[#0F3D2E] focus:ring-1 focus:ring-[#0F3D2E]"
                   />
                   <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                 </div>
@@ -873,7 +873,7 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
                   <div className="mt-2.5 p-2 bg-slate-50 border border-slate-200 rounded-xl overflow-hidden">
                     <div className="text-[10px] font-bold text-slate-500 mb-1.5 flex items-center justify-between">
                       <span className="flex items-center gap-1">
-                        <MapPin className="w-3 h-3 text-[#0B57D0]" /> Live Map Preview
+                        <MapPin className="w-3 h-3 text-[#0F3D2E]" /> Live Map Preview
                       </span>
                       <a
                         href={
@@ -883,7 +883,7 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
                         }
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[#0B57D0] hover:underline flex items-center gap-1 text-[10px]"
+                        className="text-[#0F3D2E] hover:text-[#B8964E] hover:underline flex items-center gap-1 text-[10px] font-semibold"
                       >
                         Open in Maps <ExternalLink className="w-2.5 h-2.5" />
                       </a>
@@ -1020,7 +1020,7 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
               <div className="flex items-center justify-between text-xs font-bold text-slate-800">
                 <span>9. Plot Dimensions (Length & Width)</span>
                 {formData.plotDimensions && (
-                  <span className="font-mono text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
+                  <span className="font-mono text-[#0F3D2E] bg-[#E2EDE8] px-2 py-0.5 rounded border border-[#C8DED5]">
                     {formData.plotDimensions}
                   </span>
                 )}
@@ -1162,7 +1162,7 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                  <ImageIcon className="w-4 h-4 text-[#0B57D0]" />
+                  <ImageIcon className="w-4 h-4 text-[#0F3D2E]" />
                   <span>14. Site Photographs (Images)</span>
                 </label>
                 <span className="text-[11px] text-slate-400">
@@ -1172,7 +1172,7 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
 
               <div
                 onClick={() => imageInputRef.current?.click()}
-                className="border-2 border-dashed border-slate-300 hover:border-[#0B57D0] rounded-2xl p-6 text-center cursor-pointer transition bg-slate-50/50 hover:bg-blue-50/20"
+                className="border-2 border-dashed border-slate-300 hover:border-[#0F3D2E] rounded-2xl p-6 text-center cursor-pointer transition bg-slate-50/50 hover:bg-[#E2EDE8]/20"
               >
                 <input
                   ref={imageInputRef}
@@ -1209,9 +1209,9 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
                   ))}
 
                   {newImagePreviews.map((item, idx) => (
-                    <div key={`new-${idx}`} className="relative group rounded-xl overflow-hidden border border-blue-300 aspect-video bg-blue-50">
+                    <div key={`new-${idx}`} className="relative group rounded-xl overflow-hidden border border-[#C8DED5] aspect-video bg-[#E2EDE8]/30">
                       <img src={item.url} alt={item.name} className="w-full h-full object-cover" />
-                      <span className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-blue-600 text-white text-[9px] rounded font-bold">
+                      <span className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-[#0F3D2E] text-white text-[9px] rounded font-bold">
                         New
                       </span>
                       <button
@@ -1231,7 +1231,7 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
             <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
-                  <FileCode2 className="w-4 h-4 text-[#0B57D0]" />
+                  <FileCode2 className="w-4 h-4 text-[#0F3D2E]" />
                   <span>13. Layout Blueprint & Documents</span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -1241,7 +1241,7 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
                   <button
                     type="button"
                     onClick={handleAddPhase}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-[#0B57D0] bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-[#0F3D2E] bg-[#E2EDE8] hover:bg-[#d1e4dc] border border-[#C8DED5] rounded-lg transition"
                     title="Add another plot layout phase (e.g. Phase 2)"
                   >
                     <Plus className="w-3.5 h-3.5" />
@@ -1263,7 +1263,7 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
                       onClick={() => setActivePhaseIndex(idx)}
                       className={`group flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer transition border ${
                         isActive
-                          ? 'bg-[#0B57D0] text-white border-[#0B57D0] shadow-sm'
+                          ? 'bg-[#0F3D2E] text-white border-[#0F3D2E] shadow-sm'
                           : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                       }`}
                     >
@@ -1340,7 +1340,7 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
                   {!currentPhase?.layoutFile && !currentPhase?.existingLayoutUrl ? (
                     <div
                       onClick={() => layoutInputRef.current?.click()}
-                      className="border border-dashed border-blue-300 hover:border-blue-500 rounded-xl p-4 text-center cursor-pointer bg-white transition"
+                      className="border border-dashed border-[#C8DED5] hover:border-[#0F3D2E] rounded-xl p-4 text-center cursor-pointer bg-white transition"
                     >
                       <input
                         ref={layoutInputRef}
@@ -1348,7 +1348,7 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
                         onChange={handlePhaseLayoutFileSelect}
                         className="hidden"
                       />
-                      <div className="flex items-center justify-center gap-2 text-xs font-semibold text-blue-700">
+                      <div className="flex items-center justify-center gap-2 text-xs font-semibold text-[#0F3D2E]">
                         <Upload className="w-4 h-4" />
                         <span>Select Blueprint File for {currentPhase?.name || 'Phase'}</span>
                       </div>
@@ -1429,8 +1429,8 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
                       </div>
                     ))}
                     {newDocList.map((doc, idx) => (
-                      <div key={`new-doc-${idx}`} className="flex items-center justify-between px-3 py-2 bg-blue-50/60 rounded-lg border border-blue-200 text-xs">
-                        <span className="truncate text-blue-900 font-medium">{doc.name}</span>
+                      <div key={`new-doc-${idx}`} className="flex items-center justify-between px-3 py-2 bg-[#E2EDE8]/50 rounded-lg border border-[#C8DED5] text-xs">
+                        <span className="truncate text-[#0F3D2E] font-medium">{doc.name}</span>
                         <button
                           type="button"
                           onClick={() => handleRemoveNewDoc(idx)}
@@ -1449,7 +1449,7 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                  <Video className="w-4 h-4 text-[#0B57D0]" />
+                  <Video className="w-4 h-4 text-[#0F3D2E]" />
                   <span>15. Videos (Drone & Site Videos)</span>
                 </label>
                 <span className="text-[11px] text-slate-400">
@@ -1470,7 +1470,7 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
                     onChange={handleVideoSelect}
                     className="hidden"
                   />
-                  <Video className="w-4 h-4 text-[#0B57D0]" />
+                  <Video className="w-4 h-4 text-[#0F3D2E]" />
                   <span>Upload MP4 / WebM File</span>
                 </div>
 
@@ -1485,7 +1485,7 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
                   <button
                     type="button"
                     onClick={handleAddVideoUrl}
-                    className="px-4 py-2 bg-[#0B57D0] text-white text-xs font-bold rounded-xl hover:bg-blue-700"
+                    className="px-4 py-2 bg-[#0F3D2E] text-white text-xs font-bold rounded-xl hover:bg-[#16533D] transition"
                   >
                     Add
                   </button>
@@ -1546,7 +1546,7 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
                 type="button"
                 onClick={handleSubmit}
                 disabled={isSubmitting || !formData.name.trim()}
-                className="inline-flex items-center gap-2 px-6 py-2 bg-[#0B57D0] hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md transition"
+                className="inline-flex items-center gap-2 px-6 py-2 bg-[#0F3D2E] hover:bg-[#16533D] text-white font-bold text-xs rounded-xl shadow-md transition"
               >
                 {isSubmitting ? (
                   <>

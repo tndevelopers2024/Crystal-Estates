@@ -198,7 +198,7 @@ export default function ScheduleFollowUpModal({
                 <select
                   value={selectedLeadId}
                   onChange={(e) => setSelectedLeadId(e.target.value)}
-                  className="w-full appearance-none px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0B57D0] focus:bg-white cursor-pointer pr-8"
+                  className="w-full appearance-none px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white cursor-pointer pr-8"
                 >
                   {leads.map((l) => (
                     <option key={l.id} value={l.id}>
@@ -229,7 +229,7 @@ export default function ScheduleFollowUpModal({
                 <select
                   value={type}
                   onChange={(e) => setType(e.target.value)}
-                  className="w-full appearance-none px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0B57D0] focus:bg-white cursor-pointer pr-8"
+                  className="w-full appearance-none px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white cursor-pointer pr-8"
                 >
                   {FOLLOWUP_TYPES.map((t) => (
                     <option key={t} value={t}>
@@ -250,7 +250,7 @@ export default function ScheduleFollowUpModal({
                 <select
                   value={when}
                   onChange={(e) => setWhen(e.target.value)}
-                  className="w-full appearance-none px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0B57D0] focus:bg-white cursor-pointer pr-8"
+                  className="w-full appearance-none px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white cursor-pointer pr-8"
                 >
                   {TIME_OPTIONS.map((tm) => (
                     <option key={tm} value={tm}>
@@ -291,7 +291,7 @@ export default function ScheduleFollowUpModal({
                         e.currentTarget.showPicker?.()
                       } catch {}
                     }}
-                    className="custom-date-input w-full appearance-none px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0B57D0] focus:bg-white cursor-pointer pr-8"
+                    className="custom-date-input w-full appearance-none px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white cursor-pointer pr-8"
                     required
                   />
                   <Calendar className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-3 pointer-events-none" />
@@ -308,7 +308,7 @@ export default function ScheduleFollowUpModal({
                   <select
                     value={customTime}
                     onChange={(e) => setCustomTime(e.target.value)}
-                    className="w-full appearance-none px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0B57D0] focus:bg-white cursor-pointer pr-8"
+                    className="w-full appearance-none px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white cursor-pointer pr-8"
                   >
                     {CUSTOM_TIME_SLOTS.map((tm) => (
                       <option key={tm} value={tm}>
@@ -332,7 +332,7 @@ export default function ScheduleFollowUpModal({
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="Enter follow-up agenda or notes..."
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#0B57D0] focus:bg-white transition resize-none"
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#0F3D2E] focus:bg-white transition resize-none"
             />
           </div>
 
@@ -348,7 +348,7 @@ export default function ScheduleFollowUpModal({
             <button
               type="submit"
               disabled={submitting}
-              className="px-5 py-2 bg-[#0B57D0] hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-sm transition active:scale-[0.98] disabled:opacity-50"
+              className="px-5 py-2 bg-[#0F3D2E] hover:bg-[#16533D] text-white font-bold rounded-xl text-xs shadow-sm transition active:scale-[0.98] disabled:opacity-50"
             >
               {submitting ? 'Scheduling...' : 'Schedule'}
             </button>

@@ -96,7 +96,7 @@ export default function ForgotPasswordPage() {
       <div className="w-full max-w-md">
         {/* Brand Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#0B57D0] text-white shadow-md mb-3.5">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#0F3D2E] text-white shadow-md mb-3.5">
             <KeyRound className="w-7 h-7" />
           </div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
@@ -116,8 +116,8 @@ export default function ForgotPasswordPage() {
           )}
 
           {infoMessage && step === 'reset' && (
-            <div className="mb-5 p-3.5 bg-blue-50 border border-blue-200 text-[#0B57D0] text-xs rounded-xl font-medium animate-in fade-in flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-[#0B57D0] shrink-0" />
+            <div className="mb-5 p-3.5 bg-[#E2EDE8] border border-[#C8DED5] text-[#0F3D2E] text-xs rounded-xl font-medium animate-in fade-in flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-[#0F3D2E] shrink-0" />
               <span>{infoMessage}</span>
             </div>
           )}
@@ -141,7 +141,7 @@ export default function ForgotPasswordPage() {
                     placeholder="admin@crystalestates.in"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs placeholder:text-slate-400 focus:outline-none focus:border-[#0B57D0] focus:bg-white transition"
+                    className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs placeholder:text-slate-400 focus:outline-none focus:border-[#0F3D2E] focus:bg-white transition"
                   />
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                 </div>
@@ -150,7 +150,7 @@ export default function ForgotPasswordPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 px-4 bg-[#0B57D0] hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50 mt-4"
+                className="w-full py-3 px-4 bg-[#0F3D2E] hover:bg-[#16533D] text-white font-bold rounded-xl text-xs shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50 mt-4"
               >
                 <span>{loading ? 'Sending Code...' : 'Send Recovery Code'}</span>
                 {!loading && <ArrowRight className="w-4 h-4" />}
@@ -171,7 +171,7 @@ export default function ForgotPasswordPage() {
                   placeholder="e.g. 482910"
                   value={otp}
                   onChange={(e) => setOtp(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold tracking-widest text-slate-800 focus:outline-none focus:border-[#0B57D0] focus:bg-white transition"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold tracking-widest text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white transition"
                 />
               </div>
 
@@ -186,7 +186,7 @@ export default function ForgotPasswordPage() {
                     placeholder="Minimum 6 characters"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs placeholder:text-slate-400 focus:outline-none focus:border-[#0B57D0] focus:bg-white transition"
+                    className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs placeholder:text-slate-400 focus:outline-none focus:border-[#0F3D2E] focus:bg-white transition"
                   />
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                   <button
@@ -211,7 +211,7 @@ export default function ForgotPasswordPage() {
                     placeholder="Repeat new password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs placeholder:text-slate-400 focus:outline-none focus:border-[#0B57D0] focus:bg-white transition"
+                    className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs placeholder:text-slate-400 focus:outline-none focus:border-[#0F3D2E] focus:bg-white transition"
                   />
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                 </div>
@@ -220,7 +220,7 @@ export default function ForgotPasswordPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 px-4 bg-[#0B57D0] hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50 mt-4"
+                className="w-full py-3 px-4 bg-[#0F3D2E] hover:bg-[#16533D] text-white font-bold rounded-xl text-xs shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50 mt-4"
               >
                 <span>{loading ? 'Updating Password...' : 'Save New Password'}</span>
                 {!loading && <ArrowRight className="w-4 h-4" />}
@@ -243,7 +243,7 @@ export default function ForgotPasswordPage() {
               <button
                 type="button"
                 onClick={() => navigate('/login')}
-                className="w-full py-3 px-4 bg-[#0B57D0] hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-sm transition"
+                className="w-full py-3 px-4 bg-[#0F3D2E] hover:bg-[#16533D] text-white font-bold rounded-xl text-xs shadow-sm transition"
               >
                 Sign In Now
               </button>
@@ -254,7 +254,7 @@ export default function ForgotPasswordPage() {
           <div className="mt-6 pt-5 border-t border-slate-100 text-center">
             <Link
               to="/login"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-[#0B57D0] transition"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-[#0F3D2E] transition"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Back to Sign In</span>

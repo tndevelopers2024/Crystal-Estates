@@ -1,8 +1,13 @@
 import React from 'react'
+import Image from 'next/image'
+import Link from 'next/link'
 import {
   CheckCircle2,
+  ArrowUpRight,
+  ShieldCheck,
+  Building2,
+  Compass,
 } from 'lucide-react'
-import { PageHero, Section, Badge } from '../../components/ui'
 import EnquiryForm from '../../components/forms/EnquiryForm'
 import TestimonialsSection from '../../components/TestimonialsSection'
 
@@ -31,6 +36,7 @@ const serviceBlocks = [
   {
     id: 'direct-sales',
     badge: 'Core Competency',
+    serviceNum: 'SERVICE 01',
     title: 'Direct Land Sales',
     subtitle: 'DTCP / CMDA Approved Plotted Layouts & Managed Sandalwood Farmland',
     description:
@@ -51,6 +57,7 @@ const serviceBlocks = [
   {
     id: 'purchase-resale',
     badge: 'Owner & Investor Solutions',
+    serviceNum: 'SERVICE 02',
     title: 'Land Purchase & Resale',
     subtitle: 'Strategic Land Acquisition, Valuation Assessment & Structured Resale',
     description:
@@ -71,6 +78,7 @@ const serviceBlocks = [
   {
     id: 'brokerage-advisory',
     badge: 'Ethical Intermediation',
+    serviceNum: 'SERVICE 03',
     title: 'Land Brokerage & Title Advisory',
     subtitle: 'Transparent Brokerage, Boundary Survey Verification & Sub-Registrar Support',
     description:
@@ -92,132 +100,154 @@ const serviceBlocks = [
 
 export default function ServicesPage() {
   return (
-    <main>
-      <PageHero
-        title="Land & Plot Services"
-        subtitle="ASSETS CREATOR — Specialized land solutions across Chennai: Direct developer plot sales, land purchase & resale, and transparent land brokerage."
-        breadcrumb={[
-          { label: 'Home', href: '/' },
-          { label: 'Services' },
-        ]}
-      />
+    <main className="services-page-wrapper">
+      {/* 1. Hero Section matching About Us Minimalist Structure */}
+      <section className="services-hero-section">
+        <div className="services-hero-container">
+          {/* Breadcrumb Navigation */}
+          <nav aria-label="Breadcrumb" className="services-hero__breadcrumb">
+            <Link href="/">Home</Link>
+            <span className="services-hero__breadcrumb-sep">/</span>
+            <span className="services-hero__breadcrumb-current">Services</span>
+          </nav>
 
-      {/* 3 Detailed Service Blocks */}
-      <Section>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '64px' }}>
-          {serviceBlocks.map((svc, sIdx) => (
-            <div
-              key={svc.id}
-              id={svc.id}
-              style={{
-                background: '#ffffff',
-                borderRadius: '20px',
-                border: '1.5px solid rgba(227, 221, 209, 0.9)',
-                padding: 'clamp(28px, 4vw, 48px)',
-                boxShadow: 'var(--shadow-sm)',
-              }}
-            >
-              {/* Header */}
-              <div style={{ marginBottom: '24px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-                  <Badge tone={sIdx === 0 ? 'gold' : 'primary'}>{svc.badge}</Badge>
-                  <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--muted)' }}>
-                    SERVICE 0{sIdx + 1}
-                  </span>
-                </div>
-                <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(26px, 3.5vw, 36px)', color: 'var(--green-900)', margin: '0 0 6px 0' }}>
-                  {svc.title}
-                </h2>
-                <p style={{ fontSize: '16px', fontWeight: '600', color: 'var(--gold-hover)', marginBottom: '14px' }}>
-                  {svc.subtitle}
-                </p>
-                <p style={{ fontSize: '15.5px', color: 'var(--ink-2)', lineHeight: '1.7', maxWidth: '880px', margin: 0 }}>
-                  {svc.description}
-                </p>
-              </div>
+          {/* Heading & Subtitle */}
+          <div className="services-hero__header">
+            <span className="services-hero__badge">
+              OUR SERVICES
+            </span>
+            <h1 className="services-hero__title">
+              Land &amp; Plot Services
+            </h1>
+            <p className="services-hero__subtitle">
+              ASSETS CREATOR — Specialized land solutions across Chennai: Direct developer plot sales, land purchase &amp; resale, and transparent land brokerage.
+            </p>
+            <a href="#consultation" className="services-hero__cta">
+              <span>Book a Consultation</span>
+              <span className="services-hero__cta-arrow" aria-hidden="true">
+                <ArrowUpRight size={16} />
+              </span>
+            </a>
+          </div>
 
-              {/* How It Works Steps Grid */}
-              <div style={{ marginBottom: '32px', paddingTop: '20px', borderTop: '1px solid var(--line)' }}>
-                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '19px', color: 'var(--green-900)', marginBottom: '18px' }}>
-                  How It Works — Step-by-Step
-                </h3>
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-                    gap: '20px',
-                  }}
-                >
-                  {svc.howItWorks.map((st) => (
-                    <div
-                      key={st.step}
-                      style={{
-                        background: 'var(--bg-soft)',
-                        borderRadius: '12px',
-                        padding: '18px',
-                        border: '1px solid rgba(227, 221, 209, 0.7)',
-                      }}
-                    >
-                      <div style={{ fontSize: '18px', fontWeight: '800', color: 'var(--gold)', marginBottom: '6px' }}>
-                        {st.step}
-                      </div>
-                      <h4 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--green-900)', marginBottom: '6px' }}>
-                        {st.title}
-                      </h4>
-                      <p style={{ fontSize: '13px', color: 'var(--muted)', lineHeight: '1.55', margin: 0 }}>
-                        {st.desc}
-                      </p>
+          {/* Wide Hero Image matching About Us architectural banner */}
+          <div className="services-hero__image-wrap">
+            <Image
+              src="/images/hero-estate.jpg"
+              alt="Crystal Estates Land & Property Services"
+              fill
+              priority
+              sizes="(max-width: 768px) 100vw, 1360px"
+              className="services-hero__image"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* 2. Structured Service Blocks with Alternating White / Warm Backgrounds */}
+      {serviceBlocks.map((svc, idx) => {
+        const isWhiteBg = idx % 2 === 0
+        return (
+          <section
+            key={svc.id}
+            id={svc.id}
+            className={`services-block-section ${isWhiteBg ? 'services-block-section--white' : 'services-block-section--warm'}`}
+          >
+            <div className="services-block-container">
+              <div className="services-block-grid">
+                {/* Left Column: Service Details & Key Benefits */}
+                <div className="services-block-left">
+                  <div className="services-block__header-tag">
+                    <span className="services-block__badge">
+                      {svc.badge}
+                    </span>
+                    <span className="services-block__num">
+                      {svc.serviceNum}
+                    </span>
+                  </div>
+
+                  <h2 className="services-block__title">
+                    {svc.title}
+                  </h2>
+
+                  <p className="services-block__subtitle">
+                    {svc.subtitle}
+                  </p>
+
+                  <p className="services-block__desc">
+                    {svc.description}
+                  </p>
+
+                  {/* Grounded Benefits Box */}
+                  <div className="services-benefits-box">
+                    <h4 className="services-benefits-box__title">
+                      Key Benefits &amp; Guarantees:
+                    </h4>
+                    <div className="services-benefits-grid">
+                      {svc.benefits.map((b, bIdx) => (
+                        <div key={bIdx} className="services-benefit-item">
+                          <CheckCircle2 size={16} className="services-benefit-icon" />
+                          <span>{b}</span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  </div>
                 </div>
-              </div>
 
-              {/* Benefits Checklist */}
-              <div
-                style={{
-                  background: 'var(--green-50)',
-                  borderRadius: '14px',
-                  padding: '24px',
-                  border: '1px solid var(--green-100)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '16px',
-                }}
-              >
-                <h4 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--green-900)', margin: 0 }}>
-                  Key Benefits &amp; Guarantees:
-                </h4>
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-                    gap: '10px',
-                  }}
-                >
-                  {svc.benefits.map((b, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '14px', color: 'var(--ink)' }}>
-                      <CheckCircle2 size={16} color="var(--green-600)" style={{ flexShrink: 0, marginTop: '3px' }} />
-                      <span>{b}</span>
+                {/* Right Column: Step-by-Step Structured Cards */}
+                <div className="services-block-right">
+                  <div className="services-steps-card">
+                    <h3 className="services-steps-card__heading">
+                      How It Works — Step-by-Step
+                    </h3>
+                    <div className="services-steps-grid">
+                      {svc.howItWorks.map((st) => (
+                        <div key={st.step} className="services-step-item">
+                          <div className="services-step-item__number">
+                            {st.step}
+                          </div>
+                          <h4 className="services-step-item__title">
+                            {st.title}
+                          </h4>
+                          <p className="services-step-item__desc">
+                            {st.desc}
+                          </p>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  </div>
                 </div>
               </div>
             </div>
-          ))}
-        </div>
-      </Section>
+          </section>
+        )
+      })}
 
-      {/* Reusable EnquiryForm */}
-      <Section title="Consult with a Land Specialist" subtitle="Tell us your requirements and our land advisors will assist you promptly" center>
-        <div style={{ maxWidth: '680px', margin: '0 auto' }}>
-          <EnquiryForm
-            title="Book a Free Consultation"
-            subtitle="Explore available plots, request document copies, or enquire about selling land."
-          />
-        </div>
-      </Section>
+      {/* 3. Reusable Consultation Section on Warm Background */}
+      <section id="consultation" className="services-consultation-section">
+        <div className="services-consultation-container">
+          <div className="services-consultation-header">
+            <span className="services-consultation-badge">
+              FREE CONSULTATION
+            </span>
+            <h2 className="services-consultation-title">
+              Consult with a Land Specialist
+            </h2>
+            <p className="services-consultation-subtitle">
+              Tell us your requirements and our land advisors will assist you promptly with title copies, site visit bookings, or valuation.
+            </p>
+          </div>
 
-      {/* Testimonials placed directly above Footer */}
+          <div className="services-consultation-form-wrap">
+            <EnquiryForm
+              title="Book a Free Consultation"
+              subtitle="Explore available plots, request document copies, or enquire about selling land."
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* 4. Testimonials placed directly above Footer */}
       <TestimonialsSection
         title="Landowner Confidence"
         subtitle="See why over 500+ landowners trust Crystal Estates for clear-titled land acquisition in Chennai."

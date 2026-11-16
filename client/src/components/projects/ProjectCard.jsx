@@ -3,16 +3,13 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { MapPin, ArrowRight, ShieldCheck, Ruler } from 'lucide-react'
-import { Button } from '../ui'
+import { MapPin, ArrowUpRight, ShieldCheck, Ruler, IndianRupee, Layers } from 'lucide-react'
 import { formatPrice } from '../../lib/api'
 
 /**
- * Reusable ProjectCard Component (Plot UI)
- * Clean image display with zero overlay on the image.
- * Fully responsive across all devices from 320px to 1920px.
- * @param {object} project
- * @param {string} [className=""]
+ * Modern News-Style ProjectCard Component
+ * Delivers an editorial, premium presentation matching the redesigned News & Featured Projects UI.
+ * Fully responsive across all devices (320px to 1920px).
  */
 export function ProjectCard({ project, className = '' }) {
   if (!project) return null
@@ -34,7 +31,6 @@ export function ProjectCard({ project, className = '' }) {
 
   const handleImageError = () => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
-    // If it was a relative path starting with /images/plots/, try fetching directly from API server
     if (imgSrc && typeof imgSrc === 'string' && imgSrc.startsWith('/images/plots/') && !imgSrc.startsWith('http')) {
       const fullUrl = `${apiUrl.replace(/\/$/, '')}${imgSrc}`
       if (imgSrc !== fullUrl) {
@@ -42,7 +38,6 @@ export function ProjectCard({ project, className = '' }) {
         return
       }
     }
-    // Specific project fallback before generic hero-estate
     const slugImage = project?.slug ? `/images/${project.slug}.jpg` : null
     if (slugImage && imgSrc !== slugImage && imgSrc !== fallbackImage) {
       setImgSrc(slugImage)
@@ -52,17 +47,19 @@ export function ProjectCard({ project, className = '' }) {
   }
 
   const projectSlug = project.slug || project.id || project.projectId
+  const projectUrl = `/projects/${projectSlug}`
 
   // Format Area display
   const areaDisplay = (() => {
-    if (project.totalLandArea) return String(project.totalLandArea)
-    if (project.availableArea) return String(project.availableArea)
+    const sanitize = (val) => String(val || '').replace(/\.{2,}/g, ' ').replace(/\s+/g, ' ').trim()
+    if (project.totalLandArea) return sanitize(project.totalLandArea)
+    if (project.availableArea) return sanitize(project.availableArea)
     if (typeof project.area === 'number') return `${project.area.toLocaleString('en-IN')} ${project.unit || 'sq.ft'}`
     if (typeof project.area === 'string' && project.area.trim()) {
       const num = Number(project.area)
-      return !isNaN(num) ? `${num.toLocaleString('en-IN')} ${project.unit || 'sq.ft'}` : project.area
+      return !isNaN(num) ? `${num.toLocaleString('en-IN')} ${project.unit || 'sq.ft'}` : sanitize(project.area)
     }
-    if (project.plotSizes) return project.plotSizes
+    if (project.plotSizes) return sanitize(project.plotSizes)
     return 'Individual Plots'
   })()
 
@@ -82,7 +79,8 @@ export function ProjectCard({ project, className = '' }) {
 
   const propType = project.propertyType || project.type || 'Residential Plot'
   const propStatus = project.status || project.badge || 'Available'
-  const propTitle = project.name || project.projectName || 'Crystal Estates Property'
+  const rawTitle = project.name || project.projectName || 'Crystal Estates Property'
+  const propTitle = rawTitle.replace(/_/g, ' ').trim()
 
   const statusStr = String(propStatus || '').trim().toLowerCase()
   const isSoldOut =
@@ -90,97 +88,118 @@ export function ProjectCard({ project, className = '' }) {
     statusStr === 'sold out' ||
     statusStr === 'soldout' ||
     Boolean(project.isSoldOut) ||
-    (typeof project.availablePlots === 'number' && project.availablePlots === 0 && (project.totalPlots > 0 || (Array.isArray(project.plots) && project.plots.length > 0)))
+    (typeof project.availablePlots === 'number' &&
+      project.availablePlots === 0 &&
+      (project.totalPlots > 0 || (Array.isArray(project.plots) && project.plots.length > 0)))
+
+  // Description / Narrative
+  const description =
+    project.description ||
+    project.shortDescription ||
+    project.overview ||
+    project.tagline ||
+    `Clear-titled ${propType.toLowerCase()} opportunity in ${locationDisplay} featuring complete legal scrutiny, DTCP/CMDA compliance, and direct road connectivity.`
+
+  const totalPlots = project.totalPlots || (Array.isArray(project.plots) ? project.plots.length : 0)
+  const approval = project.approval || project.approvalStatus || '100% Clear Title Patta'
 
   return (
-    <article className={`project-card ${isFlagship ? 'project-card--flagship' : ''} ${className}`.trim()}>
-      {/* 1. Pure Clean Image Container (No overlays, no text, no badges on the image) */}
-      <div className="project-card__image-wrap">
-        <Image
-          src={imgSrc}
-          alt={propTitle}
-          fill
-          unoptimized
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-          className="project-card__image"
-          loading="lazy"
-          onError={handleImageError}
-        />
-      </div>
+    <article className={`news-project-card ${isFlagship ? 'news-project-card--flagship' : ''} ${className}`.trim()}>
+      <Link href={projectUrl} className="news-project-card__link" aria-label={`View ${propTitle}`}>
+        {/* 1. News-Style Rounded Image Container */}
+        <div className="news-project-card__image-box">
+          <Image
+            src={imgSrc}
+            alt={propTitle}
+            fill
+            unoptimized
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            className="news-project-card__image"
+            loading="lazy"
+            onError={handleImageError}
+          />
+          <div className="news-project-card__image-gradient" />
 
-      {/* 2. Structured Content Body */}
-      <div className="project-card__body">
-        {/* Meta Bar: Location & Status / Type */}
-        <div className="project-card__meta-bar">
-          <div className="project-card__location" title={locationDisplay}>
-            <MapPin size={14} className="project-card__location-icon" />
-            <span>{locationDisplay}</span>
-          </div>
+          {/* Top Badges */}
+          <div className="news-project-card__badges-row">
+            <span className="news-project-card__type-badge">
+              {propType}
+            </span>
 
-          <div className="project-card__badges-wrap">
-            {propType && (
-              <span className="project-card__type-pill">
-                {propType}
-              </span>
-            )}
-            {propStatus && (
-              <span className={`project-card__status-pill project-card__status-pill--${propStatus.toLowerCase().replace(/\s+/g, '-')}`}>
-                {propStatus}
-              </span>
-            )}
+            <span className={`news-project-card__status-badge ${isSoldOut ? 'is-soldout' : 'is-available'}`}>
+              <span className="news-project-card__status-dot" />
+              <span>{isSoldOut ? 'Sold Out' : propStatus}</span>
+            </span>
           </div>
         </div>
 
-        {/* Title */}
-        <h3 className="project-card__title">
-          <Link href={`/projects/${projectSlug}`}>
+        {/* 2. Structured Editorial Content Body */}
+        <div className="news-project-card__content">
+          {/* Location & Approval Meta */}
+          <div className="news-project-card__meta-row">
+            <div className="news-project-card__location" title={locationDisplay}>
+              <MapPin size={14} className="news-project-card__meta-icon" />
+              <span>{locationDisplay}</span>
+            </div>
+
+            <div className="news-project-card__approval" title={approval}>
+              <ShieldCheck size={14} className="news-project-card__meta-icon" />
+              <span>{approval}</span>
+            </div>
+          </div>
+
+          {/* Project Title */}
+          <h3 className="news-project-card__title">
             {propTitle}
-          </Link>
-        </h3>
+          </h3>
 
-        {/* Key Specs Box: Size / Extent & Price */}
-        <div className="project-card__meta-grid">
-          <div className="project-card__meta-item">
-            <span className="project-card__meta-label">
-              <Ruler size={13} /> Size / Extent
-            </span>
-            <span className="project-card__meta-value">
-              {areaDisplay}
-            </span>
+          {/* Project Description (News-Style Excerpt) */}
+          <p className="news-project-card__excerpt">
+            {description}
+          </p>
+
+          {/* Specs Bar (Extent, Price & Plots) */}
+          <div className="news-project-card__specs-grid">
+            <div className="news-project-card__spec-item">
+              <span className="news-project-card__spec-label">
+                <Ruler size={12} />
+                <span>Size / Extent</span>
+              </span>
+              <strong className="news-project-card__spec-value">{areaDisplay}</strong>
+            </div>
+
+            <div className="news-project-card__spec-item">
+              <span className="news-project-card__spec-label">
+                <IndianRupee size={12} />
+                <span>Price</span>
+              </span>
+              <strong className="news-project-card__spec-value news-project-card__spec-value--price">
+                {priceDisplay}
+              </strong>
+            </div>
+
+            {totalPlots > 0 && (
+              <div className="news-project-card__spec-item">
+                <span className="news-project-card__spec-label">
+                  <Layers size={12} />
+                  <span>Layout</span>
+                </span>
+                <strong className="news-project-card__spec-value">{totalPlots} Plots</strong>
+              </div>
+            )}
           </div>
 
-          <div className="project-card__meta-item">
-            <span className="project-card__meta-label">Price</span>
-            <span className="project-card__meta-value project-card__meta-value--price">
-              {priceDisplay}
+          {/* Action Footer */}
+          <div className="news-project-card__footer">
+            <span className="news-project-card__cta-text">
+              {isSoldOut ? 'View Project Archive' : 'Explore Project'}
             </span>
+            <div className="news-project-card__cta-btn" aria-hidden="true">
+              <ArrowUpRight size={16} />
+            </div>
           </div>
         </div>
-
-        {/* Card Footer: Legal Patta tag & CTA */}
-        <div className="project-card__footer">
-          <div className="project-card__legal-tag">
-            <ShieldCheck size={15} />
-            <span>{project.approval || project.approvalStatus || '100% Clear Title Patta'}</span>
-          </div>
-
-          {isSoldOut ? (
-            <Button
-              href={`/projects/${projectSlug}`}
-              variant="outline"
-              size="sm"
-              className="project-card__cta project-card__cta--soldout"
-            >
-              <span>Sold Out</span>
-            </Button>
-          ) : (
-            <Button href={`/projects/${projectSlug}`} variant="outline" size="sm" className="project-card__cta">
-              <span>View Details</span>
-              <ArrowRight size={14} />
-            </Button>
-          )}
-        </div>
-      </div>
+      </Link>
     </article>
   )
 }

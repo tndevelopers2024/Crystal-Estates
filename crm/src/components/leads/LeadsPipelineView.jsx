@@ -192,7 +192,7 @@ export default function LeadsPipelineView({
                 onClick={() => setSelectedSource(src)}
                 className={`px-3 py-1.5 rounded-xl whitespace-nowrap transition-all ${
                   isActive
-                    ? 'bg-blue-50 text-[#0B57D0] font-bold border border-blue-200 shadow-2xs'
+                    ? 'bg-[#E2EDE8] text-[#0F3D2E] font-bold border border-[#C8DED5] shadow-2xs'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
               >
@@ -207,7 +207,7 @@ export default function LeadsPipelineView({
           <select
             value={selectedAgent}
             onChange={(e) => setSelectedAgent(e.target.value)}
-            className="appearance-none bg-white border border-slate-200 text-slate-700 text-xs font-semibold px-3 py-1.5 pr-8 rounded-xl shadow-2xs focus:outline-none focus:border-[#0B57D0] cursor-pointer"
+            className="appearance-none bg-white border border-slate-200 text-slate-700 text-xs font-semibold px-3 py-1.5 pr-8 rounded-xl shadow-2xs focus:outline-none focus:border-[#0F3D2E] cursor-pointer"
           >
             {dynamicAgentList.map((ag) => (
               <option key={ag} value={ag}>

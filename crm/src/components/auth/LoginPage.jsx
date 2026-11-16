@@ -64,12 +64,12 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Brand Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#0B57D0] text-white shadow-md mb-3.5">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#0F3D2E] text-white shadow-md mb-3.5">
             <Building2 className="w-7 h-7" />
           </div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center justify-center gap-2">
             <span>Crystal Estates</span>
-            <span className="text-[11px] font-bold bg-[#0B57D0] text-white px-2 py-0.5 rounded tracking-wider uppercase">
+            <span className="text-[11px] font-bold bg-[#B8964E] text-white px-2 py-0.5 rounded tracking-wider uppercase">
               CRM
             </span>
           </h1>
@@ -100,7 +100,7 @@ export default function LoginPage() {
                   placeholder="admin@crystalestates.in"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs placeholder:text-slate-400 focus:outline-none focus:border-[#0B57D0] focus:bg-white transition"
+                  className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs placeholder:text-slate-400 focus:outline-none focus:border-[#0F3D2E] focus:bg-white transition"
                 />
                 <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
               </div>
@@ -114,7 +114,7 @@ export default function LoginPage() {
                 </label>
                 <Link
                   to="/forgot-password"
-                  className="text-xs font-semibold text-[#0B57D0] hover:text-blue-700 hover:underline transition"
+                  className="text-xs font-semibold text-[#0F3D2E] hover:text-[#B8964E] hover:underline transition"
                 >
                   Forgot password?
                 </Link>
@@ -127,7 +127,7 @@ export default function LoginPage() {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs placeholder:text-slate-400 focus:outline-none focus:border-[#0B57D0] focus:bg-white transition"
+                  className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs placeholder:text-slate-400 focus:outline-none focus:border-[#0F3D2E] focus:bg-white transition"
                 />
                 <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                 <button
@@ -153,7 +153,7 @@ export default function LoginPage() {
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded border-slate-300 text-[#0B57D0] focus:ring-[#0B57D0]"
+                  className="w-4 h-4 rounded border-slate-300 text-[#0F3D2E] focus:ring-[#0F3D2E]"
                 />
                 <span>Remember me on this browser</span>
               </label>
@@ -163,7 +163,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 px-4 bg-[#0B57D0] hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50 mt-2"
+              className="w-full py-3 px-4 bg-[#0F3D2E] hover:bg-[#16533D] text-white font-bold rounded-xl text-xs shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50 mt-2"
             >
               <span>{loading ? 'Signing In...' : 'Sign In to Workspace'}</span>
               {!loading && <ArrowRight className="w-4 h-4" />}
@@ -178,7 +178,7 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={fillDemoCredentials}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100/70 text-[#0B57D0] border border-blue-200/60 rounded-xl text-xs font-semibold transition"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#E2EDE8] hover:bg-[#d1e4dc] text-[#0F3D2E] border border-[#C8DED5] rounded-xl text-xs font-semibold transition"
             >
               <Sparkles className="w-3.5 h-3.5" />
               <span>Fill Admin: admin@crystalestates.in</span>

@@ -1,16 +1,23 @@
 'use client'
 
 import React, { useState, useEffect, useMemo } from 'react'
-import { Filter, Search, RotateCcw } from 'lucide-react'
-import { Container, Section } from '../ui'
+import { Filter, Search, RotateCcw, MapPin, IndianRupee, Tag, CheckCircle2 } from 'lucide-react'
 import { ProjectGrid } from './ProjectGrid'
-import { fetchPlots, normalizePlot } from '../../lib/api'
+import { normalizePlot } from '../../lib/api'
+
+const categoryTabs = [
+  { label: 'All Land Assets', value: 'All' },
+  { label: 'Residential Plots', value: 'Residential' },
+  { label: 'Agricultural & Farm Land', value: 'Agricultural' },
+  { label: 'Bulk Land & Investment', value: 'Bulk land' },
+]
 
 const initialFilterState = {
   type: 'All',
   location: '',
   priceRange: 'all',
   availability: 'all',
+  searchQuery: '',
 }
 
 export default function ProjectsClientView({ initialProjects = null }) {
@@ -51,6 +58,10 @@ export default function ProjectsClientView({ initialProjects = null }) {
     setFilters((prev) => ({ ...prev, [field]: e.target.value }))
   }
 
+  const handleCategorySelect = (value) => {
+    setFilters((prev) => ({ ...prev, type: value }))
+  }
+
   const handleResetFilters = () => {
     setFilters(initialFilterState)
   }
@@ -70,6 +81,27 @@ export default function ProjectsClientView({ initialProjects = null }) {
   // Filter computation
   const filteredProjects = useMemo(() => {
     return dbProjects.filter((proj) => {
+      // 0. Search Query
+      if (filters.searchQuery.trim()) {
+        const query = filters.searchQuery.toLowerCase().trim()
+        const searchable = [
+          proj.name,
+          proj.projectName,
+          proj.location,
+          proj.district,
+          proj.taluk,
+          proj.village,
+          proj.propertyType,
+          proj.type,
+          proj.approval,
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+
+        if (!searchable.includes(query)) return false
+      }
+
       // 1. Type
       if (filters.type !== 'All') {
         const pType = (proj.propertyType || proj.type || '').toLowerCase()
@@ -118,60 +150,67 @@ export default function ProjectsClientView({ initialProjects = null }) {
     })
   }, [dbProjects, filters])
 
+  const hasActiveFilters =
+    filters.type !== 'All' ||
+    Boolean(filters.location) ||
+    filters.priceRange !== 'all' ||
+    filters.availability !== 'all' ||
+    Boolean(filters.searchQuery.trim())
+
   return (
-    <Section variant="light" className="projects-catalog">
-      <Container>
-        {/* Filter Bar Component */}
-        <div className="projects-filter-bar">
-          <div className="projects-filter-bar__header">
-            <div className="projects-filter-bar__title">
-              <Filter size={18} />
-              <span>Filter Land &amp; Plots</span>
-            </div>
+    <section className="modern-projects-section" aria-label="Projects Catalog">
+      <div className="modern-projects-container">
+        {/* Category Tabs (News-Style Filter Pills) */}
+        <div className="modern-projects-tabs" role="tablist" aria-label="Land Categories">
+          {categoryTabs.map((tab) => {
+            const isActive = filters.type === tab.value
+            return (
+              <button
+                key={tab.value}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                onClick={() => handleCategorySelect(tab.value)}
+                className={`modern-projects-tab ${isActive ? 'is-active' : ''}`}
+              >
+                <span className="modern-projects-tab__dot" />
+                <span>{tab.label}</span>
+              </button>
+            )
+          })}
+        </div>
 
-            <button
-              type="button"
-              onClick={handleResetFilters}
-              className="projects-filter-bar__reset"
-              aria-label="Reset all filters"
-            >
-              <RotateCcw size={13} />
-              <span>Reset Filters</span>
-            </button>
-          </div>
-
-          <div className="projects-filter-bar__grid">
-            {/* Filter 1: Type */}
-            <div className="filter-field">
-              <label htmlFor="filter-type">Land Type</label>
-              <div className="filter-select-wrap">
-                <select
-                  id="filter-type"
-                  value={filters.type}
-                  onChange={handleFilterChange('type')}
-                  aria-label="Filter by Land Type"
-                  className="filter-select"
-                >
-                  <option value="All">All Categories</option>
-                  <option value="Residential">Residential Plots</option>
-                  <option value="Agricultural">Agricultural &amp; Farm Land</option>
-                  <option value="Bulk land">Bulk Land</option>
-                </select>
+        {/* Filter Control Console */}
+        <div className="modern-projects-filter-box">
+          <div className="modern-projects-filter-grid">
+            {/* Search Input */}
+            <div className="modern-filter-field modern-filter-field--search">
+              <label htmlFor="filter-search">Search Projects</label>
+              <div className="modern-filter-input-wrap">
+                <Search size={16} className="modern-filter-icon" />
+                <input
+                  id="filter-search"
+                  type="text"
+                  placeholder="Search by project name or area..."
+                  value={filters.searchQuery}
+                  onChange={handleFilterChange('searchQuery')}
+                  className="modern-filter-input"
+                />
               </div>
             </div>
 
-            {/* Filter 2: Location */}
-            <div className="filter-field">
-              <label htmlFor="filter-location">Location</label>
-              <div className="filter-select-wrap">
+            {/* Location Corridor */}
+            <div className="modern-filter-field">
+              <label htmlFor="filter-location">Location Corridor</label>
+              <div className="modern-filter-select-wrap">
+                <MapPin size={15} className="modern-filter-icon" />
                 <select
                   id="filter-location"
                   value={filters.location}
                   onChange={handleFilterChange('location')}
-                  aria-label="Filter by Location"
-                  className="filter-select"
+                  className="modern-filter-select"
                 >
-                  <option value="">All Chennai Locations</option>
+                  <option value="">All Chennai Corridors</option>
                   {locationOptions.map((loc) => (
                     <option key={loc} value={loc}>
                       {loc}
@@ -181,16 +220,16 @@ export default function ProjectsClientView({ initialProjects = null }) {
               </div>
             </div>
 
-            {/* Filter 3: Price Range */}
-            <div className="filter-field">
+            {/* Budget Range */}
+            <div className="modern-filter-field">
               <label htmlFor="filter-price">Budget Range</label>
-              <div className="filter-select-wrap">
+              <div className="modern-filter-select-wrap">
+                <IndianRupee size={15} className="modern-filter-icon" />
                 <select
                   id="filter-price"
                   value={filters.priceRange}
                   onChange={handleFilterChange('priceRange')}
-                  aria-label="Filter by Price Range"
-                  className="filter-select"
+                  className="modern-filter-select"
                 >
                   <option value="all">Any Price</option>
                   <option value="under-50l">Under ₹ 50 Lakhs</option>
@@ -200,16 +239,16 @@ export default function ProjectsClientView({ initialProjects = null }) {
               </div>
             </div>
 
-            {/* Filter 4: Availability */}
-            <div className="filter-field">
-              <label htmlFor="filter-availability">Availability Status</label>
-              <div className="filter-select-wrap">
+            {/* Availability Status */}
+            <div className="modern-filter-field">
+              <label htmlFor="filter-availability">Availability</label>
+              <div className="modern-filter-select-wrap">
+                <Tag size={15} className="modern-filter-icon" />
                 <select
                   id="filter-availability"
                   value={filters.availability}
                   onChange={handleFilterChange('availability')}
-                  aria-label="Filter by Availability Status"
-                  className="filter-select"
+                  className="modern-filter-select"
                 >
                   <option value="all">All Statuses</option>
                   <option value="Available">Available</option>
@@ -221,22 +260,28 @@ export default function ProjectsClientView({ initialProjects = null }) {
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Results Count Summary */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: '24px',
-            fontSize: '14px',
-            color: 'var(--muted)',
-          }}
-        >
-          <span>
-            Showing <strong>{filteredProjects.length}</strong> land projects
-          </span>
+          {/* Active Status Bar */}
+          <div className="modern-projects-filter-bar-footer">
+            <div className="modern-projects-count">
+              <CheckCircle2 size={16} className="modern-projects-count-icon" />
+              <span>
+                Showing <strong>{filteredProjects.length}</strong> verified land projects
+              </span>
+            </div>
+
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={handleResetFilters}
+                className="modern-projects-reset-btn"
+                aria-label="Reset all filters"
+              >
+                <RotateCcw size={13} />
+                <span>Reset All Filters</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* ProjectGrid with pagination, empty state, and loading skeletons */}
@@ -246,9 +291,9 @@ export default function ProjectsClientView({ initialProjects = null }) {
           emptyMessage="No land projects match your selected filters. Try broadening your location or budget."
           onReset={handleResetFilters}
           initialCount={9}
-          pageSize={9}
+          pageSize={6}
         />
-      </Container>
-    </Section>
+      </div>
+    </section>
   )
 }

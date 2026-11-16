@@ -6,7 +6,7 @@ import { getClientUrl } from '../../lib/api'
 const STATUS_STYLES = {
   'Available': { dot: 'bg-emerald-500', text: 'text-emerald-800' },
   'Booking Open': { dot: 'bg-emerald-500', text: 'text-emerald-800' },
-  'Registration Ready': { dot: 'bg-blue-500', text: 'text-blue-800' },
+  'Registration Ready': { dot: 'bg-emerald-600', text: 'text-emerald-900' },
   'Ready to Construct': { dot: 'bg-teal-500', text: 'text-teal-800' },
   'Phase 1 Handover': { dot: 'bg-indigo-500', text: 'text-indigo-800' },
   'Pre-launch Phase 1': { dot: 'bg-purple-500', text: 'text-purple-800' },
@@ -22,7 +22,7 @@ export default function PropertyCard({ property, onEdit, onDelete, onAddPlot }) 
   // Status badge config
   const statusKey = property.badge || property.status || 'Available'
   const statusCfg = STATUS_STYLES[statusKey] || {
-    dot: 'bg-blue-500',
+    dot: 'bg-[#0F3D2E]',
     text: 'text-slate-800',
   }
 
@@ -104,7 +104,7 @@ export default function PropertyCard({ property, onEdit, onDelete, onAddPlot }) 
               href={targetLayoutLink}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#0B57D0]/90 hover:bg-[#0B57D0] text-white text-[10px] font-bold shadow-md backdrop-blur-md transition"
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#0F3D2E]/90 hover:bg-[#0F3D2E] text-white text-[10px] font-bold shadow-md backdrop-blur-md transition"
               title="Open Layout Blueprint"
             >
               <FileCode2 className="w-3.5 h-3.5" />
@@ -136,7 +136,7 @@ export default function PropertyCard({ property, onEdit, onDelete, onAddPlot }) 
             <button
               type="button"
               onClick={() => onEdit(property)}
-              className="py-1 px-2.5 rounded-lg bg-white/95 text-[#0B57D0] hover:bg-white text-xs shadow-md font-bold flex items-center gap-1 transition"
+              className="py-1 px-2.5 rounded-lg bg-white/95 text-[#0F3D2E] hover:bg-white text-xs shadow-md font-bold flex items-center gap-1 transition"
               title="Edit Property"
             >
               <Edit2 className="w-3.5 h-3.5" />
@@ -161,7 +161,7 @@ export default function PropertyCard({ property, onEdit, onDelete, onAddPlot }) 
       <div className="p-5 flex-1 flex flex-col justify-between">
         <div>
           {/* Property Name */}
-          <h3 className="text-base font-bold text-slate-900 leading-snug tracking-tight line-clamp-1 group-hover:text-[#0B57D0] transition-colors">
+          <h3 className="text-base font-bold text-slate-900 leading-snug tracking-tight line-clamp-1 group-hover:text-[#0F3D2E] transition-colors">
             {property.name}
           </h3>
 
@@ -176,7 +176,7 @@ export default function PropertyCard({ property, onEdit, onDelete, onAddPlot }) 
           {/* Configuration / Area / Survey Number */}
           <div className="flex items-center justify-between text-xs font-medium text-slate-600 mt-2">
             <span className="truncate">
-              {property.totalLandArea || property.configuration || ''}
+              {String(property.totalLandArea || property.configuration || '').replace(/\.{2,}/g, ' ').replace(/\s+/g, ' ').trim()}
             </span>
             {property.surveyNumber && (
               <span className="text-[10px] text-slate-400 font-mono shrink-0 ml-1">
@@ -257,7 +257,7 @@ export default function PropertyCard({ property, onEdit, onDelete, onAddPlot }) 
             <button
               type="button"
               onClick={() => (onAddPlot ? onAddPlot(property) : onEdit && onEdit(property))}
-              className="inline-flex items-center gap-1 text-[11px] font-bold text-[#0B57D0] hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded-md transition cursor-pointer"
+              className="inline-flex items-center gap-1 text-[11px] font-bold text-[#0F3D2E] hover:text-[#0b2e22] bg-[#E2EDE8] hover:bg-[#d1e4dc] px-2 py-0.5 rounded-md transition cursor-pointer"
               title="Add & Manage Plot Details"
             >
               <Layers className="w-3.5 h-3.5" />
@@ -273,7 +273,7 @@ export default function PropertyCard({ property, onEdit, onDelete, onAddPlot }) 
                 href={targetLayoutLink}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1 text-[11px] font-bold text-[#0B57D0] hover:underline"
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-[#0F3D2E] hover:text-[#B8964E] hover:underline"
                 title="Open Layout Plan"
               >
                 <FileCode2 className="w-3.5 h-3.5" />

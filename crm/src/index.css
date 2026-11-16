@@ -2,6 +2,21 @@
 
 @theme {
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --color-forest-950: #071E16;
+  --color-forest-900: #0B2B20;
+  --color-forest-800: #0F3D2E;
+  --color-forest-700: #16533D;
+  --color-forest-600: #1B5E46;
+  --color-forest-500: #257D5E;
+  --color-forest-200: #C8DED5;
+  --color-forest-100: #E2EDE8;
+  --color-forest-50: #F1F7F4;
+
+  --color-gold-600: #9F7F3D;
+  --color-gold-500: #B8964E;
+  --color-gold-400: #C9A963;
+  --color-gold-100: #F7EDD8;
+  --color-gold-50: #FCF9F2;
 }
 
 :root {
@@ -29,4 +44,53 @@ button, input, select, textarea, optgroup {
   height: 100%;
   opacity: 0;
   cursor: pointer;
+}
+
+/* ── Fixed Sidebar Menu Sleek Scrollbar ── */
+.crm-sidebar-menu {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  overscroll-behavior: contain;
+}
+
+.crm-sidebar-menu::-webkit-scrollbar {
+  width: 4px;
+}
+
+.crm-sidebar-menu::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.crm-sidebar-menu::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 9999px;
+}
+
+.crm-sidebar-menu::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.38);
+}
+
+/* ── Main Content Area Scrollbar ── */
+.crm-main-content {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(15, 61, 46, 0.25) transparent;
+  overscroll-behavior: contain;
+}
+
+.crm-main-content::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.crm-main-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.crm-main-content::-webkit-scrollbar-thumb {
+  background-color: rgba(15, 61, 46, 0.2);
+  border-radius: 9999px;
+}
+
+.crm-main-content::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(15, 61, 46, 0.35);
 }

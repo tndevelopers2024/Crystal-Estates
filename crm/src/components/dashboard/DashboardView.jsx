@@ -20,7 +20,7 @@ export default function DashboardView({ totalProperties = 0, onNavigateToPropert
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
               Total Database Projects
             </span>
-            <span className="p-2 rounded-xl text-blue-600 bg-blue-50">
+            <span className="p-2 rounded-xl text-[#0F3D2E] bg-[#E2EDE8]">
               <Building2 className="w-4 h-4" />
             </span>
           </div>
@@ -68,10 +68,10 @@ export default function DashboardView({ totalProperties = 0, onNavigateToPropert
       </div>
 
       {/* Quick Launch Banner */}
-      <div className="bg-gradient-to-r from-[#0B57D0] to-[#1C68E8] text-white p-6 rounded-2xl shadow-md flex items-center justify-between">
+      <div className="bg-gradient-to-r from-[#0F3D2E] to-[#1B5E46] text-white p-6 rounded-2xl shadow-md flex items-center justify-between">
         <div>
           <h4 className="text-base font-bold">Manage Live Plot Inventory</h4>
-          <p className="text-xs text-blue-100 mt-1 max-w-lg">
+          <p className="text-xs text-emerald-100 mt-1 max-w-lg">
             Review actual properties, update prices, RERA numbers, or upload new CAD/PDF layout drawings.
           </p>
         </div>
@@ -79,7 +79,7 @@ export default function DashboardView({ totalProperties = 0, onNavigateToPropert
           <button
             type="button"
             onClick={onNavigateToProperties}
-            className="px-4 py-2 bg-white text-[#0B57D0] font-bold text-xs rounded-xl shadow-sm hover:bg-blue-50 transition flex items-center gap-2 shrink-0"
+            className="px-4 py-2 bg-white text-[#0F3D2E] font-bold text-xs rounded-xl shadow-sm hover:bg-[#E2EDE8] transition flex items-center gap-2 shrink-0"
           >
             <span>View All Properties</span>
             <ArrowRight className="w-3.5 h-3.5" />

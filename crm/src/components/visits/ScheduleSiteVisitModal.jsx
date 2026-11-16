@@ -82,9 +82,9 @@ export default function ScheduleSiteVisitModal({
       : [
           { name: 'Arun Kumar', initials: 'AK', color: '#DC2626' },
           { name: 'Meera R', initials: 'MR', color: '#7C3AED' },
-          { name: 'Divya S', initials: 'DS', color: '#0B57D0' },
+          { name: 'Divya S', initials: 'DS', color: '#0F3D2E' },
           { name: 'Deepak Sharma', initials: 'DS', color: '#0D9488' },
-          { name: 'Crystal Admin', initials: 'CA', color: '#0B57D0' },
+          { name: 'Crystal Admin', initials: 'CA', color: '#0F3D2E' },
         ]
 
   useEffect(() => {
@@ -136,7 +136,7 @@ export default function ScheduleSiteVisitModal({
       const matchedAgent = agentOptions.find((a) => a.name === agentName) || {
         name: agentName,
         initials: agentName.slice(0, 2).toUpperCase(),
-        color: '#0B57D0',
+        color: '#0F3D2E',
       }
 
       await onSchedule({
@@ -199,7 +199,7 @@ export default function ScheduleSiteVisitModal({
                   <select
                     value={selectedLeadId}
                     onChange={(e) => handleLeadChange(e.target.value)}
-                    className="w-full appearance-none px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0B57D0] focus:bg-white cursor-pointer pr-8"
+                    className="w-full appearance-none px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white cursor-pointer pr-8"
                   >
                     {leads.map((l) => (
                       <option key={l.id} value={l.id}>
@@ -234,7 +234,7 @@ export default function ScheduleSiteVisitModal({
                 onChange={(e) => handlePropertyChange(e.target.value)}
                 list="visit-property-list"
                 placeholder="Project name"
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0B57D0] focus:bg-white"
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white"
                 required
               />
               <datalist id="visit-property-list">
@@ -254,7 +254,7 @@ export default function ScheduleSiteVisitModal({
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 placeholder="e.g. Porur, ECR"
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0B57D0] focus:bg-white"
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white"
               />
             </div>
           </div>
@@ -285,7 +285,7 @@ export default function ScheduleSiteVisitModal({
                       e.currentTarget.showPicker?.()
                     } catch {}
                   }}
-                  className="w-full appearance-none px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0B57D0] focus:bg-white cursor-pointer pr-8"
+                  className="w-full appearance-none px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white cursor-pointer pr-8"
                   required
                 />
               </div>
@@ -300,7 +300,7 @@ export default function ScheduleSiteVisitModal({
                 <select
                   value={visitTime}
                   onChange={(e) => setVisitTime(e.target.value)}
-                  className="w-full appearance-none px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0B57D0] focus:bg-white cursor-pointer pr-8"
+                  className="w-full appearance-none px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white cursor-pointer pr-8"
                 >
                   {VISIT_TIME_SLOTS.map((slot) => (
                     <option key={slot} value={slot}>
@@ -323,7 +323,7 @@ export default function ScheduleSiteVisitModal({
                 <select
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
-                  className="w-full appearance-none px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0B57D0] focus:bg-white cursor-pointer pr-8"
+                  className="w-full appearance-none px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white cursor-pointer pr-8"
                 >
                   <option value="Confirmed">Confirmed</option>
                   <option value="Tentative">Tentative</option>
@@ -340,7 +340,7 @@ export default function ScheduleSiteVisitModal({
                 <select
                   value={agentName}
                   onChange={(e) => setAgentName(e.target.value)}
-                  className="w-full appearance-none px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0B57D0] focus:bg-white cursor-pointer pr-8"
+                  className="w-full appearance-none px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white cursor-pointer pr-8"
                 >
                   {agentOptions.map((ag) => (
                     <option key={ag.name} value={ag.name}>
@@ -354,12 +354,12 @@ export default function ScheduleSiteVisitModal({
           </div>
 
           {/* Cab pickup toggle */}
-          <label className="flex items-center gap-2.5 p-3 bg-slate-50 border border-slate-200/80 rounded-xl cursor-pointer hover:bg-blue-50/40 transition">
+          <label className="flex items-center gap-2.5 p-3 bg-slate-50 border border-slate-200/80 rounded-xl cursor-pointer hover:bg-[#E2EDE8]/40 transition">
             <input
               type="checkbox"
               checked={cabPickup}
               onChange={(e) => setCabPickup(e.target.checked)}
-              className="w-4 h-4 rounded border-slate-300 text-[#0B57D0] focus:ring-[#0B57D0]"
+              className="w-4 h-4 rounded border-slate-300 text-[#0F3D2E] focus:ring-[#0F3D2E]"
             />
             <Car className="w-4 h-4 text-slate-500" />
             <span className="text-xs font-semibold text-slate-700">
@@ -377,7 +377,7 @@ export default function ScheduleSiteVisitModal({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="e.g. Pickup from Porur junction, show east-facing plots..."
-              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#0B57D0] focus:bg-white transition resize-none"
+              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#0F3D2E] focus:bg-white transition resize-none"
             />
           </div>
 
@@ -393,7 +393,7 @@ export default function ScheduleSiteVisitModal({
             <button
               type="submit"
               disabled={submitting}
-              className="px-5 py-2 bg-[#0B57D0] hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-sm transition active:scale-[0.98] disabled:opacity-50"
+              className="px-5 py-2 bg-[#0F3D2E] hover:bg-[#16533D] text-white font-bold rounded-xl text-xs shadow-sm transition active:scale-[0.98] disabled:opacity-50"
             >
               {submitting ? 'Scheduling...' : 'Schedule visit'}
             </button>

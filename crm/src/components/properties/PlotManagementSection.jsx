@@ -72,7 +72,7 @@ export default function PlotManagementSection({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <Layers className="w-4 h-4 text-[#0B57D0]" />
+            <Layers className="w-4 h-4 text-[#0F3D2E]" />
             <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
               Layout Plots & Path Data ({plots.length})
             </h4>
@@ -86,7 +86,7 @@ export default function PlotManagementSection({
         <button
           type="button"
           onClick={handleOpenAdd}
-          className="px-3.5 py-2 bg-[#0B57D0] hover:bg-blue-700 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition active:scale-[0.98] shrink-0"
+          className="px-3.5 py-2 bg-[#0F3D2E] hover:bg-[#16533D] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition active:scale-[0.98] shrink-0"
         >
           <Plus className="w-3.5 h-3.5" />
           <span>Add Plot</span>
@@ -122,7 +122,7 @@ export default function PlotManagementSection({
       {/* ── Plots List / Table ── */}
       {plots.length === 0 ? (
         <div className="p-8 bg-white border border-dashed border-slate-300 rounded-2xl text-center space-y-3">
-          <div className="w-10 h-10 rounded-full bg-blue-50 text-[#0B57D0] flex items-center justify-center mx-auto">
+          <div className="w-10 h-10 rounded-full bg-[#E2EDE8] text-[#0F3D2E] flex items-center justify-center mx-auto">
             <Layers className="w-5 h-5" />
           </div>
           <div>
@@ -134,7 +134,7 @@ export default function PlotManagementSection({
           <button
             type="button"
             onClick={handleOpenAdd}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#0B57D0] hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#0F3D2E] hover:bg-[#16533D] text-white text-xs font-bold rounded-xl shadow-xs transition"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Add First Plot</span>
@@ -208,7 +208,7 @@ export default function PlotManagementSection({
                         <button
                           type="button"
                           onClick={() => handleOpenEdit(plot)}
-                          className="p-1.5 text-slate-500 hover:text-[#0B57D0] hover:bg-blue-50 rounded-lg transition"
+                          className="p-1.5 text-slate-500 hover:text-[#0F3D2E] hover:bg-[#E2EDE8] rounded-lg transition"
                           title="Edit plot"
                         >
                           <Edit2 className="w-3.5 h-3.5" />

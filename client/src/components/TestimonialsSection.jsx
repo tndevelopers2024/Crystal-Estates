@@ -1,33 +1,71 @@
 'use client'
 
 import React, { useState, useEffect, useRef, useCallback, useSyncExternalStore } from 'react'
-import { Star, ChevronLeft, ChevronRight, Quote } from 'lucide-react'
-import { Container, SectionHeading } from './ui'
+import { Star, StarHalf, ChevronLeft, ChevronRight, Quote, ShieldCheck } from 'lucide-react'
+import { Container } from './ui'
 import defaultTestimonials from '../data/testimonials'
 
 /**
+ * Helper to get user initials for fallback avatar
+ */
+function getInitials(name = '') {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('') || 'CE'
+}
+
+/**
+ * StarRating component supporting half stars (e.g. 3.5, 4.0, 4.5, 5.0)
+ */
+function StarRating({ rating = 5 }) {
+  const num = typeof rating === 'number' ? rating : parseFloat(rating) || 5
+  const fullStars = Math.floor(num)
+  const hasHalfStar = num % 1 >= 0.4
+  const emptyStars = Math.max(0, 5 - fullStars - (hasHalfStar ? 1 : 0))
+
+  return (
+    <div className="testimonial-rating-wrap" aria-label={`${num} out of 5 stars`}>
+      <div className="testimonial-stars-row">
+        {[...Array(fullStars)].map((_, i) => (
+          <Star key={`full-${i}`} size={16} className="star-icon star-icon--filled" />
+        ))}
+        {hasHalfStar && (
+          <StarHalf key="half" size={16} className="star-icon star-icon--half" />
+        )}
+        {[...Array(emptyStars)].map((_, i) => (
+          <Star key={`empty-${i}`} size={16} className="star-icon star-icon--empty" />
+        ))}
+      </div>
+      <span className="testimonial-rating-badge">
+        {num.toFixed(1)}
+      </span>
+    </div>
+  )
+}
+
+/**
  * Reusable TestimonialsSection Component
- * @param {string|React.ReactNode} [title="What Our Landowners Say"]
- * @param {string|React.ReactNode} [subtitle]
- * @param {number} [limit] - Maximum items to show
- * @param {"slider"|"grid"} [variant="slider"] - Layout presentation
- * @param {string} [className=""]
+ * Modern, elevated presentation matching the site's editorial design system.
  */
 export function TestimonialsSection({
   title = 'What Our Landowners Say',
-  subtitle = 'Verified experiences from families and investors who have built lasting land assets with Crystal Estates across Chennai & Kanchipuram.',
+  subtitle = 'Authentic reviews and real experiences from families and investors who secured their plots and farmland with Crystal Estates.',
+  badge = 'VERIFIED BUYER REVIEWS',
   limit,
   variant = 'slider',
   className = '',
 }) {
-  const [testimonials, setTestimonials] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [testimonials, setTestimonials] = useState(defaultTestimonials)
+  const [loading, setLoading] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [cardsPerView, setCardsPerView] = useState(3)
   const [isHovered, setIsHovered] = useState(false)
   const [isFocused, setIsFocused] = useState(false)
 
-  // Detect Reduced Motion preference using recommended subscription idiom
+  // Reduced motion preference
   const prefersReducedMotion = useSyncExternalStore(
     (notify) => {
       if (typeof window === 'undefined') return () => {}
@@ -43,52 +81,30 @@ export function TestimonialsSection({
   const touchEndX = useRef(null)
   const sliderRef = useRef(null)
 
-  // 1. Data Fetching: Check backend endpoint first, fallback to /client/data/testimonials.js
+  // Data fetching fallback
   useEffect(() => {
     let isMounted = true
-
-    const fetchTestimonials = async () => {
-      try {
-        const res = await fetch('/api/testimonials', {
-          headers: { Accept: 'application/json' },
-        })
-
-        if (!res.ok) {
-          throw new Error(`API returned ${res.status}`)
+    fetch('/api/testimonials', { headers: { Accept: 'application/json' } })
+      .then((res) => {
+        if (!res.ok) throw new Error('Not found')
+        return res.json()
+      })
+      .then((data) => {
+        const items = Array.isArray(data) ? data : data?.testimonials || data?.data || []
+        if (isMounted && items.length > 0) {
+          setTestimonials(items)
         }
-
-        const data = await res.json()
-        const items = Array.isArray(data)
-          ? data
-          : data?.testimonials || data?.data || []
-
-        if (isMounted) {
-          if (items.length > 0) {
-            setTestimonials(items)
-          } else {
-            setTestimonials(defaultTestimonials)
-          }
-        }
-      } catch {
-        // Fallback to local realistic sample data
-        if (isMounted) {
-          setTestimonials(defaultTestimonials)
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false)
-        }
-      }
-    }
-
-    fetchTestimonials()
+      })
+      .catch(() => {
+        if (isMounted) setTestimonials(defaultTestimonials)
+      })
 
     return () => {
       isMounted = false
     }
   }, [])
 
-  // 2. Responsive cardsPerView detector: 1 on mobile, 2 on tablet, 3 on desktop
+  // Responsive cardsPerView detector
   useEffect(() => {
     const updateCardsPerView = () => {
       const width = window.innerWidth
@@ -100,16 +116,16 @@ export function TestimonialsSection({
         setCardsPerView(3)
       }
     }
-
     updateCardsPerView()
-    window.addEventListener('resize', updateCardsPerView, { passive: true })
+    window.addEventListener('resize', updateCardsPerView)
     return () => window.removeEventListener('resize', updateCardsPerView)
   }, [])
 
-  // Slice if limit prop is provided
-  const items = limit ? testimonials.slice(0, limit) : testimonials
+  const items = Array.isArray(testimonials)
+    ? limit ? testimonials.slice(0, limit) : testimonials
+    : []
+
   const maxIndex = Math.max(0, items.length - cardsPerView)
-  // Clamp index purely during render to avoid cascading effect renders
   const safeIndex = Math.min(currentIndex, maxIndex)
 
   const goNext = useCallback(() => {
@@ -120,36 +136,18 @@ export function TestimonialsSection({
     setCurrentIndex((prev) => (prev <= 0 ? maxIndex : prev - 1))
   }, [maxIndex])
 
-  // 4. Autoplay (5 seconds) with pause on hover, focus, and reduced motion
+  // Autoplay slider
   useEffect(() => {
-    if (
-      variant !== 'slider' ||
-      loading ||
-      items.length <= cardsPerView ||
-      isHovered ||
-      isFocused ||
-      prefersReducedMotion
-    ) {
+    if (variant !== 'slider' || prefersReducedMotion || isHovered || isFocused || items.length <= cardsPerView) {
       return
     }
-
     const timer = setInterval(() => {
       goNext()
-    }, 5000)
-
+    }, 6000)
     return () => clearInterval(timer)
-  }, [
-    variant,
-    loading,
-    items.length,
-    cardsPerView,
-    isHovered,
-    isFocused,
-    prefersReducedMotion,
-    goNext,
-  ])
+  }, [variant, prefersReducedMotion, isHovered, isFocused, items.length, cardsPerView, goNext])
 
-  // 5. Touch swipe event handlers
+  // Touch Swipe handlers
   const handleTouchStart = (e) => {
     touchStartX.current = e.touches[0].clientX
     touchEndX.current = null
@@ -160,21 +158,17 @@ export function TestimonialsSection({
   }
 
   const handleTouchEnd = () => {
-    if (touchStartX.current === null || touchEndX.current === null) return
+    if (!touchStartX.current || !touchEndX.current) return
     const diff = touchStartX.current - touchEndX.current
-    const threshold = 40
-    if (diff > threshold) {
-      goNext()
-    } else if (diff < -threshold) {
-      goPrev()
+    if (Math.abs(diff) > 40) {
+      if (diff > 0) goNext()
+      else goPrev()
     }
     touchStartX.current = null
     touchEndX.current = null
   }
 
-  // 6. Keyboard navigation (ArrowLeft & ArrowRight)
   const handleKeyDown = (e) => {
-    if (variant !== 'slider') return
     if (e.key === 'ArrowLeft') {
       e.preventDefault()
       goPrev()
@@ -184,213 +178,109 @@ export function TestimonialsSection({
     }
   }
 
-  // Helper for Initials
-  const getInitials = (name) => {
-    if (!name) return 'CE'
-    const parts = name.replace(/[^a-zA-Z\s]/g, '').trim().split(/\s+/)
-    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
-    return name.slice(0, 2).toUpperCase()
-  }
-
-  // 7. Loading state: Render accessible skeletons
-  if (loading) {
-    return (
-      <section className={`section testimonials-section ${className}`.trim()} aria-busy="true">
-        <Container>
-          <SectionHeading eyebrow="TESTIMONIALS" title={title} subtitle={subtitle} center />
-          <div className="testimonials-skeleton-grid">
-            {[1, 2, 3].map((n) => (
-              <div key={n} className="testimonial-card testimonial-card--skeleton">
-                <div className="testimonial-card__skeleton-header">
-                  <div className="skeleton-avatar" />
-                  <div className="skeleton-stars" />
-                </div>
-                <div className="skeleton-line skeleton-line--long" />
-                <div className="skeleton-line skeleton-line--mid" />
-                <div className="skeleton-line skeleton-line--short" />
-                <div className="skeleton-footer">
-                  <div className="skeleton-name" />
-                  <div className="skeleton-sub" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </Container>
-      </section>
-    )
-  }
-
-  // 8. Hidden state: If no testimonials exist, hide section completely
   if (!items || items.length === 0) {
     return null
   }
 
-  const gap = 24 // px gap between cards
+  const gap = 24
   const slideOffset = `calc(-${safeIndex} * ((100% + ${gap}px) / ${cardsPerView}))`
 
   return (
     <section
       id="testimonials"
-      className={`section testimonials-section ${className}`.trim()}
+      className={`modern-testimonials-section ${className}`.trim()}
       aria-label="Landowner Testimonials"
     >
       <Container>
-        <div className="testimonials-section__header-row">
-          <SectionHeading
-            eyebrow="CLIENT EXPERIENCES"
-            title={title}
-            subtitle={subtitle}
-            center={variant === 'grid'}
-          />
+        {/* Header Block matching About Us & Reference System */}
+        <div className="modern-testimonials-header">
+          <div className="modern-testimonials-header__left">
+            <span className="modern-testimonials-badge">
+              {badge}
+            </span>
+            <h2 className="modern-testimonials-title">
+              {title}
+            </h2>
+            {subtitle && (
+              <p className="modern-testimonials-subtitle">
+                {subtitle}
+              </p>
+            )}
+          </div>
 
+          {/* Dual Navigation Controls */}
           {variant === 'slider' && items.length > cardsPerView && (
-            <div className="testimonials-controls" aria-label="Slider Controls">
+            <div className="modern-testimonials-nav" aria-label="Slider Controls">
               <button
                 type="button"
                 onClick={goPrev}
-                className="testimonials-control-btn"
+                className="modern-testimonials-nav-btn"
                 aria-label="Previous testimonial"
               >
-                <ChevronLeft size={20} />
+                <ChevronLeft size={18} />
               </button>
               <button
                 type="button"
                 onClick={goNext}
-                className="testimonials-control-btn"
+                className="modern-testimonials-nav-btn"
                 aria-label="Next testimonial"
               >
-                <ChevronRight size={20} />
+                <ChevronRight size={18} />
               </button>
             </div>
           )}
         </div>
 
-        {/* Presentation: Slider Variant */}
-        {variant === 'slider' ? (
+        {/* Carousel Slider Viewport */}
+        <div
+          className="modern-testimonials-viewport"
+          ref={sliderRef}
+          tabIndex={0}
+          role="region"
+          aria-roledescription="carousel"
+          aria-label="Customer Testimonials Carousel"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onKeyDown={handleKeyDown}
+        >
           <div
-            className="testimonials-slider-viewport"
-            ref={sliderRef}
-            tabIndex={0}
-            role="region"
-            aria-roledescription="carousel"
-            aria-label="Customer Testimonials Carousel"
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            onKeyDown={handleKeyDown}
+            className={`modern-testimonials-track ${
+              prefersReducedMotion ? 'is-reduced-motion' : ''
+            }`}
+            style={{
+              transform: `translateX(${slideOffset})`,
+            }}
           >
-            <div
-              className={`testimonials-slider-track ${
-                prefersReducedMotion ? 'testimonials-slider-track--reduced' : ''
-              }`}
-              style={{
-                transform: `translateX(${slideOffset})`,
-              }}
-            >
-              {items.map((item, idx) => (
-                <article
-                  key={item.id || idx}
-                  className="testimonial-card"
-                  style={{
-                    flex: `0 0 calc((100% - ${(cardsPerView - 1) * gap}px) / ${cardsPerView})`,
-                  }}
-                  role="group"
-                  aria-roledescription="slide"
-                  aria-label={`${idx + 1} of ${items.length}`}
-                >
-                  <div className="testimonial-card__header">
-                    <div className="testimonial-card__stars" aria-label={`${item.rating || 5} out of 5 stars`}>
-                      {[...Array(item.rating || 5)].map((_, sIdx) => (
-                        <Star key={sIdx} size={16} className="star-icon star-icon--filled" />
-                      ))}
-                    </div>
-                    <div className="testimonial-card__quote-icon" aria-hidden="true">
-                      <Quote size={20} />
-                    </div>
-                  </div>
-
-                  <blockquote className="testimonial-card__quote">
-                    &ldquo;{item.quote}&rdquo;
-                  </blockquote>
-
-                  <div className="testimonial-card__author">
-                    <div className="testimonial-card__avatar">
-                      {item.photo ? (
-                        <img
-                          src={item.photo}
-                          alt={item.name}
-                          loading="lazy"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none'
-                            e.currentTarget.nextElementSibling.style.display = 'flex'
-                          }}
-                        />
-                      ) : null}
-                      <span
-                        className="testimonial-card__avatar-fallback"
-                        style={{ display: item.photo ? 'none' : 'flex' }}
-                      >
-                        {getInitials(item.name)}
-                      </span>
-                    </div>
-
-                    <div className="testimonial-card__meta">
-                      <h4 className="testimonial-card__name">{item.name}</h4>
-                      <p className="testimonial-card__location">{item.location}</p>
-                      <span className="testimonial-card__project-badge">
-                        {item.project}
-                      </span>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-
-            {/* Pagination Dots */}
-            {items.length > cardsPerView && (
-              <div className="testimonials-dots" role="tablist" aria-label="Slider Pagination">
-                {Array.from({ length: maxIndex + 1 }).map((_, dIdx) => (
-                  <button
-                    key={dIdx}
-                    type="button"
-                    role="tab"
-                    aria-selected={safeIndex === dIdx}
-                    aria-label={`Go to slide ${dIdx + 1}`}
-                    className={`testimonials-dot ${
-                      safeIndex === dIdx ? 'testimonials-dot--active' : ''
-                    }`}
-                    onClick={() => setCurrentIndex(dIdx)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        ) : (
-          /* Presentation: Grid Variant */
-          <div className="testimonials-grid">
             {items.map((item, idx) => (
-              <article key={item.id || idx} className="testimonial-card">
-                <div className="testimonial-card__header">
-                  <div className="testimonial-card__stars" aria-label={`${item.rating || 5} out of 5 stars`}>
-                    {[...Array(item.rating || 5)].map((_, sIdx) => (
-                      <Star key={sIdx} size={16} className="star-icon star-icon--filled" />
-                    ))}
-                  </div>
-                  <div className="testimonial-card__quote-icon" aria-hidden="true">
-                    <Quote size={20} />
-                  </div>
+              <article
+                key={item.id || idx}
+                className="modern-testimonial-card"
+                style={{
+                  flex: `0 0 calc((100% - ${(cardsPerView - 1) * gap}px) / ${cardsPerView})`,
+                }}
+                role="group"
+                aria-roledescription="slide"
+                aria-label={`${idx + 1} of ${items.length}`}
+              >
+                {/* Card Top: Stars & Quote Icon */}
+                <div className="modern-testimonial-card__header">
+                  <StarRating rating={item.rating || 5} />
+                  <Quote size={20} className="modern-testimonial-card__quote-icon" aria-hidden="true" />
                 </div>
 
-                <blockquote className="testimonial-card__quote">
+                {/* Real-world review quote */}
+                <blockquote className="modern-testimonial-card__quote">
                   &ldquo;{item.quote}&rdquo;
                 </blockquote>
 
-                <div className="testimonial-card__author">
-                  <div className="testimonial-card__avatar">
+                {/* Author Information */}
+                <div className="modern-testimonial-card__footer">
+                  <div className="modern-testimonial-card__avatar">
                     {item.photo ? (
                       <img
                         src={item.photo}
@@ -403,22 +293,49 @@ export function TestimonialsSection({
                       />
                     ) : null}
                     <span
-                      className="testimonial-card__avatar-fallback"
+                      className="modern-testimonial-card__avatar-fallback"
                       style={{ display: item.photo ? 'none' : 'flex' }}
                     >
                       {getInitials(item.name)}
                     </span>
                   </div>
 
-                  <div className="testimonial-card__meta">
-                    <h4 className="testimonial-card__name">{item.name}</h4>
-                    <p className="testimonial-card__location">{item.location}</p>
-                    <span className="testimonial-card__project-badge">
-                      {item.project}
-                    </span>
+                  <div className="modern-testimonial-card__meta">
+                    <div className="modern-testimonial-card__name-row">
+                      <h3 className="modern-testimonial-card__name">{item.name}</h3>
+                      <span className="modern-testimonial-card__verified" title="Verified Landowner">
+                        <ShieldCheck size={13} />
+                        <span>Verified</span>
+                      </span>
+                    </div>
+                    <p className="modern-testimonial-card__sub">
+                      {[item.role, item.location].filter(Boolean).join(' • ')}
+                    </p>
+                    {item.project && (
+                      <span className="modern-testimonial-card__project-badge">
+                        {item.project} {item.date ? `• ${item.date}` : ''}
+                      </span>
+                    )}
                   </div>
                 </div>
               </article>
+            ))}
+          </div>
+        </div>
+
+        {/* Dots Pagination */}
+        {variant === 'slider' && items.length > cardsPerView && (
+          <div className="modern-testimonials-dots" role="tablist" aria-label="Slide pagination">
+            {[...Array(maxIndex + 1)].map((_, dIdx) => (
+              <button
+                key={dIdx}
+                type="button"
+                role="tab"
+                aria-selected={dIdx === safeIndex}
+                className={`modern-testimonials-dot ${dIdx === safeIndex ? 'is-active' : ''}`}
+                onClick={() => setCurrentIndex(dIdx)}
+                aria-label={`Go to slide ${dIdx + 1}`}
+              />
             ))}
           </div>
         )}

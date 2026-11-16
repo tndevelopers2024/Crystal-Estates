@@ -1,5 +1,5 @@
 import React from 'react'
-import { Search, Bell, Plus, Sparkles, LogOut, User as UserIcon } from 'lucide-react'
+import { Search, Bell, Plus, Sparkles, LogOut, User as UserIcon, Menu } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 
 export default function Header({
@@ -17,19 +17,32 @@ export default function Header({
   onSimulateEnquiry,
   isSimulating = false,
   notificationCount = 3,
+  onToggleMobileMenu,
 }) {
   const { user, logout } = useAuth()
 
   return (
-    <header className="h-18 bg-white border-b border-slate-200/80 px-8 flex items-center justify-between sticky top-0 z-20">
-      {/* Dynamic Title & Subtitle based on active page */}
-      <div>
-        <h2 className="text-xl font-bold text-slate-900 tracking-tight leading-tight">
-          {title}
-        </h2>
-        <p className="text-xs text-slate-500 font-medium mt-0.5">
-          {subtitle}
-        </p>
+    <header className="h-18 shrink-0 bg-white border-b border-slate-200/80 px-4 md:px-8 flex items-center justify-between sticky top-0 z-20">
+      {/* Dynamic Title & Subtitle based on active page + Mobile Menu Button */}
+      <div className="flex items-center gap-3 min-w-0">
+        {onToggleMobileMenu && (
+          <button
+            type="button"
+            onClick={onToggleMobileMenu}
+            className="md:hidden p-2 -ml-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition shrink-0"
+            aria-label="Toggle Navigation Menu"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+        )}
+        <div className="min-w-0">
+          <h2 className="text-lg md:text-xl font-bold text-slate-900 tracking-tight leading-tight truncate">
+            {title}
+          </h2>
+          <p className="text-xs text-slate-500 font-medium mt-0.5 truncate">
+            {subtitle}
+          </p>
+        </div>
       </div>
 
       {/* Dynamic Controls based on active page */}
@@ -43,7 +56,7 @@ export default function Header({
               placeholder={searchPlaceholder}
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="w-full pl-8 pr-4 py-1.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition bg-slate-50 focus:bg-white"
+              className="w-full pl-8 pr-4 py-1.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#0F3D2E]/20 focus:border-[#0F3D2E] transition bg-slate-50 focus:bg-white"
             />
           </div>
         )}
@@ -56,7 +69,7 @@ export default function Header({
               <button
                 type="button"
                 onClick={onAddLead}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0B57D0] hover:bg-blue-700 text-white font-bold text-xs shadow-sm transition active:scale-[0.98]"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0F3D2E] hover:bg-[#16533D] text-white font-bold text-xs shadow-sm transition active:scale-[0.98]"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Add lead</span>
@@ -70,7 +83,7 @@ export default function Header({
           <button
             type="button"
             onClick={onNewFollowUp}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0B57D0] hover:bg-blue-700 text-white font-bold text-xs shadow-sm transition active:scale-[0.98]"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0F3D2E] hover:bg-[#16533D] text-white font-bold text-xs shadow-sm transition active:scale-[0.98]"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>New follow-up</span>
@@ -82,7 +95,7 @@ export default function Header({
           <button
             type="button"
             onClick={onScheduleVisit}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0B57D0] hover:bg-blue-700 text-white font-bold text-xs shadow-sm transition active:scale-[0.98]"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0F3D2E] hover:bg-[#16533D] text-white font-bold text-xs shadow-sm transition active:scale-[0.98]"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Schedule visit</span>
@@ -94,7 +107,7 @@ export default function Header({
           <button
             type="button"
             onClick={onOpenUpload}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0B57D0] hover:bg-blue-700 text-white font-bold text-xs shadow-sm transition active:scale-[0.98]"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0F3D2E] hover:bg-[#16533D] text-white font-bold text-xs shadow-sm transition active:scale-[0.98]"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Add Property</span>
@@ -120,7 +133,7 @@ export default function Header({
           <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
             <div
               className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-xs shrink-0"
-              style={{ backgroundColor: user.color || '#0B57D0' }}
+              style={{ backgroundColor: user.color || '#0F3D2E' }}
               title={`${user.name} (${user.role || 'Admin'})`}
             >
               {user.initials || 'CA'}

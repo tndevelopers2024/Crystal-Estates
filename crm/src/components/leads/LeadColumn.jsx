@@ -53,7 +53,7 @@ export default function LeadColumn({
       onDrop={handleDrop}
       className={`w-[290px] shrink-0 bg-[#F8FAFC] rounded-2xl flex flex-col border transition-all ${
         isDragOver
-          ? 'border-[#0B57D0] bg-blue-50/40 ring-2 ring-blue-100'
+          ? 'border-[#0F3D2E] bg-[#E2EDE8]/40 ring-2 ring-[#C8DED5]'
           : 'border-slate-200/80 shadow-xs'
       }`}
       style={{
@@ -111,7 +111,7 @@ export default function LeadColumn({
         <button
           type="button"
           onClick={() => onAddLeadClick(stage.id)}
-          className="w-full py-2 px-3 border border-dashed border-slate-200 hover:border-blue-400 hover:bg-white text-slate-500 hover:text-[#0B57D0] rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all shadow-2xs"
+          className="w-full py-2 px-3 border border-dashed border-slate-200 hover:border-[#0F3D2E]/40 hover:bg-white text-slate-500 hover:text-[#0F3D2E] rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all shadow-2xs"
         >
           <Plus className="w-3.5 h-3.5" />
           <span>Add lead</span>
