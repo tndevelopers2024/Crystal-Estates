@@ -1,6 +1,5 @@
 import React from 'react'
 import { notFound } from 'next/navigation'
-import { PageHero } from '../../../components/ui'
 import PropertyDetailClient from '../../../components/projects/PropertyDetailClient'
 import TestimonialsSection from '../../../components/TestimonialsSection'
 import { fetchPlotBySlugOrId, fetchPlots } from '../../../lib/api'
@@ -54,17 +53,7 @@ export default async function PropertyDetailPage({ params }) {
   }
 
   return (
-    <main>
-      <PageHero
-        title={project.name}
-        subtitle={`${project.type || 'Property'} in ${project.location} • ${project.approval || 'Verified'}`}
-        breadcrumb={[
-          { label: 'Home', href: '/' },
-          { label: 'Projects', href: '/projects' },
-          { label: project.name },
-        ]}
-      />
-
+    <main className="project-detail-page-wrapper">
       <PropertyDetailClient initialProject={project} staticAllProjects={allProjects || []} />
 
       <TestimonialsSection

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import {
   MapPin,
   ArrowLeft,
@@ -15,8 +16,13 @@ import {
   CheckCircle2,
   Video,
   ArrowUpRight,
+  Compass,
+  FileCheck2,
+  ShieldCheck,
+  Building2,
+  Share2,
 } from 'lucide-react'
-import { Container, Section, Button, Badge } from '../ui'
+import { Button } from '../ui'
 import EnquiryForm from '../forms/EnquiryForm'
 import { ProjectCard } from './ProjectCard'
 import PlotViewer from '../plot-viewer/PlotViewer'
@@ -79,18 +85,15 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
   const layoutPhases = (rawPhases && rawPhases.length > 0)
     ? rawPhases.map((l, idx) => {
         const phaseName = (l.name || `Phase ${idx + 1}`).trim()
-        // Ensure phase plots only contain plots belonging to this phase
         let phasePlots = Array.isArray(l.plots) ? l.plots : []
         if (phasePlots.length > 0 && phasePlots.some((p) => p.phase)) {
           phasePlots = phasePlots.filter(
             (p) => !p.phase || String(p.phase).trim().toLowerCase() === phaseName.toLowerCase()
           )
         } else if (phasePlots.length === 0 && Array.isArray(project.plots) && project.plots.length > 0) {
-          // If l.plots is empty, try extracting plots from project.plots matching this phase
           phasePlots = project.plots.filter(
             (p) => p.phase && String(p.phase).trim().toLowerCase() === phaseName.toLowerCase()
           )
-          // If first phase and no plots tagged with phase, only assign if 1 phase
           if (phasePlots.length === 0 && idx === 0 && rawPhases.length === 1) {
             phasePlots = project.plots
           }
@@ -134,7 +137,7 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
   )
 
   // ─────────────────────────────────────────────────────────────
-  // 2. DYNAMIC SECTION 2: PROJECT IMAGES & VIDEOS (ONLY REAL DATA)
+  // 2. DYNAMIC SECTION 2: PROJECT IMAGES & VIDEOS
   // ─────────────────────────────────────────────────────────────
   const rawImages = [
     ...(Array.isArray(project.images) ? project.images : []),
@@ -142,11 +145,9 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
     ...(typeof project.image === 'string' ? [project.image] : []),
   ].filter((img) => typeof img === 'string' && img.trim().length > 0)
 
-  // Deduplicate while preserving order, zero dummy images
   const projectImages = Array.from(new Set(rawImages))
   const hasImages = projectImages.length > 0
 
-  // Real project videos (support both string URLs and uploaded video objects { name, url, size })
   const rawVideos = []
   if (Array.isArray(project.videos)) {
     project.videos.forEach((v) => {
@@ -167,7 +168,6 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
     }
   })
 
-  // Deduplicate by URL
   const seenVideoUrls = new Set()
   const projectVideos = rawVideos.filter((v) => {
     if (!v.url || seenVideoUrls.has(v.url)) return false
@@ -177,7 +177,6 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
   const hasVideos = projectVideos.length > 0
   const hasMedia = hasImages || hasVideos
 
-  // Video embed URL parser
   const getEmbedVideoUrl = (url) => {
     if (!url) return ''
     if (url.includes('youtube.com/embed') || url.includes('player.vimeo.com')) return url
@@ -189,83 +188,7 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
   }
 
   // ─────────────────────────────────────────────────────────────
-  // 3. DYNAMIC SECTION 3: DOCUMENTS DATA (ONLY REAL DATA)
-  // ─────────────────────────────────────────────────────────────
-  const availableDocuments = []
-
-  // Dynamic documents array from API/DB
-  if (Array.isArray(project.documents) && project.documents.length > 0) {
-    project.documents.forEach((doc) => {
-      if (typeof doc === 'string' && doc.trim().length > 0) {
-        availableDocuments.push({ title: doc, desc: null, url: null, isDownload: false })
-      } else if (doc && typeof doc === 'object' && (doc.title || doc.name)) {
-        availableDocuments.push({
-          title: doc.title || doc.name,
-          desc: doc.desc || doc.description || (doc.size ? `Size: ${doc.size}` : null),
-          url: doc.url || doc.file || null,
-          isDownload: Boolean(doc.url || doc.file),
-        })
-      }
-    })
-  }
-
-  // Include uploaded layout blueprint file if not already in documents
-  if (project.layoutUrl) {
-    const isAlreadyDoc = availableDocuments.some((d) => d.url === project.layoutUrl)
-    if (!isAlreadyDoc) {
-      availableDocuments.push({
-        title: project.layoutFileName || `${project.name} Master Layout Blueprint`,
-        desc: 'Official layout blueprint file uploaded via CRM.',
-        url: project.layoutUrl,
-        isDownload: true,
-      })
-    }
-  }
-
-  // Real brochure URL if provided
-  if (project.brochureUrl && typeof project.brochureUrl === 'string') {
-    availableDocuments.push({
-      title: `${project.name} Official Brochure`,
-      desc: 'Verified project documentation, boundary specifications, and extent measurements.',
-      url: project.brochureUrl,
-      isDownload: true,
-    })
-  }
-
-  // Real approval credential if provided
-  if (project.approval && typeof project.approval === 'string') {
-    availableDocuments.push({
-      title: project.approval,
-      desc: `Official sanction clearance & legal title verification for ${project.name}.`,
-      url: project.approvalDocUrl || null,
-      isDownload: Boolean(project.approvalDocUrl),
-    })
-  }
-
-  // Real RERA registration number if provided
-  if (project.reraNumber) {
-    availableDocuments.push({
-      title: `RERA Registration: ${project.reraNumber}`,
-      desc: 'Sanctioned layout approval from the Real Estate Regulatory Authority.',
-      url: null,
-      isDownload: false,
-    })
-  }
-
-  // Real survey number if provided
-  if (project.surveyNumber) {
-    availableDocuments.push({
-      title: `Revenue Survey Number: ${project.surveyNumber}`,
-      desc: 'Official revenue registry village demarcation coordinate.',
-      url: null,
-      isDownload: false,
-    })
-  }
-
-  const hasDocuments = availableDocuments.length > 0
-
-  // ─────────────────────────────────────────────────────────────
-  // 4. DYNAMIC SECTION 4: MAP LOCATION DATA
+  // 3. DYNAMIC SECTION 3: MAP LOCATION DATA
   // ─────────────────────────────────────────────────────────────
   const mapLocationInput =
     project.mapLocation ||
@@ -288,7 +211,7 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
     `${project.location || project.name} Chennai`
   )
 
-  // Lightbox navigation
+  // Lightbox handlers
   const openLightbox = (idx) => setLightboxIndex(idx)
   const closeLightbox = () => setLightboxIndex(null)
   const nextImage = useCallback(
@@ -303,7 +226,6 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
     [projectImages.length]
   )
 
-  // Lightbox keyboard listener
   useEffect(() => {
     if (lightboxIndex === null || projectImages.length === 0) return
     const onKey = (e) => {
@@ -315,213 +237,269 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
     return () => window.removeEventListener('keydown', onKey)
   }, [lightboxIndex, nextImage, prevImage, projectImages.length])
 
+  // Price formatting
+  const formattedPrice =
+    project.priceDisplay ||
+    (project.price && project.price > 0
+      ? `₹ ${(Number(project.price) / 100000).toFixed(1)} Lakhs`
+      : 'Price on Request')
+
+  const isSoldOut =
+    project.status === 'Sold Out' ||
+    project.status === 'Sold' ||
+    (typeof project.availablePlots === 'number' &&
+      project.availablePlots === 0 &&
+      project.totalPlots > 0)
+
+  // Primary image
+  const primaryHeroImage =
+    project.image ||
+    (projectImages.length > 0 ? projectImages[0] : null) ||
+    '/images/hero-estate.jpg'
+
   return (
     <>
-      <Section>
-        {/* Navigation Breadcrumb Back Link */}
-        <div style={{ marginBottom: '24px' }}>
-          <Link
-            href="/projects"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              color: 'var(--green-700)',
-              fontWeight: '600',
-              textDecoration: 'none',
-              fontSize: '14px',
-            }}
-          >
-            <ArrowLeft size={16} /> Back to Projects Directory
-          </Link>
-        </div>
+      {/* ────────────────────────────────────────────────────────── */}
+      {/* 1. HERO SECTION (ALIGNED WITH ABOUT US DESIGN LANGUAGE)   */}
+      {/* ────────────────────────────────────────────────────────── */}
+      <section className="project-hero-section">
+        <div className="project-hero-container">
+          {/* Breadcrumb Navigation */}
+          <nav aria-label="Breadcrumb" className="project-hero__breadcrumb">
+            <Link href="/">Home</Link>
+            <span className="project-hero__breadcrumb-sep">/</span>
+            <Link href="/projects">Projects</Link>
+            <span className="project-hero__breadcrumb-sep">/</span>
+            <span className="project-hero__breadcrumb-current">{project.name}</span>
+          </nav>
 
-        {/* Vertical Flow of Sections */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
-          {/* Project Overview Card (Full Width) */}
-          <div
-            style={{
-              background: '#ffffff',
-              border: '1.5px solid rgba(227, 221, 209, 0.9)',
-              borderRadius: '16px',
-              padding: 'clamp(24px, 3.5vw, 36px)',
-              boxShadow: 'var(--shadow-sm)',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                marginBottom: '14px',
-                flexWrap: 'wrap',
-              }}
-            >
-              {project.type && <Badge tone="primary">{project.type}</Badge>}
-              {project.approval && <Badge tone="gold">{project.approval}</Badge>}
-              {project.location && (
-                <span
-                  style={{
-                    fontSize: '13.5px',
-                    color: 'var(--muted)',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                >
-                  <MapPin size={14} color="var(--gold)" />
-                  {project.location}
+          {/* Heading & Badges Header */}
+          <div className="project-hero__header">
+            <div className="project-hero__badge-row">
+              <span className="project-hero__badge">
+                ASSETS CREATOR • {project.type ? project.type.toUpperCase() : 'PROJECT'}
+              </span>
+              {project.approval && (
+                <span className="project-hero__badge project-hero__badge--gold">
+                  {project.approval}
                 </span>
               )}
+              <span
+                className={`project-hero__badge ${
+                  isSoldOut
+                    ? 'project-hero__badge--sold'
+                    : 'project-hero__badge--status'
+                }`}
+              >
+                {isSoldOut ? 'Sold Out' : project.status || 'Available'}
+              </span>
             </div>
 
-            <h1
-              style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: 'clamp(26px, 3.5vw, 36px)',
-                color: 'var(--green-950)',
-                marginBottom: '14px',
-                lineHeight: 1.25,
-              }}
-            >
+            <h1 className="project-hero__title">
               {project.name}
             </h1>
 
-            {project.description && (
-              <p
-                style={{
-                  fontSize: '16px',
-                  lineHeight: '1.75',
-                  color: 'var(--ink-2)',
-                  marginBottom: '24px',
-                }}
-              >
-                {project.description}
-              </p>
-            )}
+            <p className="project-hero__subtitle">
+              {project.description ||
+                `Verified ${project.type || 'property'} located in ${project.location || 'Chennai'}. 100% legally clear title patta with complete revenue document verification.`}
+            </p>
 
-            {/* Key Specs Matrix */}
-            <div
-              style={{
-                background: 'var(--bg-soft, #f8f6f0)',
-                borderRadius: '12px',
-                padding: '20px 24px',
-                border: '1px solid var(--line)',
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-                gap: '16px',
-                fontSize: '14px',
-              }}
-            >
-              {(project.area || project.plotSizes) && (
-                <div>
-                  <span style={{ display: 'block', fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 600 }}>
-                    Size / Extent
-                  </span>
-                  <strong style={{ fontSize: '15px', color: 'var(--green-950)' }}>
-                    {project.area || project.plotSizes}
-                  </strong>
-                </div>
-              )}
+            {/* Project Quick Meta & Action Bar */}
+            <div className="project-hero__meta-bar">
+              <div className="project-hero__meta-left">
+                {project.location && (
+                  <div className="project-hero__meta-item">
+                    <MapPin size={15} className="project-hero__meta-icon" />
+                    <span>{project.location}</span>
+                  </div>
+                )}
 
-              {project.plotSizes && (
-                <div>
-                  <span style={{ display: 'block', fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 600 }}>
-                    Available Plot Sizes
-                  </span>
-                  <strong style={{ fontSize: '15px', color: 'var(--green-950)' }}>
-                    {project.plotSizes}
-                  </strong>
-                </div>
-              )}
+                {(project.area || project.plotSizes) && (
+                  <div className="project-hero__meta-item">
+                    <Compass size={15} className="project-hero__meta-icon" />
+                    <span>{project.area || project.plotSizes}</span>
+                  </div>
+                )}
 
-              {project.facing && (
-                <div>
-                  <span style={{ display: 'block', fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 600 }}>
-                    Facing Orientation
-                  </span>
-                  <strong style={{ fontSize: '15px', color: 'var(--green-950)' }}>
-                    {project.facing}
-                  </strong>
-                </div>
-              )}
-
-              {project.status && (
-                <div>
-                  <span style={{ display: 'block', fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 600 }}>
-                    Availability Status
-                  </span>
-                  <strong
-                    style={{
-                      fontSize: '15px',
-                      color: (project.status === 'Sold Out' || project.status === 'Sold') ? '#dc2626' : 'var(--green-600)',
-                    }}
-                  >
-                    {project.status}
-                  </strong>
-                </div>
-              )}
-
-              {(project.priceDisplay || project.price) && (
-                <div style={{ gridColumn: '1 / -1', paddingTop: '10px', borderTop: '1px solid var(--line)' }}>
-                  <span style={{ display: 'block', fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 600 }}>
-                    Investment Price
-                  </span>
-                  <span style={{ fontSize: '20px', color: 'var(--gold-hover)', fontWeight: 700 }}>
-                    {project.priceDisplay || `₹ ${(Number(project.price) / 100000).toFixed(1)} Lakhs`}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Highlights (if provided in project data) */}
-            {Array.isArray(project.highlights) && project.highlights.length > 0 && (
-              <div style={{ marginTop: '24px' }}>
-                <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--green-900)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px' }}>
-                  Project Highlights:
-                </h4>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '8px' }}>
-                  {project.highlights.map((h, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13.5px', color: 'var(--ink)' }}>
-                      <CheckCircle2 size={16} color="var(--green-600)" style={{ flexShrink: 0, marginTop: '2px' }} />
-                      <span>{h}</span>
-                    </div>
-                  ))}
+                <div className="project-hero__meta-item project-hero__meta-price">
+                  <span>{formattedPrice}</span>
                 </div>
               </div>
-            )}
+
+              <Link href="/projects" className="project-hero__back-btn">
+                <ArrowLeft size={15} />
+                <span>Back to Projects Directory</span>
+              </Link>
+            </div>
           </div>
 
-          {/* ═════════════════════════════════════════════════════════════════ */}
-          {/* 1. PROJECT LAYOUT SECTION (DISPLAYED AT THE TOP IN FULL WIDTH)  */}
-          {/* ═════════════════════════════════════════════════════════════════ */}
-          {hasLayout && (
-            <div
-              style={{
-                background: '#ffffff',
-                border: '1.5px solid rgba(227, 221, 209, 0.9)',
-                borderRadius: '16px',
-                padding: 'clamp(24px, 3.5vw, 36px)',
-                boxShadow: 'var(--shadow-sm)',
-              }}
-            >
-              <div style={{ marginBottom: '20px' }}>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '6px' }}>
-                  <Layers size={14} />
-                  <span>PROJECT LAYOUT</span>
-                </div>
-                <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '24px', color: 'var(--green-950)', margin: '0 0 6px 0' }}>
-                  Master Plan &amp; Parcel Layout
-                </h2>
-                <p style={{ fontSize: '14px', color: 'var(--muted)', margin: 0, lineHeight: 1.6 }}>
-                  Interactive layout boundaries, parcel extents, internal roads, and live availability for {project.name}.
-                </p>
-              </div>
+          {/* Wide Hero Architectural Banner */}
+          <div className="project-hero__image-wrap">
+            <Image
+              src={primaryHeroImage}
+              alt={project.name}
+              fill
+              priority
+              sizes="(max-width: 768px) 100vw, 1360px"
+              className="project-hero__image"
+            />
+          </div>
+        </div>
+      </section>
 
-              {/* Phase Switcher Tabs (Phase-1, Phase-2, etc.) */}
+      {/* ────────────────────────────────────────────────────────── */}
+      {/* 2. SPECIFICATIONS & HIGHLIGHTS (WHITE BACKGROUND SECTION)  */}
+      {/* ────────────────────────────────────────────────────────── */}
+      <section className="project-detail-section project-detail-section--white">
+        <div className="project-detail-container">
+          <div className="project-specs-grid">
+            {/* Left: Key Dimensions & Specifications Tiles */}
+            <div className="project-specs-col">
+              <span className="project-section-eyebrow">
+                LAND SPECIFICATIONS
+              </span>
+              <h2 className="project-section-title">
+                Key Dimensions &amp; Approvals
+              </h2>
+              <p className="project-section-subtitle">
+                Official layout measurements and approval clearances for {project.name}.
+              </p>
+
+              <div className="project-specs-tiles">
+                {(project.area || project.plotSizes) && (
+                  <div className="project-spec-tile">
+                    <span className="project-spec-label">Extent / Size</span>
+                    <strong className="project-spec-val">{project.area || project.plotSizes}</strong>
+                  </div>
+                )}
+
+                {project.plotSizes && (
+                  <div className="project-spec-tile">
+                    <span className="project-spec-label">Plot Sizes</span>
+                    <strong className="project-spec-val">{project.plotSizes}</strong>
+                  </div>
+                )}
+
+                {project.facing && (
+                  <div className="project-spec-tile">
+                    <span className="project-spec-label">Facing Orientation</span>
+                    <strong className="project-spec-val">{project.facing}</strong>
+                  </div>
+                )}
+
+                <div className="project-spec-tile">
+                  <span className="project-spec-label">Title Ownership</span>
+                  <strong className="project-spec-val project-spec-val--green">
+                    <FileCheck2 size={14} />
+                    100% Individual Patta
+                  </strong>
+                </div>
+
+                <div className="project-spec-tile">
+                  <span className="project-spec-label">Sanction Status</span>
+                  <strong className="project-spec-val project-spec-val--green">
+                    <ShieldCheck size={14} />
+                    {project.approval || 'DTCP / CMDA Verified'}
+                  </strong>
+                </div>
+
+                {project.surveyNumber && (
+                  <div className="project-spec-tile">
+                    <span className="project-spec-label">Revenue Survey No.</span>
+                    <strong className="project-spec-val">{project.surveyNumber}</strong>
+                  </div>
+                )}
+
+                <div className="project-spec-tile project-spec-tile--price">
+                  <span className="project-spec-label">Investment Price</span>
+                  <strong className="project-spec-val project-spec-val--gold">{formattedPrice}</strong>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Verified Legal & Infrastructure Checklist */}
+            <div className="project-checklist-col">
+              <div className="project-checklist-card">
+                <span className="project-checklist-badge">
+                  BUYER ASSURANCE
+                </span>
+                <h3 className="project-checklist-title">
+                  Legal &amp; Infrastructure Standards
+                </h3>
+                <p className="project-checklist-desc">
+                  Every property curated by Crystal Estates fulfills our rigorous 6-point verification mandate before presentation.
+                </p>
+
+                <div className="project-checklist-items">
+                  <div className="project-checklist-item">
+                    <CheckCircle2 size={18} className="project-checklist-icon" />
+                    <div>
+                      <strong>30+ Years Parent Title Scrutiny</strong>
+                      <p>Exhaustive legal link audit and nil-encumbrance certificate certification.</p>
+                    </div>
+                  </div>
+
+                  <div className="project-checklist-item">
+                    <CheckCircle2 size={18} className="project-checklist-icon" />
+                    <div>
+                      <strong>Computerized Patta Handover</strong>
+                      <p>Complete revenue department liaison until physical patta transfer to your name.</p>
+                    </div>
+                  </div>
+
+                  <div className="project-checklist-item">
+                    <CheckCircle2 size={18} className="project-checklist-icon" />
+                    <div>
+                      <strong>Physical Demarcation Stones</strong>
+                      <p>Boundary stones firmly demarcated on ground according to sanctioned FMB sketches.</p>
+                    </div>
+                  </div>
+
+                  <div className="project-checklist-item">
+                    <CheckCircle2 size={18} className="project-checklist-icon" />
+                    <div>
+                      <strong>Avenue Road Connectivity</strong>
+                      <p>Wide internal blacktop/concrete avenues with planned avenue plantation and drainage.</p>
+                    </div>
+                  </div>
+
+                  <div className="project-checklist-item">
+                    <CheckCircle2 size={18} className="project-checklist-icon" />
+                    <div>
+                      <strong>Bank Approval Eligibility</strong>
+                      <p>Pre-cleared with nationalized and private banks for hassle-free plot loans.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ────────────────────────────────────────────────────────── */}
+      {/* 3. INTERACTIVE MASTER PLAN & PARCEL LAYOUT (WARM SECTION)  */}
+      {/* ────────────────────────────────────────────────────────── */}
+      {hasLayout && (
+        <section className="project-detail-section project-detail-section--warm">
+          <div className="project-detail-container">
+            <div className="project-section-header">
+              <span className="project-section-eyebrow">
+                PROJECT MASTER PLAN
+              </span>
+              <h2 className="project-section-title">
+                Interactive Parcel Layout &amp; Live Availability
+              </h2>
+              <p className="project-section-subtitle">
+                Inspect surveyed boundaries, plot dimensions, internal road networks, and live availability for {project.name}.
+              </p>
+            </div>
+
+            <div className="project-layout-wrapper">
+              {/* Phase Switcher Tabs (if multi-phase) */}
               {layoutPhases.length > 1 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '22px' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--muted)', marginRight: '4px' }}>
+                <div className="project-layout-tabs">
+                  <span className="project-layout-tabs__label">
                     Select Phase:
                   </span>
                   {layoutPhases.map((phase, idx) => {
@@ -532,33 +510,10 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
                         key={phase.id || idx}
                         type="button"
                         onClick={() => setActivePhaseIndex(idx)}
-                        style={{
-                          padding: '8px 18px',
-                          borderRadius: '100px',
-                          fontSize: '13px',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease',
-                          border: isSelected ? '1.5px solid var(--green-900)' : '1px solid var(--line)',
-                          background: isSelected ? 'var(--green-900)' : '#ffffff',
-                          color: isSelected ? '#ffffff' : 'var(--ink-1)',
-                          boxShadow: isSelected ? '0 2px 8px rgba(15, 61, 46, 0.15)' : 'none',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                        }}
+                        className={`project-layout-tab ${isSelected ? 'is-active' : ''}`}
                       >
                         <span>{phase.name}</span>
-                        <span
-                          style={{
-                            fontSize: '11px',
-                            padding: '2px 8px',
-                            borderRadius: '12px',
-                            background: isSelected ? 'rgba(255, 255, 255, 0.22)' : 'var(--bg-soft, #f4f0eb)',
-                            color: isSelected ? '#ffffff' : 'var(--muted)',
-                            fontWeight: 600,
-                          }}
-                        >
+                        <span className="project-layout-tab__badge">
                           {plotCount} {plotCount === 1 ? 'Plot' : 'Plots'}
                         </span>
                       </button>
@@ -567,8 +522,9 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
                 </div>
               )}
 
+              {/* Layout Viewer Display */}
               {(project.hasLayoutMap || isSvgLayout || currentPhasePlots.length > 0) && currentPhaseLayoutUrl ? (
-                <div>
+                <div className="project-plot-viewer-box">
                   <PlotViewer
                     key={`${project.id || project.slug}-${currentPhase.id || activePhaseIndex}-${currentPhaseLayoutUrl}`}
                     initialPlots={currentPhasePlots}
@@ -590,7 +546,7 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
                     whatsappNumber="919444000000"
                     backHref={`/projects/${project.slug || project.id}`}
                   />
-                  <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+                  <div className="project-layout-footer-btn">
                     <Button
                       href={`/layout-viewer?slug=${project.layoutSlug || project.slug || project.id}&phase=${encodeURIComponent(currentPhase.id || currentPhase.name)}`}
                       variant="outline"
@@ -602,41 +558,22 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
                   </div>
                 </div>
               ) : isPdfLayout ? (
-                <div
-                  style={{
-                    borderRadius: '12px',
-                    overflow: 'hidden',
-                    border: '1px solid var(--line)',
-                    background: '#ffffff',
-                    padding: '20px',
-                    boxShadow: 'var(--shadow-sm)',
-                  }}
-                >
-                  <div
-                    style={{
-                      height: '520px',
-                      borderRadius: '8px',
-                      overflow: 'hidden',
-                      border: '1px solid #e2e8f0',
-                      marginBottom: '16px',
-                    }}
-                  >
+                <div className="project-pdf-box">
+                  <div className="project-pdf-frame">
                     <iframe
                       src={currentPhaseLayoutUrl}
                       title={`${project.name} ${currentPhase.name} Blueprint PDF`}
-                      style={{ width: '100%', height: '100%', border: 0 }}
                     />
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                    <span style={{ fontSize: '14px', color: 'var(--ink-2)' }}>
+                  <div className="project-pdf-actions">
+                    <span className="project-pdf-name">
                       <strong>{project.layoutFileName || `${currentPhase.name} Layout Blueprint (PDF)`}</strong>
                     </span>
                     <a
                       href={currentPhaseLayoutUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="btn btn--primary btn--sm"
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                      className="project-pdf-btn"
                     >
                       <Download size={14} />
                       <span>Open / Download Blueprint PDF</span>
@@ -645,14 +582,7 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
                 </div>
               ) : isImageLayout || project.layoutImage ? (
                 <div
-                  style={{
-                    borderRadius: '12px',
-                    overflow: 'hidden',
-                    border: '1px solid var(--line)',
-                    boxShadow: 'var(--shadow-sm)',
-                    position: 'relative',
-                    cursor: 'pointer',
-                  }}
+                  className="project-image-layout-box"
                   onClick={() => {
                     const imgToOpen = currentPhaseLayoutUrl || project.layoutImage
                     const idx = projectImages.indexOf(imgToOpen)
@@ -662,29 +592,15 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
                   <img
                     src={currentPhaseLayoutUrl || project.layoutImage}
                     alt={`${project.name} ${currentPhase.name} Layout Plan`}
-                    style={{ width: '100%', height: 'auto', display: 'block', maxHeight: '600px', objectFit: 'contain' }}
+                    className="project-image-layout-img"
                   />
-                  <div
-                    style={{
-                      position: 'absolute',
-                      bottom: '12px',
-                      right: '12px',
-                      background: 'rgba(15, 61, 46, 0.9)',
-                      color: '#ffffff',
-                      padding: '6px 12px',
-                      borderRadius: '6px',
-                      fontSize: '12px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                    }}
-                  >
+                  <div className="project-image-layout-badge">
                     <Maximize2 size={13} /> Click to expand blueprint
                   </div>
                 </div>
               ) : currentPhaseLayoutUrl ? (
-                <div style={{ padding: '24px', background: 'var(--bg-soft)', borderRadius: '12px', border: '1px solid var(--line)', textAlign: 'center' }}>
-                  <p style={{ fontSize: '14px', color: 'var(--ink-2)', marginBottom: '14px' }}>
+                <div className="project-layout-fallback">
+                  <p>
                     Uploaded layout blueprint file (<strong>{project.layoutFileName || `${currentPhase.name} Blueprint File`}</strong>) is ready for download and viewing.
                   </p>
                   <a
@@ -692,7 +608,6 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
                     target="_blank"
                     rel="noopener noreferrer"
                     className="btn btn--primary btn--sm"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                   >
                     <Layers size={14} />
                     <span>View / Download Sanctioned Layout File</span>
@@ -700,243 +615,149 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
                 </div>
               ) : null}
             </div>
-          )}
+          </div>
+        </section>
+      )}
 
-          {/* ═════════════════════════════════════════════════════════════════ */}
-          {/* 2. PROJECT IMAGES & VIDEOS (BELOW LAYOUT IN FULL WIDTH)          */}
-          {/* ═════════════════════════════════════════════════════════════════ */}
-          {hasMedia && (
-            <div
-              style={{
-                background: '#ffffff',
-                border: '1.5px solid rgba(227, 221, 209, 0.9)',
-                borderRadius: '16px',
-                padding: 'clamp(24px, 3.5vw, 36px)',
-                boxShadow: 'var(--shadow-sm)',
-              }}
-            >
-              <div style={{ marginBottom: '20px' }}>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '6px' }}>
-                  <Camera size={14} />
-                  <span>{hasVideos ? 'PROJECT IMAGES & VIDEOS' : 'PROJECT IMAGES'}</span>
-                </div>
-                <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '24px', color: 'var(--green-950)', margin: '0 0 6px 0' }}>
-                  {hasVideos ? 'Site Photographs & Video Walkthrough' : 'Site & Property Photographs'}
-                </h2>
-                <p style={{ fontSize: '14px', color: 'var(--muted)', margin: 0, lineHeight: 1.6 }}>
-                  Visual documentation from {project.name}{project.location ? ` in ${project.location}` : ''}.
-                </p>
-              </div>
-
-              {/* Verified Images Grid */}
-              {hasImages && (
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: projectImages.length === 1 ? '1fr' : 'repeat(auto-fit, minmax(260px, 1fr))',
-                    gap: '16px',
-                  }}
-                >
-                  {projectImages.map((imgSrc, idx) => (
-                    <div
-                      key={idx}
-                      onClick={() => openLightbox(idx)}
-                      style={{
-                        position: 'relative',
-                        height: projectImages.length === 1 ? '400px' : '260px',
-                        borderRadius: '12px',
-                        overflow: 'hidden',
-                        cursor: 'pointer',
-                        border: '1px solid var(--line)',
-                        boxShadow: 'var(--shadow-sm)',
-                      }}
-                    >
-                      <img
-                        src={imgSrc}
-                        alt={`${project.name} photo ${idx + 1}`}
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover',
-                          transition: 'transform 0.4s ease',
-                        }}
-                        onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.03)')}
-                        onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-                      />
-                      <div
-                        style={{
-                          position: 'absolute',
-                          bottom: '10px',
-                          right: '10px',
-                          background: 'rgba(15, 61, 46, 0.85)',
-                          color: '#ffffff',
-                          padding: '6px 10px',
-                          borderRadius: '6px',
-                          fontSize: '12px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                        }}
-                      >
-                        <Maximize2 size={13} /> Click to expand
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Verified Videos Grid (Only if provided in project data) */}
-              {hasVideos && (
-                <div style={{ marginTop: hasImages ? '28px' : '0' }}>
-                  {hasImages && (
-                    <h3
-                      style={{
-                        fontFamily: 'var(--font-display)',
-                        fontSize: '18px',
-                        color: 'var(--green-950)',
-                        marginBottom: '14px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                      }}
-                    >
-                      <Video size={18} color="var(--gold)" />
-                      <span>Project Video Walkthrough</span>
-                    </h3>
-                  )}
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: projectVideos.length === 1 ? '1fr' : 'repeat(auto-fit, minmax(320px, 1fr))',
-                      gap: '20px',
-                    }}
-                  >
-                    {projectVideos.map((vidObj, vIdx) => {
-                      const vidUrl = typeof vidObj === 'string' ? vidObj : vidObj.url
-                      const vidName = typeof vidObj === 'object' && vidObj.name ? vidObj.name : `Video ${vIdx + 1}`
-                      const isDirectVideo =
-                        vidUrl.match(/\.(mp4|webm|ogg)($|\?)/i) ||
-                        vidUrl.startsWith('/videos/') ||
-                        vidUrl.includes('video-')
-                      return (
-                        <div
-                          key={vIdx}
-                          style={{
-                            borderRadius: '12px',
-                            overflow: 'hidden',
-                            border: '1px solid var(--line)',
-                            background: '#000000',
-                            boxShadow: 'var(--shadow-sm)',
-                            position: 'relative',
-                            aspectRatio: '16 / 9',
-                          }}
-                        >
-                          {isDirectVideo ? (
-                            <video
-                              controls
-                              playsInline
-                              preload="metadata"
-                              src={vidUrl}
-                              style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#000' }}
-                              suppressHydrationWarning
-                            />
-                          ) : (
-                            <iframe
-                              src={getEmbedVideoUrl(vidUrl)}
-                              title={`${project.name} ${vidName}`}
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                              allowFullScreen
-                              style={{ width: '100%', height: '100%', border: 0 }}
-                            />
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
+      {/* ────────────────────────────────────────────────────────── */}
+      {/* 4. SITE PHOTOGRAPHS & VIDEOS (WHITE BACKGROUND SECTION)   */}
+      {/* ────────────────────────────────────────────────────────── */}
+      {hasMedia && (
+        <section className="project-detail-section project-detail-section--white">
+          <div className="project-detail-container">
+            <div className="project-section-header">
+              <span className="project-section-eyebrow">
+                VISUAL DOCUMENTATION
+              </span>
+              <h2 className="project-section-title">
+                {hasVideos ? 'Site Photographs & Video Walkthrough' : 'Site & Property Photographs'}
+              </h2>
+              <p className="project-section-subtitle">
+                On-ground photography and aerial perspectives from {project.name}{project.location ? ` in ${project.location}` : ''}.
+              </p>
             </div>
-          )}
 
-          {/* ═════════════════════════════════════════════════════════════════ */}
-          {/* 3. DOCUMENTS SECTION (HIDDEN AS REQUESTED)                        */}
-          {/* ═════════════════════════════════════════════════════════════════ */}
-
-          {/* ═════════════════════════════════════════════════════════════════ */}
-          {/* 4. MAP LOCATION (LEFT) + ENQUIRY FORM (RIGHT) SIDE BY SIDE       */}
-          {/* ═════════════════════════════════════════════════════════════════ */}
-          <div
-            className={`property-map-enquiry-row ${!hasLocation ? 'property-map-enquiry-row--full' : ''}`}
-          >
-            {hasLocation && (
+            {/* Photo Gallery Grid */}
+            {hasImages && (
               <div
-                style={{
-                  background: '#ffffff',
-                  border: '1.5px solid rgba(227, 221, 209, 0.9)',
-                  borderRadius: '16px',
-                  padding: 'clamp(24px, 3.5vw, 36px)',
-                  boxShadow: 'var(--shadow-sm)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  height: '100%',
-                }}
+                className={`project-gallery-grid ${
+                  projectImages.length === 1 ? 'project-gallery-grid--single' : ''
+                }`}
               >
-                <div style={{ marginBottom: '20px' }}>
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '6px' }}>
-                    <MapPin size={14} />
-                    <span>MAP LOCATION</span>
+                {projectImages.map((imgSrc, idx) => (
+                  <div
+                    key={idx}
+                    onClick={() => openLightbox(idx)}
+                    className="project-gallery-item"
+                  >
+                    <img
+                      src={imgSrc}
+                      alt={`${project.name} photo ${idx + 1}`}
+                      className="project-gallery-img"
+                    />
+                    <div className="project-gallery-badge">
+                      <Maximize2 size={13} /> Click to expand
+                    </div>
                   </div>
-                  <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '24px', color: 'var(--green-950)', margin: '0 0 6px 0' }}>
-                    Location &amp; Road Accessibility
-                  </h2>
-                  <p style={{ fontSize: '14px', color: 'var(--muted)', margin: 0, lineHeight: 1.6 }}>
-                    Geographical navigation and neighborhood road access for {project.location || project.name}.
+                ))}
+              </div>
+            )}
+
+            {/* Video Walkthrough (if videos available) */}
+            {hasVideos && (
+              <div className="project-videos-wrapper">
+                {hasImages && (
+                  <h3 className="project-videos-heading">
+                    <Video size={18} />
+                    <span>Project Video Walkthrough</span>
+                  </h3>
+                )}
+                <div
+                  className={`project-videos-grid ${
+                    projectVideos.length === 1 ? 'project-videos-grid--single' : ''
+                  }`}
+                >
+                  {projectVideos.map((vidObj, vIdx) => {
+                    const vidUrl = typeof vidObj === 'string' ? vidObj : vidObj.url
+                    const vidName = typeof vidObj === 'object' && vidObj.name ? vidObj.name : `Video ${vIdx + 1}`
+                    const isDirectVideo =
+                      vidUrl.match(/\.(mp4|webm|ogg)($|\?)/i) ||
+                      vidUrl.startsWith('/videos/') ||
+                      vidUrl.includes('video-')
+                    return (
+                      <div key={vIdx} className="project-video-frame">
+                        {isDirectVideo ? (
+                          <video
+                            controls
+                            playsInline
+                            preload="metadata"
+                            src={vidUrl}
+                            suppressHydrationWarning
+                          />
+                        ) : (
+                          <iframe
+                            src={getEmbedVideoUrl(vidUrl)}
+                            title={`${project.name} ${vidName}`}
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* ────────────────────────────────────────────────────────── */}
+      {/* 5. LOCATION MAP & DIRECT ENQUIRY (WARM BACKGROUND SECTION) */}
+      {/* ────────────────────────────────────────────────────────── */}
+      <section className="project-detail-section project-detail-section--warm">
+        <div className="project-detail-container">
+          <div className="project-section-header">
+            <span className="project-section-eyebrow">
+              GEOGRAPHICAL ACCESS &amp; SITE VISIT
+            </span>
+            <h2 className="project-section-title">
+              Location Map &amp; Direct Consultation
+            </h2>
+            <p className="project-section-subtitle">
+              Plan your visit or request complete title documentation from our senior land consultants.
+            </p>
+          </div>
+
+          <div className={`project-map-enquiry-grid ${!hasLocation ? 'project-map-enquiry-grid--single' : ''}`}>
+            {/* Left: Location Map Card */}
+            {hasLocation && (
+              <div className="project-map-card">
+                <div className="project-map-card__header">
+                  <div className="project-map-card__tag">
+                    <MapPin size={14} />
+                    <span>MAP NAVIGATION</span>
+                  </div>
+                  <h3 className="project-map-card__title">
+                    Road Access &amp; Corridors
+                  </h3>
+                  <p className="project-map-card__desc">
+                    Pinpoint geographical coordinates for {project.location || project.name}.
                   </p>
                 </div>
 
-                <div
-                  style={{
-                    flex: 1,
-                    minHeight: '420px',
-                    borderRadius: '14px',
-                    overflow: 'hidden',
-                    border: '1px solid var(--line)',
-                    position: 'relative',
-                    background: '#e9e5dc',
-                    boxShadow: 'var(--shadow-sm)',
-                  }}
-                >
+                <div className="project-map-frame">
                   <a
                     href={mapDirectLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={{
-                      position: 'absolute',
-                      top: '12px',
-                      left: '12px',
-                      zIndex: 10,
-                      background: 'rgba(255, 255, 255, 0.96)',
-                      backdropFilter: 'blur(4px)',
-                      padding: '7px 14px',
-                      borderRadius: '8px',
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      color: '#0B57D0',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '5px',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
-                      textDecoration: 'none',
-                    }}
+                    className="project-map-direct-link"
                   >
-                    <span>Open in Maps</span>
+                    <span>Open in Google Maps</span>
                     <ArrowUpRight size={13} />
                   </a>
                   <iframe
                     title={`${project.name} Location Map`}
-                    width="100%"
-                    height="100%"
-                    style={{ border: 0, minHeight: '420px', width: '100%', height: '100%', display: 'block' }}
                     loading="lazy"
                     allowFullScreen
                     src={mapEmbedSrc}
@@ -945,58 +766,60 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
               </div>
             )}
 
-            <div
-              style={{
-                maxWidth: !hasLocation ? '720px' : 'none',
-                width: '100%',
-                margin: !hasLocation ? '0 auto' : '0',
-              }}
-            >
+            {/* Right: Direct Enquiry Form Card */}
+            <div className="project-enquiry-col">
               <EnquiryForm
                 selectedPlot={project}
                 prefillInterest={project.name}
                 title={`Enquire for ${project.name}`}
-                subtitle="Connect directly with our land advisory desk for verified documentation, pricing breakdown, or guided site visit."
+                subtitle="Connect directly with our land advisory desk for verified documentation, pricing breakdown, or guided weekend site visit."
               />
             </div>
           </div>
         </div>
-      </Section>
+      </section>
 
-      {/* Image Lightbox Modal */}
+      {/* ────────────────────────────────────────────────────────── */}
+      {/* 6. SIMILAR LAND OPPORTUNITIES (WHITE BACKGROUND SECTION)  */}
+      {/* ────────────────────────────────────────────────────────── */}
+      {relatedProjects.length > 0 && (
+        <section className="project-detail-section project-detail-section--white">
+          <div className="project-detail-container">
+            <div className="project-section-header">
+              <span className="project-section-eyebrow">
+                EXPLORE MORE PROPERTIES
+              </span>
+              <h2 className="project-section-title">
+                Similar Land Opportunities in Chennai
+              </h2>
+              <p className="project-section-subtitle">
+                Explore more approved residential plotted developments and managed agro-forestry farmland across Chennai corridors.
+              </p>
+            </div>
+
+            <div className="project-similar-grid">
+              {relatedProjects.map((rel) => (
+                <ProjectCard key={rel.id || rel._id} project={rel} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ────────────────────────────────────────────────────────── */}
+      {/* 7. IMAGE LIGHTBOX MODAL                                   */}
+      {/* ────────────────────────────────────────────────────────── */}
       {lightboxIndex !== null && projectImages.length > 0 && (
         <div
           role="dialog"
           aria-modal="true"
           aria-label="Image Lightbox"
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0, 0, 0, 0.92)',
-            zIndex: 9999,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '24px',
-          }}
+          className="project-lightbox-overlay"
           onClick={closeLightbox}
         >
           <button
             onClick={closeLightbox}
-            style={{
-              position: 'absolute',
-              top: '20px',
-              right: '20px',
-              background: 'rgba(255, 255, 255, 0.15)',
-              border: 'none',
-              color: '#ffffff',
-              borderRadius: '50%',
-              width: '44px',
-              height: '44px',
-              display: 'grid',
-              placeItems: 'center',
-              cursor: 'pointer',
-            }}
+            className="project-lightbox-close"
             aria-label="Close Lightbox"
           >
             <X size={24} />
@@ -1008,19 +831,7 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
                 e.stopPropagation()
                 prevImage()
               }}
-              style={{
-                position: 'absolute',
-                left: '20px',
-                background: 'rgba(255, 255, 255, 0.15)',
-                border: 'none',
-                color: '#ffffff',
-                borderRadius: '50%',
-                width: '48px',
-                height: '48px',
-                display: 'grid',
-                placeItems: 'center',
-                cursor: 'pointer',
-              }}
+              className="project-lightbox-prev"
               aria-label="Previous Image"
             >
               <ChevronLeft size={28} />
@@ -1028,20 +839,15 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
           )}
 
           <div
-            style={{ maxWidth: '90vw', maxHeight: '85vh', textAlign: 'center' }}
+            className="project-lightbox-content"
             onClick={(e) => e.stopPropagation()}
           >
             <img
               src={projectImages[lightboxIndex]}
               alt={`${project.name} preview`}
-              style={{
-                maxWidth: '100%',
-                maxHeight: '80vh',
-                objectFit: 'contain',
-                borderRadius: '8px',
-              }}
+              className="project-lightbox-img"
             />
-            <p style={{ color: '#ffffff', marginTop: '10px', fontSize: '14px' }}>
+            <p className="project-lightbox-caption">
               {project.name} — Photo {lightboxIndex + 1} of {projectImages.length}
             </p>
           </div>
@@ -1052,46 +858,13 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
                 e.stopPropagation()
                 nextImage()
               }}
-              style={{
-                position: 'absolute',
-                right: '20px',
-                background: 'rgba(255, 255, 255, 0.15)',
-                border: 'none',
-                color: '#ffffff',
-                borderRadius: '50%',
-                width: '48px',
-                height: '48px',
-                display: 'grid',
-                placeItems: 'center',
-                cursor: 'pointer',
-              }}
+              className="project-lightbox-next"
               aria-label="Next Image"
             >
               <ChevronRight size={28} />
             </button>
           )}
         </div>
-      )}
-
-      {/* Similar Land Opportunities */}
-      {relatedProjects.length > 0 && (
-        <Section
-          title="Similar Land Opportunities"
-          subtitle="Explore other approved plots and agricultural farmland in our Chennai portfolio"
-          center
-        >
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-              gap: '24px',
-            }}
-          >
-            {relatedProjects.map((rel) => (
-              <ProjectCard key={rel.id || rel._id} project={rel} />
-            ))}
-          </div>
-        </Section>
       )}
     </>
   )

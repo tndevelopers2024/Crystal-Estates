@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef } from 'react'
+import { useRef, useEffect } from 'react'
 import { useGSAP } from '@gsap/react'
 import { gsap, isReducedMotion } from '../../lib/gsap'
 import Link from 'next/link'
@@ -187,38 +187,53 @@ export function SplitText({ text, className = '', delay = 0.04 }) {
   )
 }
 
-/* GSAP-powered ScrollTrigger CountUp Component */
+/* Robust IntersectionObserver CountUp Component */
 export function CountUp({ to, suffix = '' }) {
   const ref = useRef(null)
 
-  useGSAP(
-    () => {
-      if (isReducedMotion() || !ref.current) {
-        if (ref.current) ref.current.textContent = Number(to).toLocaleString('en-IN') + suffix
-        return
-      }
+  useEffect(() => {
+    const el = ref.current
+    if (!el || isReducedMotion()) {
+      if (el) el.textContent = Number(to).toLocaleString('en-IN') + suffix
+      return
+    }
 
-      const counter = { val: 0 }
-      gsap.to(counter, {
-        val: to,
-        duration: 1.8,
-        ease: 'power2.out',
-        scrollTrigger: {
-          trigger: ref.current,
-          start: 'top 85%',
-          toggleActions: 'play none none none',
+    let hasRun = false
+    if (typeof window !== 'undefined' && 'IntersectionObserver' in window) {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting && !hasRun) {
+              hasRun = true
+              const counter = { val: 0 }
+              gsap.to(counter, {
+                val: to,
+                duration: 1.6,
+                ease: 'power2.out',
+                onUpdate: () => {
+                  if (el) {
+                    el.textContent = Math.round(counter.val).toLocaleString('en-IN') + suffix
+                  }
+                },
+              })
+              observer.disconnect()
+            }
+          })
         },
-        onUpdate: () => {
-          if (ref.current) {
-            ref.current.textContent = Math.round(counter.val).toLocaleString('en-IN') + suffix
-          }
-        },
-      })
-    },
-    { scope: ref },
+        { threshold: 0.15 }
+      )
+      observer.observe(el)
+      return () => observer.disconnect()
+    } else {
+      el.textContent = Number(to).toLocaleString('en-IN') + suffix
+    }
+  }, [to, suffix])
+
+  return (
+    <span ref={ref}>
+      {Number(to).toLocaleString('en-IN')}{suffix}
+    </span>
   )
-
-  return <span ref={ref}>0{suffix}</span>
 }
 
 /* Card with a cursor-following green glow */

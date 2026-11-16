@@ -55,19 +55,36 @@ export default function StatsBar({
   useGSAP(
     () => {
       if (isReducedMotion()) return
+      const cards = sectionRef.current?.querySelectorAll('.modern-stat-card')
+      if (!cards || cards.length === 0) return
 
-      gsap.from('.modern-stat-card', {
-        scrollTrigger: {
-          trigger: '.modern-stats-grid',
-          start: 'top 85%',
-          toggleActions: 'play none none none',
-        },
-        y: 28,
-        opacity: 0,
-        stagger: 0.12,
-        duration: 0.8,
-        ease: 'power3.out',
-      })
+      // Use IntersectionObserver to reliably trigger entrance animation without freezing elements at opacity: 0
+      if (typeof window !== 'undefined' && 'IntersectionObserver' in window) {
+        const observer = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                gsap.fromTo(
+                  cards,
+                  { opacity: 0, y: 24 },
+                  {
+                    opacity: 1,
+                    y: 0,
+                    duration: 0.65,
+                    stagger: 0.1,
+                    ease: 'power2.out',
+                    clearProps: 'opacity,transform',
+                  }
+                )
+                observer.disconnect()
+              }
+            })
+          },
+          { threshold: 0.1 }
+        )
+        if (sectionRef.current) observer.observe(sectionRef.current)
+        return () => observer.disconnect()
+      }
     },
     { scope: sectionRef },
   )
