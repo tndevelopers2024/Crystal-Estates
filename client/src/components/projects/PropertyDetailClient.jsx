@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import {
@@ -20,18 +20,42 @@ import {
   FileCheck2,
   ShieldCheck,
   Building2,
-  Share2,
+  Lock,
+  Eye,
+  PhoneCall,
+  Sparkles,
 } from 'lucide-react'
 import { Button } from '../ui'
 import EnquiryForm from '../forms/EnquiryForm'
 import { ProjectCard } from './ProjectCard'
 import PlotViewer from '../plot-viewer/PlotViewer'
 import { resolveMapEmbedUrl, resolveMapDirectUrl } from '../../lib/api'
+import { business } from '../../data/site'
 
 export default function PropertyDetailClient({ initialProject, staticAllProjects = [] }) {
   const [project, setProject] = useState(initialProject)
   const [allProjects, setAllProjects] = useState(staticAllProjects)
   const [lightboxIndex, setLightboxIndex] = useState(null)
+  const [isFullScreenOpen, setIsFullScreenOpen] = useState(false)
+
+  // Lock body scroll and listen for Escape when fullscreen plot modal is open
+  useEffect(() => {
+    if (!isFullScreenOpen) return
+    const originalOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setIsFullScreenOpen(false)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.body.style.overflow = originalOverflow
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isFullScreenOpen])
 
   // Fetch updated project details dynamically from MongoDB
   useEffect(() => {
@@ -52,28 +76,30 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
           if (found) setProject(found)
         }
       })
-      .catch(() => {})
+      .catch(() => { })
   }, [initialProject])
 
   // Related projects (excluding current)
-  const relatedProjects = allProjects
-    .filter(
-      (p) =>
-        p.id !== project.id &&
-        p._id !== project.id &&
-        (!p.slug || p.slug !== project.slug)
-    )
-    .slice(0, 3)
+  const relatedProjects = useMemo(() => {
+    return allProjects
+      .filter(
+        (p) =>
+          p.id !== project.id &&
+          p._id !== project.id &&
+          (!p.slug || p.slug !== project.slug)
+      )
+      .slice(0, 3)
+  }, [allProjects, project])
 
   // ─────────────────────────────────────────────────────────────
-  // 1. DYNAMIC SECTION 1: PROJECT LAYOUT DATA (SUPPORTS MULTIPLE PHASES)
+  // 1. DYNAMIC SECTION: PROJECT LAYOUT DATA (SUPPORTS MULTIPLE PHASES)
   // ─────────────────────────────────────────────────────────────
   const rawPhases =
     Array.isArray(project.layouts) && project.layouts.length > 0
       ? project.layouts
       : Array.isArray(project.phases) && project.phases.length > 0
-      ? project.phases
-      : null
+        ? project.phases
+        : null
 
   const fallbackLayoutUrl =
     project.layoutBackgroundUrl ||
@@ -82,8 +108,9 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
     project.layoutImage ||
     null
 
-  const layoutPhases = (rawPhases && rawPhases.length > 0)
-    ? rawPhases.map((l, idx) => {
+  const layoutPhases = useMemo(() => {
+    return (rawPhases && rawPhases.length > 0)
+      ? rawPhases.map((l, idx) => {
         const phaseName = (l.name || `Phase ${idx + 1}`).trim()
         let phasePlots = Array.isArray(l.plots) ? l.plots : []
         if (phasePlots.length > 0 && phasePlots.some((p) => p.phase)) {
@@ -108,7 +135,7 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
           height: l.height || project.height || 816,
         }
       })
-    : [
+      : [
         {
           id: 'phase-1',
           name: 'Phase 1',
@@ -119,6 +146,7 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
           height: project.height || 816,
         },
       ]
+  }, [rawPhases, project, fallbackLayoutUrl])
 
   const [activePhaseIndex, setActivePhaseIndex] = useState(0)
   const currentPhase = layoutPhases[activePhaseIndex] || layoutPhases[0]
@@ -136,8 +164,15 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
     currentPhaseLayoutUrl && /\.(png|jpe?g|webp|gif)($|\?)/i.test(currentPhaseLayoutUrl)
   )
 
+  // Layout stats
+  const totalPhasePlots = currentPhasePlots.length || project.totalPlots || 0
+  const availablePhasePlots = currentPhasePlots.filter(
+    (p) => String(p.status).toLowerCase() === 'available'
+  ).length || project.availablePlots || 0
+  const bookedPhasePlots = totalPhasePlots - availablePhasePlots
+
   // ─────────────────────────────────────────────────────────────
-  // 2. DYNAMIC SECTION 2: PROJECT IMAGES & VIDEOS
+  // 2. DYNAMIC SECTION: PROJECT IMAGES & VIDEOS
   // ─────────────────────────────────────────────────────────────
   const rawImages = [
     ...(Array.isArray(project.images) ? project.images : []),
@@ -188,7 +223,7 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
   }
 
   // ─────────────────────────────────────────────────────────────
-  // 3. DYNAMIC SECTION 3: MAP LOCATION DATA
+  // 3. DYNAMIC SECTION: MAP LOCATION DATA
   // ─────────────────────────────────────────────────────────────
   const mapLocationInput =
     project.mapLocation ||
@@ -260,7 +295,7 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
   return (
     <>
       {/* ────────────────────────────────────────────────────────── */}
-      {/* 1. HERO SECTION (ALIGNED WITH ABOUT US DESIGN LANGUAGE)   */}
+      {/* 1. PROJECT NAME SECTION (PROMINENTLY AT TOP)               */}
       {/* ────────────────────────────────────────────────────────── */}
       <section className="project-hero-section">
         <div className="project-hero-container">
@@ -285,11 +320,10 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
                 </span>
               )}
               <span
-                className={`project-hero__badge ${
-                  isSoldOut
-                    ? 'project-hero__badge--sold'
-                    : 'project-hero__badge--status'
-                }`}
+                className={`project-hero__badge ${isSoldOut
+                  ? 'project-hero__badge--sold'
+                  : 'project-hero__badge--status'
+                  }`}
               >
                 {isSoldOut ? 'Sold Out' : project.status || 'Available'}
               </span>
@@ -321,6 +355,13 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
                   </div>
                 )}
 
+                {project.facing && (
+                  <div className="project-hero__meta-item">
+                    <Compass size={15} className="project-hero__meta-icon" />
+                    <span>Facing: {project.facing}</span>
+                  </div>
+                )}
+
                 <div className="project-hero__meta-item project-hero__meta-price">
                   <span>{formattedPrice}</span>
                 </div>
@@ -332,50 +373,267 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
               </Link>
             </div>
           </div>
-
-          {/* Wide Hero Architectural Banner */}
-          <div className="project-hero__image-wrap">
-            <Image
-              src={primaryHeroImage}
-              alt={project.name}
-              fill
-              priority
-              sizes="(max-width: 768px) 100vw, 1360px"
-              className="project-hero__image"
-            />
-          </div>
         </div>
       </section>
 
       {/* ────────────────────────────────────────────────────────── */}
-      {/* 2. SPECIFICATIONS & HIGHLIGHTS (WHITE BACKGROUND SECTION)  */}
+      {/* 2. PLOT SECTION (SVG LAYOUT PREVIEW WITH BOOK A PLOT BUTTON) */}
       {/* ────────────────────────────────────────────────────────── */}
-      <section className="project-detail-section project-detail-section--white">
+      <section className="project-plot-section" id="plot-section">
+        <div className="project-plot-container">
+          {hasLayout ? (
+            <div className="project-plot-card">
+              {/* Top Header / Meta Bar above SVG Layout */}
+              <div className="project-plot-card__header">
+                <div className="project-plot-card__header-left">
+                  <span className="project-live-indicator" />
+                  <h3 className="project-plot-card__heading">
+                    {project.name} Sanctioned Plot Layout
+                  </h3>
+                  <span className="project-plot-card__phase-badge">
+                    {currentPhase.name}
+                  </span>
+                </div>
+
+                <div className="project-plot-card__header-right">
+                  {/* Phase Switcher Tabs (if multi-phase) */}
+                  {layoutPhases.length > 1 && (
+                    <div className="project-plot-phases">
+                      {layoutPhases.map((phase, idx) => {
+                        const isSelected = idx === activePhaseIndex
+                        const plotCount = (phase.plots || []).length
+                        return (
+                          <button
+                            key={phase.id || idx}
+                            type="button"
+                            onClick={() => setActivePhaseIndex(idx)}
+                            className={`project-plot-phase-tab ${isSelected ? 'is-active' : ''}`}
+                            title={`Switch to ${phase.name}`}
+                          >
+                            <span>{phase.name}</span>
+                            <span className="project-plot-phase-badge">
+                              {plotCount} Plots
+                            </span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+
+                  <div className="project-plot-card__stat-pills">
+                    {totalPhasePlots > 0 && (
+                      <span className="project-plot-stat-chip">
+                        <strong>{totalPhasePlots}</strong> Total
+                      </span>
+                    )}
+                    {availablePhasePlots > 0 && (
+                      <span className="project-plot-stat-chip project-plot-stat-chip--avail">
+                        <span className="project-chip-dot project-chip-dot--avail" />
+                        <strong>{availablePhasePlots}</strong> Available
+                      </span>
+                    )}
+                    {bookedPhasePlots > 0 && (
+                      <span className="project-plot-stat-chip project-plot-stat-chip--booked">
+                        <span className="project-chip-dot project-chip-dot--booked" />
+                        <strong>{bookedPhasePlots}</strong> Booked / Sold
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Non-Interactive SVG Plot Layout Preview */}
+              <div
+                className="project-svg-preview-stage"
+                onClick={() => setIsFullScreenOpen(true)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    setIsFullScreenOpen(true)
+                  }
+                }}
+                title="Click to explore interactive plot layout in full screen"
+                aria-label="Click to open interactive plot layout in full-screen view"
+              >
+                <div className="project-svg-preview-viewport">
+                  {currentPhaseLayoutUrl ? (
+                    <div className="project-svg-preview-layers" style={{ pointerEvents: 'none' }}>
+                      <img
+                        src={currentPhaseLayoutUrl}
+                        alt={`${project.name} ${currentPhase.name} Layout SVG`}
+                        className="project-svg-preview-bg"
+                        draggable={false}
+                      />
+                      {currentPhasePlots.some((p) => p.svgPath) && (
+                        <svg
+                          viewBox={currentPhase.viewBox || project.viewBox || '0 0 1056 816'}
+                          className="project-svg-preview-svg"
+                        >
+                          {currentPhasePlots.filter((p) => p.svgPath).map((plot) => (
+                            <g
+                              key={plot.id || plot.plotNo}
+                              className={`pv-plot pv-plot--${plot.status}`}
+                            >
+                              <path
+                                d={plot.svgPath}
+                                className="pv-plot__boundary"
+                              />
+                            </g>
+                          ))}
+                        </svg>
+                      )}
+                    </div>
+                  ) : isPdfLayout ? (
+                    <div className="project-pdf-frame" style={{ pointerEvents: 'none', height: '400px' }}>
+                      <iframe
+                        src={currentPhaseLayoutUrl}
+                        title={`${project.name} ${currentPhase.name} Blueprint PDF`}
+                      />
+                    </div>
+                  ) : (
+                    <div className="project-svg-preview-empty">
+                      <p>Layout map is being prepared for this phase.</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Subtle Hover Prompt Pill */}
+                <div className="project-svg-preview-overlay-prompt">
+                  <div className="project-svg-preview-prompt-pill">
+                    <Maximize2 size={13} />
+                    <span>Click to open full-screen</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Area Below SVG Layout with "Book a Plot" Button */}
+              <div className="project-plot-book-action-bar">
+                <button
+                  type="button"
+                  onClick={() => setIsFullScreenOpen(true)}
+                  className="project-book-plot-btn"
+                  id="book-a-plot-btn"
+                  aria-label="Book a Plot - Open full-screen interactive plot layout"
+                >
+                  <Layers size={18} />
+                  <span>Book a Plot</span>
+                  <span className="project-book-plot-btn__arrow" aria-hidden="true">
+                    <ArrowUpRight size={17} />
+                  </span>
+                </button>
+
+                <p className="project-plot-book-hint">
+                  Click &ldquo;Book a Plot&rdquo; to open the full-screen view and easily interact with plot details, measurements, and live booking.
+                </p>
+              </div>
+            </div>
+          ) : (
+            /* Fallback if no layout blueprint is uploaded yet */
+            <div className="project-plot-card project-plot-card--empty">
+              <div className="project-plot-preview-overlay">
+                <span className="project-plot-preview-badge">
+                  <Layers size={14} />
+                  <span>MASTER PLAN BLUEPRINT</span>
+                </span>
+                <h3 className="project-plot-preview-title">
+                  Layout Demarcation in Progress
+                </h3>
+                <p className="project-plot-preview-desc">
+                  Digital survey verification is currently being updated for {project.name}. Contact our land desk for sanctioned FMB sketches and individual layout copies.
+                </p>
+                <a href="#contact-section" className="project-book-plot-btn">
+                  <span>Enquire for Layout Sketch</span>
+                  <span className="project-book-plot-btn__arrow">
+                    <ArrowUpRight size={16} />
+                  </span>
+                </a>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ────────────────────────────────────────────────────────── */}
+      {/* 3. PLOT DETAILS SECTION (DEDICATED SECTION BELOW PLOT)     */}
+      {/* ────────────────────────────────────────────────────────── */}
+      <section className="project-detail-section project-detail-section--white" id="plot-details">
         <div className="project-detail-container">
+          <div className="project-section-header">
+            <span className="project-section-eyebrow">
+              PLOT SPECIFICATIONS &amp; PARAMETERS
+            </span>
+            <h2 className="project-section-title">
+              Comprehensive Land Information &amp; Approvals
+            </h2>
+            <p className="project-section-subtitle">
+              Verified survey extents, layout approvals, avenue widths, and ownership documentation for {project.name}.
+            </p>
+          </div>
+
+          {/* Metric Strips (Inspired by Reference Image Horizontal Stat Rows) */}
+          <div className="project-metric-rows">
+            <div className="project-metric-row">
+              <div className="project-metric-row__info">
+                <strong className="project-metric-row__title">Standard Plotted Extents</strong>
+                <p className="project-metric-row__desc">Carefully demarcated residential and farm parcel dimensions with clear corner stones.</p>
+              </div>
+              <div className="project-metric-row__stat">
+                {project.area || project.plotSizes || '1200+ Sq.ft'}
+              </div>
+            </div>
+
+            <div className="project-metric-row">
+              <div className="project-metric-row__info">
+                <strong className="project-metric-row__title">Individual Patta Ownership</strong>
+                <p className="project-metric-row__desc">Guaranteed immediate online computerized Patta transfer directly in the buyer’s name.</p>
+              </div>
+              <div className="project-metric-row__stat project-metric-row__stat--green">
+                100% Patta
+              </div>
+            </div>
+
+            <div className="project-metric-row">
+              <div className="project-metric-row__info">
+                <strong className="project-metric-row__title">Parent Title Due Diligence</strong>
+                <p className="project-metric-row__desc">Exhaustive 30-year legal link document vetting and nil-encumbrance certificate assurance.</p>
+              </div>
+              <div className="project-metric-row__stat">
+                30+ Years
+              </div>
+            </div>
+
+            <div className="project-metric-row">
+              <div className="project-metric-row__info">
+                <strong className="project-metric-row__title">Government Approval Clearance</strong>
+                <p className="project-metric-row__desc">Sanctioned planning approvals compliant with road widths, OSR spaces, and bank loan pre-clearance.</p>
+              </div>
+              <div className="project-metric-row__stat project-metric-row__stat--gold">
+                {project.approval || 'DTCP / CMDA'}
+              </div>
+            </div>
+          </div>
+
+          {/* 2-Column Specifications & Legal Checklist Grid */}
           <div className="project-specs-grid">
-            {/* Left: Key Dimensions & Specifications Tiles */}
+            {/* Left: Detailed Parameters Grid */}
             <div className="project-specs-col">
-              <span className="project-section-eyebrow">
-                LAND SPECIFICATIONS
-              </span>
-              <h2 className="project-section-title">
-                Key Dimensions &amp; Approvals
-              </h2>
-              <p className="project-section-subtitle">
-                Official layout measurements and approval clearances for {project.name}.
-              </p>
+              <h3 className="project-subsection-title">
+                Technical Land Specifications
+              </h3>
 
               <div className="project-specs-tiles">
                 {(project.area || project.plotSizes) && (
                   <div className="project-spec-tile">
-                    <span className="project-spec-label">Extent / Size</span>
+                    <span className="project-spec-label">Extent / Land Area</span>
                     <strong className="project-spec-val">{project.area || project.plotSizes}</strong>
                   </div>
                 )}
 
                 {project.plotSizes && (
                   <div className="project-spec-tile">
-                    <span className="project-spec-label">Plot Sizes</span>
+                    <span className="project-spec-label">Available Plot Sizes</span>
                     <strong className="project-spec-val">{project.plotSizes}</strong>
                   </div>
                 )}
@@ -388,6 +646,11 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
                 )}
 
                 <div className="project-spec-tile">
+                  <span className="project-spec-label">Road Infrastructure</span>
+                  <strong className="project-spec-val">30 ft &amp; 40 ft Blacktop Roads</strong>
+                </div>
+
+                <div className="project-spec-tile">
                   <span className="project-spec-label">Title Ownership</span>
                   <strong className="project-spec-val project-spec-val--green">
                     <FileCheck2 size={14} />
@@ -396,10 +659,10 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
                 </div>
 
                 <div className="project-spec-tile">
-                  <span className="project-spec-label">Sanction Status</span>
+                  <span className="project-spec-label">Sanction Authority</span>
                   <strong className="project-spec-val project-spec-val--green">
                     <ShieldCheck size={14} />
-                    {project.approval || 'DTCP / CMDA Verified'}
+                    {project.approval || 'DTCP / CMDA Sanctioned'}
                   </strong>
                 </div>
 
@@ -417,11 +680,11 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
               </div>
             </div>
 
-            {/* Right: Verified Legal & Infrastructure Checklist */}
+            {/* Right: Buyer Assurance & Legal Checklist Card */}
             <div className="project-checklist-col">
               <div className="project-checklist-card">
                 <span className="project-checklist-badge">
-                  BUYER ASSURANCE
+                  BUYER ASSURANCE MANDATE
                 </span>
                 <h3 className="project-checklist-title">
                   Legal &amp; Infrastructure Standards
@@ -467,7 +730,7 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
                     <CheckCircle2 size={18} className="project-checklist-icon" />
                     <div>
                       <strong>Bank Approval Eligibility</strong>
-                      <p>Pre-cleared with nationalized and private banks for hassle-free plot loans.</p>
+                      <p>Pre-cleared with nationalized and private banks for hassle-free plot purchase loans.</p>
                     </div>
                   </div>
                 </div>
@@ -478,171 +741,28 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
       </section>
 
       {/* ────────────────────────────────────────────────────────── */}
-      {/* 3. INTERACTIVE MASTER PLAN & PARCEL LAYOUT (WARM SECTION)  */}
-      {/* ────────────────────────────────────────────────────────── */}
-      {hasLayout && (
-        <section className="project-detail-section project-detail-section--warm">
-          <div className="project-detail-container">
-            <div className="project-section-header">
-              <span className="project-section-eyebrow">
-                PROJECT MASTER PLAN
-              </span>
-              <h2 className="project-section-title">
-                Interactive Parcel Layout &amp; Live Availability
-              </h2>
-              <p className="project-section-subtitle">
-                Inspect surveyed boundaries, plot dimensions, internal road networks, and live availability for {project.name}.
-              </p>
-            </div>
-
-            <div className="project-layout-wrapper">
-              {/* Phase Switcher Tabs (if multi-phase) */}
-              {layoutPhases.length > 1 && (
-                <div className="project-layout-tabs">
-                  <span className="project-layout-tabs__label">
-                    Select Phase:
-                  </span>
-                  {layoutPhases.map((phase, idx) => {
-                    const isSelected = idx === activePhaseIndex
-                    const plotCount = (phase.plots || []).length
-                    return (
-                      <button
-                        key={phase.id || idx}
-                        type="button"
-                        onClick={() => setActivePhaseIndex(idx)}
-                        className={`project-layout-tab ${isSelected ? 'is-active' : ''}`}
-                      >
-                        <span>{phase.name}</span>
-                        <span className="project-layout-tab__badge">
-                          {plotCount} {plotCount === 1 ? 'Plot' : 'Plots'}
-                        </span>
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
-
-              {/* Layout Viewer Display */}
-              {(project.hasLayoutMap || isSvgLayout || currentPhasePlots.length > 0) && currentPhaseLayoutUrl ? (
-                <div className="project-plot-viewer-box">
-                  <PlotViewer
-                    key={`${project.id || project.slug}-${currentPhase.id || activePhaseIndex}-${currentPhaseLayoutUrl}`}
-                    initialPlots={currentPhasePlots}
-                    phases={layoutPhases}
-                    activePhase={activePhaseIndex}
-                    onPhaseChange={(idx) => setActivePhaseIndex(idx)}
-                    fetchUrl={null}
-                    backgroundUrl={currentPhaseLayoutUrl}
-                    metadata={{
-                      title: `${project.name}${layoutPhases.length > 1 ? ` (${currentPhase.name})` : ''}`,
-                      sNo: project.surveyNumber || '',
-                      village: project.village || project.location || '',
-                      taluk: project.taluk || '',
-                      layoutBackgroundUrl: currentPhaseLayoutUrl,
-                      viewBox: currentPhase.viewBox || project.viewBox || '0 0 1056 816',
-                      layouts: layoutPhases,
-                      phases: layoutPhases,
-                    }}
-                    whatsappNumber="919444000000"
-                    backHref={`/projects/${project.slug || project.id}`}
-                  />
-                  <div className="project-layout-footer-btn">
-                    <Button
-                      href={`/layout-viewer?slug=${project.layoutSlug || project.slug || project.id}&phase=${encodeURIComponent(currentPhase.id || currentPhase.name)}`}
-                      variant="outline"
-                      size="sm"
-                    >
-                      <Maximize2 size={14} />
-                      <span>Open Fullscreen Interactive Layout Viewer{layoutPhases.length > 1 ? ` (${currentPhase.name})` : ''}</span>
-                    </Button>
-                  </div>
-                </div>
-              ) : isPdfLayout ? (
-                <div className="project-pdf-box">
-                  <div className="project-pdf-frame">
-                    <iframe
-                      src={currentPhaseLayoutUrl}
-                      title={`${project.name} ${currentPhase.name} Blueprint PDF`}
-                    />
-                  </div>
-                  <div className="project-pdf-actions">
-                    <span className="project-pdf-name">
-                      <strong>{project.layoutFileName || `${currentPhase.name} Layout Blueprint (PDF)`}</strong>
-                    </span>
-                    <a
-                      href={currentPhaseLayoutUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="project-pdf-btn"
-                    >
-                      <Download size={14} />
-                      <span>Open / Download Blueprint PDF</span>
-                    </a>
-                  </div>
-                </div>
-              ) : isImageLayout || project.layoutImage ? (
-                <div
-                  className="project-image-layout-box"
-                  onClick={() => {
-                    const imgToOpen = currentPhaseLayoutUrl || project.layoutImage
-                    const idx = projectImages.indexOf(imgToOpen)
-                    if (idx >= 0) openLightbox(idx)
-                  }}
-                >
-                  <img
-                    src={currentPhaseLayoutUrl || project.layoutImage}
-                    alt={`${project.name} ${currentPhase.name} Layout Plan`}
-                    className="project-image-layout-img"
-                  />
-                  <div className="project-image-layout-badge">
-                    <Maximize2 size={13} /> Click to expand blueprint
-                  </div>
-                </div>
-              ) : currentPhaseLayoutUrl ? (
-                <div className="project-layout-fallback">
-                  <p>
-                    Uploaded layout blueprint file (<strong>{project.layoutFileName || `${currentPhase.name} Blueprint File`}</strong>) is ready for download and viewing.
-                  </p>
-                  <a
-                    href={currentPhaseLayoutUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn btn--primary btn--sm"
-                  >
-                    <Layers size={14} />
-                    <span>View / Download Sanctioned Layout File</span>
-                  </a>
-                </div>
-              ) : null}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ────────────────────────────────────────────────────────── */}
-      {/* 4. SITE PHOTOGRAPHS & VIDEOS (WHITE BACKGROUND SECTION)   */}
+      {/* 4. GALLERY (DEDICATED IMAGES & VIDEOS SECTION)            */}
       {/* ────────────────────────────────────────────────────────── */}
       {hasMedia && (
-        <section className="project-detail-section project-detail-section--white">
+        <section className="project-detail-section project-detail-section--warm" id="gallery">
           <div className="project-detail-container">
             <div className="project-section-header">
               <span className="project-section-eyebrow">
                 VISUAL DOCUMENTATION
               </span>
               <h2 className="project-section-title">
-                {hasVideos ? 'Site Photographs & Video Walkthrough' : 'Site & Property Photographs'}
+                Project Photographs &amp; Video Walkthrough
               </h2>
               <p className="project-section-subtitle">
-                On-ground photography and aerial perspectives from {project.name}{project.location ? ` in ${project.location}` : ''}.
+                On-ground photography, perimeter boundaries, and video walkthrough of {project.name}{project.location ? ` in ${project.location}` : ''}.
               </p>
             </div>
 
             {/* Photo Gallery Grid */}
             {hasImages && (
               <div
-                className={`project-gallery-grid ${
-                  projectImages.length === 1 ? 'project-gallery-grid--single' : ''
-                }`}
+                className={`project-gallery-grid ${projectImages.length === 1 ? 'project-gallery-grid--single' : ''
+                  }`}
               >
                 {projectImages.map((imgSrc, idx) => (
                   <div
@@ -666,16 +786,17 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
             {/* Video Walkthrough (if videos available) */}
             {hasVideos && (
               <div className="project-videos-wrapper">
-                {hasImages && (
+                <div className="project-videos-heading-row">
+                  <span className="project-section-eyebrow">AERIAL &amp; GROUND WALKTHROUGH</span>
                   <h3 className="project-videos-heading">
-                    <Video size={18} />
-                    <span>Project Video Walkthrough</span>
+                    <Video size={19} />
+                    <span>Watch Site Walkthrough</span>
                   </h3>
-                )}
+                </div>
+
                 <div
-                  className={`project-videos-grid ${
-                    projectVideos.length === 1 ? 'project-videos-grid--single' : ''
-                  }`}
+                  className={`project-videos-grid ${projectVideos.length === 1 ? 'project-videos-grid--single' : ''
+                    }`}
                 >
                   {projectVideos.map((vidObj, vIdx) => {
                     const vidUrl = typeof vidObj === 'string' ? vidObj : vidObj.url
@@ -713,19 +834,19 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
       )}
 
       {/* ────────────────────────────────────────────────────────── */}
-      {/* 5. LOCATION MAP & DIRECT ENQUIRY (WARM BACKGROUND SECTION) */}
+      {/* 5. MAP & CONTACT US (DEDICATED SECTION)                    */}
       {/* ────────────────────────────────────────────────────────── */}
-      <section className="project-detail-section project-detail-section--warm">
+      <section className="project-detail-section project-detail-section--white" id="contact-section">
         <div className="project-detail-container">
           <div className="project-section-header">
             <span className="project-section-eyebrow">
-              GEOGRAPHICAL ACCESS &amp; SITE VISIT
+              LOCATION &amp; CONTACT US
             </span>
             <h2 className="project-section-title">
-              Location Map &amp; Direct Consultation
+              Geographical Access &amp; Contact Us
             </h2>
             <p className="project-section-subtitle">
-              Plan your visit or request complete title documentation from our senior land consultants.
+              Navigate road access to {project.name} or schedule a guided weekend site visit with our senior consultants.
             </p>
           </div>
 
@@ -771,7 +892,7 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
               <EnquiryForm
                 selectedPlot={project}
                 prefillInterest={project.name}
-                title={`Enquire for ${project.name}`}
+                title={`Contact Us for ${project.name}`}
                 subtitle="Connect directly with our land advisory desk for verified documentation, pricing breakdown, or guided weekend site visit."
               />
             </div>
@@ -780,20 +901,20 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
       </section>
 
       {/* ────────────────────────────────────────────────────────── */}
-      {/* 6. SIMILAR LAND OPPORTUNITIES (WHITE BACKGROUND SECTION)  */}
+      {/* 6. SIMILAR LAND OPPORTUNITIES (DEDICATED SECTION)          */}
       {/* ────────────────────────────────────────────────────────── */}
       {relatedProjects.length > 0 && (
-        <section className="project-detail-section project-detail-section--white">
+        <section className="project-detail-section project-detail-section--warm">
           <div className="project-detail-container">
             <div className="project-section-header">
               <span className="project-section-eyebrow">
-                EXPLORE MORE PROPERTIES
+                SIMILAR LAND OPPORTUNITIES
               </span>
               <h2 className="project-section-title">
-                Similar Land Opportunities in Chennai
+                Other Approved Plots &amp; Farmland in Chennai
               </h2>
               <p className="project-section-subtitle">
-                Explore more approved residential plotted developments and managed agro-forestry farmland across Chennai corridors.
+                Explore more verified residential plotted developments and managed agro-forestry farmland across Chennai growth corridors.
               </p>
             </div>
 
@@ -807,7 +928,7 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
       )}
 
       {/* ────────────────────────────────────────────────────────── */}
-      {/* 7. IMAGE LIGHTBOX MODAL                                   */}
+      {/* IMAGE LIGHTBOX MODAL                                       */}
       {/* ────────────────────────────────────────────────────────── */}
       {lightboxIndex !== null && projectImages.length > 0 && (
         <div
@@ -864,6 +985,100 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
               <ChevronRight size={28} />
             </button>
           )}
+        </div>
+      )}
+
+      {/* ────────────────────────────────────────────────────────── */}
+      {/* COMPLETE PLOT LAYOUT FULL-SCREEN VIEW (TRIGGERED BY BOOK A PLOT) */}
+      {/* ────────────────────────────────────────────────────────── */}
+      {isFullScreenOpen && (
+        <div
+          className="project-fullscreen-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${project.name} Fullscreen Plot Layout`}
+        >
+          {/* Fullscreen Navigation & Control Bar */}
+          <div className="project-fullscreen-header">
+            <div className="project-fullscreen-header__left">
+              <button
+                type="button"
+                onClick={() => setIsFullScreenOpen(false)}
+                className="project-fullscreen-back-btn"
+                title="Back to Project Details (Esc)"
+              >
+                <ArrowLeft size={16} />
+                <span>Back to Project</span>
+              </button>
+
+              <div className="project-fullscreen-title-group">
+                <h2 className="project-fullscreen-title">{project.name}</h2>
+                <span className="project-fullscreen-phase-badge">
+                  {currentPhase.name} • Master Plan
+                </span>
+              </div>
+            </div>
+
+            <div className="project-fullscreen-header__right">
+              {/* Phase Switcher Tabs (if multi-phase) */}
+              {layoutPhases.length > 1 && (
+                <div className="project-plot-phases">
+                  {layoutPhases.map((phase, idx) => {
+                    const isSelected = idx === activePhaseIndex
+                    const plotCount = (phase.plots || []).length
+                    return (
+                      <button
+                        key={phase.id || idx}
+                        type="button"
+                        onClick={() => setActivePhaseIndex(idx)}
+                        className={`project-plot-phase-tab ${isSelected ? 'is-active' : ''}`}
+                      >
+                        <span>{phase.name}</span>
+                        <span className="project-plot-phase-badge">
+                          {plotCount} Plots
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setIsFullScreenOpen(false)}
+                className="project-fullscreen-close-btn"
+                aria-label="Close Fullscreen View"
+                title="Close (Esc)"
+              >
+                <X size={20} />
+              </button>
+            </div>
+          </div>
+
+          {/* Fullscreen Interactive Plot Viewer */}
+          <div className="project-fullscreen-body">
+            <PlotViewer
+              key={`fs-${project.id || project.slug}-${currentPhase.id || activePhaseIndex}-${currentPhaseLayoutUrl}`}
+              initialPlots={currentPhasePlots}
+              phases={layoutPhases}
+              activePhase={activePhaseIndex}
+              onPhaseChange={(idx) => setActivePhaseIndex(idx)}
+              fetchUrl={null}
+              backgroundUrl={currentPhaseLayoutUrl}
+              metadata={{
+                title: `${project.name}${layoutPhases.length > 1 ? ` (${currentPhase.name})` : ''}`,
+                sNo: project.surveyNumber || '',
+                village: project.village || project.location || '',
+                taluk: project.taluk || '',
+                layoutBackgroundUrl: currentPhaseLayoutUrl,
+                viewBox: currentPhase.viewBox || project.viewBox || '0 0 1056 816',
+                layouts: layoutPhases,
+                phases: layoutPhases,
+              }}
+              whatsappNumber={business.whatsapp}
+              backHref={null}
+            />
+          </div>
         </div>
       )}
     </>
