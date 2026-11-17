@@ -43,9 +43,13 @@ export default function Preloader({ forceShow = false, isSuspense = false }) {
     // Snappy duration: ~950ms allows full animation to play without delaying the site
     const MIN_DURATION = reduce ? 150 : 950
 
-    // Lock body scroll while preloader is active
+    // Lock body scroll while preloader is active and reset scroll to top
     const originalOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
+    window.scrollTo(0, 0)
+    if (typeof window !== 'undefined' && window.__lenis) {
+      window.__lenis.scrollTo(0, { immediate: true })
+    }
 
     let loaded = typeof document !== 'undefined' && document.readyState === 'complete'
 
@@ -84,6 +88,10 @@ export default function Preloader({ forceShow = false, isSuspense = false }) {
         doneTimer = setTimeout(() => {
           setIsDone(true)
           document.body.style.overflow = originalOverflow
+          window.scrollTo(0, 0)
+          if (typeof window !== 'undefined' && window.__lenis) {
+            window.__lenis.scrollTo(0, { immediate: true })
+          }
 
           try {
             sessionStorage.setItem('crystal_preloaded', 'true')
@@ -147,6 +155,10 @@ export default function Preloader({ forceShow = false, isSuspense = false }) {
       window.removeEventListener('load', onLoad)
       window.removeEventListener('crystal-replay-preloader', handleReplay)
       document.body.style.overflow = originalOverflow
+      window.scrollTo(0, 0)
+      if (typeof window !== 'undefined' && window.__lenis) {
+        window.__lenis.scrollTo(0, { immediate: true })
+      }
     }
   }, [])
 

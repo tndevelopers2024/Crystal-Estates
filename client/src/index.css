@@ -63,7 +63,7 @@
 }
 
 html {
-  scroll-behavior: smooth;
+  scroll-behavior: auto !important;
   scroll-padding-top: 96px;
   overflow-x: hidden;
   width: 100%;

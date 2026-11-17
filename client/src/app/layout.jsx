@@ -194,7 +194,9 @@ export default function RootLayout({ children }) {
         <Preloader />
         <SmoothScroll>
           <Header />
-          {children}
+          <main id="main-content" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+            {children}
+          </main>
           <Footer />
           <SiteVisitPopup />
         </SmoothScroll>
