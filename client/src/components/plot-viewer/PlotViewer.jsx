@@ -11,10 +11,15 @@ import {
   X,
   Info,
   ArrowLeft,
+  ChevronDown,
 } from 'lucide-react'
 import { WhatsAppIcon } from '../ui'
 import { computePathCentroid } from '@/lib/svgPathCentroid'
+import { parseViewBox } from '@/lib/svgUtils'
 import './PlotViewer.css'
+
+// Shared in-memory cache for parsed vector SVG blueprints (instant phase switching & 0ms re-renders)
+const svgVectorCache = new Map()
 
 /**
  * React Interactive Plot Viewer Component
@@ -92,13 +97,24 @@ export default function PlotViewer({
   // Status Filter state: 'All' | 'Available' | 'Booked' | 'Sold' | 'Blocked'
   const [activeFilter, setActiveFilter] = useState('All')
 
-  // Pan & Zoom state
-  const [scale, setScale] = useState(1)
-  const [pan, setPan] = useState({ x: 0, y: 0 })
+  // Pan & Zoom state (unified atomic transform to prevent scale/pan desynchronization)
+  const [transform, setTransform] = useState({ scale: 1, x: 0, y: 0 })
+  const transformRef = useRef({ scale: 1, x: 0, y: 0 })
   const [isDragging, setIsDragging] = useState(false)
   const dragStartRef = useRef({ x: 0, y: 0 })
   const panStartRef = useRef({ x: 0, y: 0 })
   const mouseDownPosRef = useRef({ x: 0, y: 0 })
+  const lastCursorPosRef = useRef(null)
+  const hasCapturedRef = useRef(false)
+
+  // Sync ref with transform state
+  useEffect(() => {
+    transformRef.current = transform
+  }, [transform])
+
+  // Convenience getters
+  const scale = transform.scale
+  const pan = { x: transform.x, y: transform.y }
 
   // Fullscreen state
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -120,6 +136,97 @@ export default function PlotViewer({
 
   // Selected Plot Modal state (strictly one plot at a time)
   const [selectedPlot, setSelectedPlot] = useState(null)
+
+  // Background SVG load error & inline fallback states
+  const [bgLoadError, setBgLoadError] = useState(false)
+  const [inlineSvgContent, setInlineSvgContent] = useState(null)
+
+  // Automatic True Scalable Vector SVG Loading & Memory Caching
+  useEffect(() => {
+    setBgLoadError(false)
+    if (!activeBackgroundUrl) {
+      setInlineSvgContent(null)
+      return
+    }
+
+    const isSvgUrl =
+      activeBackgroundUrl.toLowerCase().includes('.svg') ||
+      activeBackgroundUrl.startsWith('data:image/svg+xml')
+
+    if (!isSvgUrl) {
+      setInlineSvgContent(null)
+      return
+    }
+
+    // Check memory cache first for 0ms instant display
+    const cached = svgVectorCache.get(activeBackgroundUrl)
+    if (cached) {
+      setInlineSvgContent(cached)
+      return
+    }
+
+    let isMounted = true
+    fetch(activeBackgroundUrl)
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        return res.text()
+      })
+      .then((text) => {
+        if (!isMounted) return
+        if (text && text.includes('<svg')) {
+          // Clean prologue and editor metadata for maximum rendering speed and clean DOM
+          const cleanSvg = text
+            .replace(/<\?xml[\s\S]*?\?>/i, '')
+            .replace(/<!DOCTYPE[\s\S]*?>/i, '')
+            .replace(/<sodipodi:namedview[\s\S]*?\/>/i, '')
+            .trim()
+          svgVectorCache.set(activeBackgroundUrl, cleanSvg)
+          setInlineSvgContent(cleanSvg)
+          setBgLoadError(false)
+        } else {
+          setInlineSvgContent(null)
+        }
+      })
+      .catch((err) => {
+        if (!isMounted) return
+        console.warn('Vector SVG direct fetch failed, falling back to standard image loader:', err.message)
+        setInlineSvgContent(null)
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [activeBackgroundUrl])
+
+  const handleBgError = useCallback((url) => {
+    if (!url) {
+      setBgLoadError(true)
+      return
+    }
+    // Attempt fallback fetch to retrieve inline SVG directly
+    fetch(url)
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        return res.text()
+      })
+      .then((text) => {
+        if (text && text.includes('<svg')) {
+          const cleanSvg = text
+            .replace(/<\?xml[\s\S]*?\?>/i, '')
+            .replace(/<!DOCTYPE[\s\S]*?>/i, '')
+            .replace(/<sodipodi:namedview[\s\S]*?\/>/i, '')
+            .trim()
+          svgVectorCache.set(url, cleanSvg)
+          setInlineSvgContent(cleanSvg)
+          setBgLoadError(false)
+        } else {
+          setBgLoadError(true)
+        }
+      })
+      .catch(() => {
+        setBgLoadError(true)
+      })
+  }, [])
 
   // Touch pinch zoom state
   const touchDistRef = useRef(null)
@@ -194,33 +301,49 @@ export default function PlotViewer({
     }
   }
 
-  // Center & Fit Layout automatically when container mounts or phase changes
+  // Auto-Calculate & Fit Layout: Resizes SVG dimensions based on available viewport size
   const handleResetZoom = useCallback(() => {
     if (!containerRef.current) return
     const containerWidth = containerRef.current.clientWidth
     const containerHeight = containerRef.current.clientHeight
     if (!containerWidth || !containerHeight) return
 
-    const [, , vbW, vbH] = (activeViewBox || '0 0 1056 816').split(' ').map(Number)
-    const targetW = vbW || 1056
-    const targetH = vbH || 816
+    const { width: targetW, height: targetH } = parseViewBox(activeViewBox, 1056, 816)
 
-    // Adaptive padding based on container size
-    const padX = containerWidth < 600 ? 14 : 36
-    const padY = containerHeight < 600 ? 14 : 36
+    const isMobile = containerWidth < 768
+    const isPortrait = containerHeight > containerWidth
 
-    const scaleX = (containerWidth - padX) / targetW
-    const scaleY = (containerHeight - padY) / targetH
-    const fitScale = Math.min(scaleX, scaleY)
+    let fitScale
 
-    // Fit complete SVG without cropping; maintain original proportions
-    const initialScale = Math.max(fitScale, 0.05)
+    if (isMobile && isPortrait) {
+      // On mobile screens, scale the layout so it fills the available viewport properly
+      // without excessive empty space or becoming microscopic dots:
+      const scaleByWidth = containerWidth / targetW
+      const scaleByHeight = containerHeight / targetH
 
-    const initialPanX = (containerWidth - targetW * initialScale) / 2
-    const initialPanY = (containerHeight - targetH * initialScale) / 2
+      // Comfortable mobile scale that preserves 1:1 geometry and makes plots clearly visible
+      const optimalMobileScale = Math.min(
+        Math.max(scaleByWidth * 1.65, scaleByHeight * 0.72, 0.28),
+        scaleByHeight * 0.96,
+        0.55
+      )
+      fitScale = optimalMobileScale
+    } else {
+      // Desktop / Tablet / Landscape view:
+      const padX = containerWidth < 900 ? 12 : 28
+      const padY = containerHeight < 900 ? 12 : 28
+      fitScale = Math.min((containerWidth - padX) / targetW, (containerHeight - padY) / targetH)
+    }
 
-    setScale(initialScale)
-    setPan({ x: initialPanX, y: initialPanY })
+    const finalScale = Math.max(fitScale, 0.05)
+
+    // Center the layout in the available viewport
+    const initialPanX = (containerWidth - targetW * finalScale) / 2
+    const initialPanY = (containerHeight - targetH * finalScale) / 2
+
+    const next = { scale: finalScale, x: initialPanX, y: initialPanY }
+    setTransform(next)
+    transformRef.current = next
   }, [activeViewBox])
 
   useEffect(() => {
@@ -229,31 +352,105 @@ export default function PlotViewer({
 
   useEffect(() => {
     handleResetZoom()
+    const container = containerRef.current
+    let resizeObserver = null
+    if (typeof ResizeObserver !== 'undefined' && container) {
+      resizeObserver = new ResizeObserver(() => {
+        handleResetZoom()
+      })
+      resizeObserver.observe(container)
+    }
+    const timer = setTimeout(handleResetZoom, 200)
     window.addEventListener('resize', handleResetZoom)
-    return () => window.removeEventListener('resize', handleResetZoom)
+    return () => {
+      clearTimeout(timer)
+      window.removeEventListener('resize', handleResetZoom)
+      if (resizeObserver) resizeObserver.disconnect()
+    }
   }, [handleResetZoom])
 
-  // Zoom In / Out Handlers
-  const handleZoom = (factor) => {
-    if (!containerRef.current) return
-    const minAllowed = 0.05
-    const maxAllowed = 4.0
-    const newScale = Math.min(Math.max(scale * factor, minAllowed), maxAllowed)
-    if (newScale === scale) return
+  // Center smoothly on a specific plot (focuses on selected plot)
+  const centerOnPlot = useCallback((plot, zoomFactor = null) => {
+    if (!containerRef.current || !plot) return
+    let labelX = plot.textX
+    let labelY = plot.textY
+
+    if (labelX == null || labelY == null) {
+      try {
+        const centroid = computePathCentroid(plot.svgPath)
+        labelX = centroid?.textX
+        labelY = centroid?.textY
+      } catch {}
+    }
+
+    if (labelX == null || labelY == null) return
 
     const containerWidth = containerRef.current.clientWidth
     const containerHeight = containerRef.current.clientHeight
-    const centerX = containerWidth / 2
-    const centerY = containerHeight / 2
+    const currentTransform = transformRef.current
 
-    const newPanX = centerX - ((centerX - pan.x) / scale) * newScale
-    const newPanY = centerY - ((centerY - pan.y) / scale) * newScale
+    // Keep comfortable zoom so the plot and context are clearly visible
+    const targetScale = zoomFactor
+      ? Math.min(Math.max(currentTransform.scale * zoomFactor, 0.1), 4.0)
+      : Math.max(currentTransform.scale, 0.6)
 
-    setScale(newScale)
-    setPan({ x: newPanX, y: newPanY })
+    // Vertically offset slightly so bottom popup card does not obscure the plot
+    const targetScreenY = containerHeight < 600 ? containerHeight * 0.38 : containerHeight * 0.44
+    const newPanX = (containerWidth / 2) - labelX * targetScale
+    const newPanY = targetScreenY - labelY * targetScale
+
+    const next = { scale: targetScale, x: newPanX, y: newPanY }
+    setTransform(next)
+    transformRef.current = next
+  }, [])
+
+  // Zoom In / Out Handlers (Focuses on selected plot or cursor position)
+  const handleZoom = (factor) => {
+    if (!containerRef.current) return
+    const current = transformRef.current
+    const minAllowed = 0.05
+    const maxAllowed = 4.0
+    const newScale = Math.min(Math.max(current.scale * factor, minAllowed), maxAllowed)
+    if (newScale === current.scale) return
+
+    const containerWidth = containerRef.current.clientWidth
+    const containerHeight = containerRef.current.clientHeight
+
+    // Determine focus anchor:
+    // 1. If a plot is selected, focus directly on that plot!
+    // 2. Else if user recently hovered cursor inside canvas, focus on that cursor position!
+    // 3. Otherwise focus on the viewport center.
+    let focusX = containerWidth / 2
+    let focusY = containerHeight / 2
+
+    if (selectedPlot) {
+      let plotX = selectedPlot.textX
+      let plotY = selectedPlot.textY
+      if (plotX == null || plotY == null) {
+        try {
+          const c = computePathCentroid(selectedPlot.svgPath)
+          plotX = c?.textX
+          plotY = c?.textY
+        } catch {}
+      }
+      if (plotX != null && plotY != null) {
+        focusX = current.x + plotX * current.scale
+        focusY = current.y + plotY * current.scale
+      }
+    } else if (lastCursorPosRef.current) {
+      focusX = lastCursorPosRef.current.x
+      focusY = lastCursorPosRef.current.y
+    }
+
+    const newPanX = focusX - ((focusX - current.x) / current.scale) * newScale
+    const newPanY = focusY - ((focusY - current.y) / current.scale) * newScale
+
+    const next = { scale: newScale, x: newPanX, y: newPanY }
+    setTransform(next)
+    transformRef.current = next
   }
 
-  // Mouse Wheel Zoom centered on cursor with non-passive listener to prevent browser warnings
+  // Mouse Wheel Zoom centered strictly on actual cursor position with atomic transform
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
@@ -264,19 +461,22 @@ export default function PlotViewer({
       const rect = container.getBoundingClientRect()
       const cursorX = e.clientX - rect.left
       const cursorY = e.clientY - rect.top
+      lastCursorPosRef.current = { x: cursorX, y: cursorY }
 
       const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85
 
-      setScale((prevScale) => {
+      setTransform((prev) => {
         const minAllowed = 0.05
         const maxAllowed = 4.0
-        const newScale = Math.min(Math.max(prevScale * zoomFactor, minAllowed), maxAllowed)
-        setPan((prevPan) => {
-          const newPanX = cursorX - ((cursorX - prevPan.x) / prevScale) * newScale
-          const newPanY = cursorY - ((cursorY - prevPan.y) / prevScale) * newScale
-          return { x: newPanX, y: newPanY }
-        })
-        return newScale
+        const newScale = Math.min(Math.max(prev.scale * zoomFactor, minAllowed), maxAllowed)
+        if (newScale === prev.scale) return prev
+
+        const newPanX = cursorX - ((cursorX - prev.x) / prev.scale) * newScale
+        const newPanY = cursorY - ((cursorY - prev.y) / prev.scale) * newScale
+
+        const next = { scale: newScale, x: newPanX, y: newPanY }
+        transformRef.current = next
+        return next
       })
     }
 
@@ -286,13 +486,15 @@ export default function PlotViewer({
     }
   }, [])
 
-  // Mouse Drag Handlers
-  const handleMouseDown = (e) => {
-    if (e.button !== 0) return
+  // Smooth Pointer Drag Handlers (Captures pointer only on actual drag to preserve plot click events)
+  const handlePointerDown = (e) => {
+    // Only primary mouse button or touch
+    if (e.button !== 0 && e.pointerType === 'mouse') return
     setIsDragging(true)
     dragStartRef.current = { x: e.clientX, y: e.clientY }
     mouseDownPosRef.current = { x: e.clientX, y: e.clientY }
-    panStartRef.current = { ...pan }
+    panStartRef.current = { x: transformRef.current.x, y: transformRef.current.y }
+    hasCapturedRef.current = false
   }
 
   // Smart tooltip positioning: clamps inside canvas bounds & flips below when near top
@@ -332,30 +534,68 @@ export default function PlotViewer({
     })
   }
 
-  const handleMouseMove = (e) => {
+  const handlePointerMove = (e) => {
+    if (!containerRef.current) return
+    const rect = containerRef.current.getBoundingClientRect()
+    const cursorX = e.clientX - rect.left
+    const cursorY = e.clientY - rect.top
+    lastCursorPosRef.current = { x: cursorX, y: cursorY }
+
     if (isDragging) {
       const dx = e.clientX - dragStartRef.current.x
       const dy = e.clientY - dragStartRef.current.y
-      setPan({
-        x: panStartRef.current.x + dx,
-        y: panStartRef.current.y + dy,
+
+      // Only capture pointer once drag threshold is exceeded to ensure child click events fire
+      if (!hasCapturedRef.current && Math.hypot(dx, dy) > 4) {
+        try {
+          e.currentTarget.setPointerCapture(e.pointerId)
+          hasCapturedRef.current = true
+        } catch {}
+      }
+
+      const nextX = panStartRef.current.x + dx
+      const nextY = panStartRef.current.y + dy
+
+      setTransform((prev) => {
+        const next = { ...prev, x: nextX, y: nextY }
+        transformRef.current = next
+        return next
       })
     }
 
     updateTooltipPosition(e.clientX, e.clientY)
   }
 
-  const handleMouseUp = () => {
+  const handlePointerUp = (e) => {
     setIsDragging(false)
+    if (hasCapturedRef.current) {
+      try {
+        e.currentTarget.releasePointerCapture(e.pointerId)
+      } catch {}
+      hasCapturedRef.current = false
+    }
   }
 
-  // Touch Handlers for Mobile (Pan & Pinch-to-zoom)
+  // Double click to zoom in focused on clicked point
+  const handleDoubleClick = (e) => {
+    if (!containerRef.current) return
+    const rect = containerRef.current.getBoundingClientRect()
+    const cursorX = e.clientX - rect.left
+    const cursorY = e.clientY - rect.top
+
+    setTransform((prev) => {
+      const newScale = Math.min(prev.scale * 1.5, 4.0)
+      const newPanX = cursorX - ((cursorX - prev.x) / prev.scale) * newScale
+      const newPanY = cursorY - ((cursorY - prev.y) / prev.scale) * newScale
+      const next = { scale: newScale, x: newPanX, y: newPanY }
+      transformRef.current = next
+      return next
+    })
+  }
+
+  // Touch Handlers for Mobile (Pinch-to-zoom support)
   const handleTouchStart = (e) => {
-    if (e.touches.length === 1) {
-      setIsDragging(true)
-      dragStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
-      panStartRef.current = { ...pan }
-    } else if (e.touches.length === 2) {
+    if (e.touches.length === 2) {
       setIsDragging(false)
       const dist = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
@@ -366,26 +606,34 @@ export default function PlotViewer({
   }
 
   const handleTouchMove = (e) => {
-    if (e.touches.length === 1 && isDragging) {
-      const dx = e.touches[0].clientX - dragStartRef.current.x
-      const dy = e.touches[0].clientY - dragStartRef.current.y
-      setPan({
-        x: panStartRef.current.x + dx,
-        y: panStartRef.current.y + dy,
-      })
-    } else if (e.touches.length === 2 && touchDistRef.current) {
+    if (e.touches.length === 2 && touchDistRef.current && containerRef.current) {
       const dist = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY
       )
       const factor = dist / touchDistRef.current
-      setScale((prev) => Math.min(Math.max(prev * factor, 0.05), 4.0))
+      const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2
+      const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2
+      const rect = containerRef.current.getBoundingClientRect()
+      const cursorX = midX - rect.left
+      const cursorY = midY - rect.top
+
+      setTransform((prev) => {
+        const minAllowed = 0.05
+        const maxAllowed = 4.0
+        const newScale = Math.min(Math.max(prev.scale * factor, minAllowed), maxAllowed)
+        if (newScale === prev.scale) return prev
+        const newPanX = cursorX - ((cursorX - prev.x) / prev.scale) * newScale
+        const newPanY = cursorY - ((cursorY - prev.y) / prev.scale) * newScale
+        const next = { scale: newScale, x: newPanX, y: newPanY }
+        transformRef.current = next
+        return next
+      })
       touchDistRef.current = dist
     }
   }
 
   const handleTouchEnd = () => {
-    setIsDragging(false)
     touchDistRef.current = null
   }
 
@@ -428,13 +676,13 @@ export default function PlotViewer({
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [selectedPlot, onClose])
 
-  // Plot Counts for Filter Pills
+  // Plot Counts for Filter Controls
   const counts = {
     All: displayPlots.length,
     Available: displayPlots.filter((p) => p.status === 'Available').length,
     Booked: displayPlots.filter((p) => p.status === 'Booked').length,
     Sold: displayPlots.filter((p) => p.status === 'Sold' || p.status === 'Registered').length,
-    Blocked: displayPlots.filter((p) => p.status === 'Blocked').length,
+    Blocked: displayPlots.filter((p) => p.status === 'Blocked' || p.status === 'Reserved').length,
   }
 
   // Filter Match Checker
@@ -442,10 +690,13 @@ export default function PlotViewer({
     if (activeFilter === 'All') return true
     if (activeFilter === 'Available') return plot.status === 'Available'
     if (activeFilter === 'Booked') return plot.status === 'Booked'
-    if (activeFilter === 'Sold' || activeFilter === 'Booked / Sold') {
+    if (activeFilter === 'Sold') return plot.status === 'Sold' || plot.status === 'Registered'
+    if (activeFilter === 'Booked / Sold') {
       return plot.status === 'Sold' || plot.status === 'Registered' || plot.status === 'Booked'
     }
-    if (activeFilter === 'Blocked') return plot.status === 'Blocked'
+    if (activeFilter === 'Blocked' || activeFilter === 'Reserved') {
+      return plot.status === 'Blocked' || plot.status === 'Reserved'
+    }
     return true
   }
 
@@ -465,170 +716,96 @@ export default function PlotViewer({
       ? `${cleanTitle} (${currentPhase.name || `Phase ${currentPhaseIdx + 1}`})`
       : rawTitle
 
+  // Status Filter Options for Desktop Buttons & Mobile Dropdown
+  const filterOptions = React.useMemo(() => {
+    const list = [
+      { id: 'All', label: 'All', count: counts.All },
+      { id: 'Available', label: 'Available', count: counts.Available, dot: 'avail' },
+    ]
+    if (counts.Booked > 0) {
+      list.push({ id: 'Booked', label: 'Booked', count: counts.Booked, dot: 'booked' })
+    }
+    if (counts.Sold > 0) {
+      list.push({ id: 'Sold', label: 'Sold', count: counts.Sold, dot: 'sold' })
+    }
+    if (counts.Blocked > 0) {
+      list.push({ id: 'Blocked', label: 'Blocked', count: counts.Blocked, dot: 'blocked' })
+    }
+    return list
+  }, [counts.All, counts.Available, counts.Booked, counts.Sold, counts.Blocked])
+
   return (
     <div
       ref={viewerRef}
-      className={`plot-viewer ${isFullscreen ? 'plot-viewer--fullscreen' : ''} ${className}`}
+      className={`plot-viewer ${isFullscreen ? 'plot-viewer--fullscreen' : ''} ${isModal ? 'plot-viewer--modal' : ''} ${className}`}
     >
-      {/* ── Single Minimal & Polished Master Plan Header ── */}
+      {/* ── Top Header with Project Name & Status Filter ── */}
       <div className="plot-viewer__header">
-        {/* Left: Back Action & Project Name / Sanctioned Phase Info */}
-        <div className="plot-viewer__title-group">
-          {(onClose || backHref) && (
-            onClose ? (
-              <button
-                type="button"
-                onClick={onClose}
-                className="plot-viewer__back-btn"
-                title="Back to Project Details (Esc)"
-                aria-label="Back to Project Details"
+        <h3 className="plot-viewer__title">
+          {cleanTitle}
+        </h3>
+
+        <div className="plot-viewer__header-actions">
+          {/* Status Filter: segmented pills on desktop, clean dropdown on mobile */}
+          {filterOptions.length > 1 && (
+            <div className="plot-viewer__status-filter">
+              {/* Desktop & Tablet Segmented Pill Filter */}
+              <div
+                className="plot-viewer__status-filter-desktop"
+                role="group"
+                aria-label="Filter plots by status"
               >
-                <ArrowLeft size={15} />
-                <span className="pv-back-text">Back to Project</span>
-              </button>
-            ) : (
-              <Link
-                href={backHref}
-                className="plot-viewer__back-btn"
-                title="Back to Project Details"
-                aria-label="Back to Project Details"
-              >
-                <ArrowLeft size={15} />
-                <span className="pv-back-text">Back to Project</span>
-              </Link>
-            )
-          )}
+                {filterOptions.map((opt) => {
+                  const isActive = activeFilter === opt.id
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setActiveFilter(opt.id)}
+                      className={`pv-status-btn ${isActive ? 'pv-status-btn--active' : ''}`}
+                      title={`Filter by ${opt.label} (${opt.count})`}
+                    >
+                      {opt.dot && <span className={`pv-status-dot pv-status-dot--${opt.dot}`} />}
+                      <span className="pv-status-btn__label">{opt.label}</span>
+                      <span className="pv-status-btn__count">{opt.count}</span>
+                    </button>
+                  )
+                })}
+              </div>
 
-          <div className="plot-viewer__title-meta">
-            <h3 className="plot-viewer__title">
-              {cleanTitle}
-            </h3>
-            <span className="plot-viewer__badge">
-              {currentPhase?.name || 'Master Plan'} • Sanctioned Layout
-            </span>
-          </div>
-
-          {/* Mobile Close Button (Aligned in Top Row) */}
-          {onClose && (
-            <button
-              type="button"
-              onClick={onClose}
-              className="plot-viewer__modal-close-btn plot-viewer__modal-close-btn--mobile"
-              title="Close Full-Screen View (Esc)"
-              aria-label="Close Full-Screen View"
-            >
-              <X size={18} />
-            </button>
-          )}
-        </div>
-
-        {/* Center: Phase Selector Tabs (if multiple phases exist) */}
-        {layoutPhases && layoutPhases.length > 1 && (
-          <div className="plot-viewer__phase-switcher" role="tablist" aria-label="Select layout phase">
-            {layoutPhases.map((phase, idx) => {
-              const isSelected = idx === currentPhaseIdx
-              const phasePlotCount = Array.isArray(phase.plots) ? phase.plots.length : 0
-              return (
-                <button
-                  key={phase.id || idx}
-                  type="button"
-                  role="tab"
-                  aria-selected={isSelected}
-                  onClick={() => handlePhaseSelect(idx)}
-                  className={`plot-viewer__phase-btn ${isSelected ? 'plot-viewer__phase-btn--active' : ''}`}
+              {/* Mobile Screen Compact Dropdown */}
+              <div className="plot-viewer__status-filter-mobile">
+                <select
+                  value={activeFilter}
+                  onChange={(e) => setActiveFilter(e.target.value)}
+                  className="pv-status-select"
+                  aria-label="Filter plots by status"
                 >
-                  <span className={`plot-viewer__phase-dot ${isSelected ? 'plot-viewer__phase-dot--active' : ''}`} />
-                  <span className="plot-viewer__phase-btn-text">{phase.name || `Phase ${idx + 1}`}</span>
-                  {phasePlotCount > 0 && (
-                    <span className="plot-viewer__phase-count">
-                      {phasePlotCount} {phasePlotCount === 1 ? 'Plot' : 'Plots'}
-                    </span>
-                  )}
-                </button>
-              )
-            })}
-          </div>
-        )}
+                  {filterOptions.map((opt) => (
+                    <option key={opt.id} value={opt.id}>
+                      {opt.label} ({opt.count})
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={13} className="pv-status-select-arrow" />
+              </div>
+            </div>
+          )}
 
-        {/* Right: Working Status Filter Buttons & Modal Close Button */}
-        <div className="plot-viewer__actions-group">
-          <div className="plot-viewer__filter-bar" role="tablist" aria-label="Filter plots by status">
+          {(onClose || backHref) && (
             <button
               type="button"
-              className={`plot-filter-btn ${activeFilter === 'All' ? 'plot-filter-btn--active' : ''}`}
-              onClick={() => {
-                setActiveFilter('All')
-                if (selectedPlot && !displayPlots.some((p) => p.id === selectedPlot.id)) {
-                  setSelectedPlot(null)
-                }
-              }}
-              title="Show all plots"
-            >
-              All Plots
-              <span className="plot-filter-btn__count">{counts.All}</span>
-            </button>
-
-            <button
-              type="button"
-              className={`plot-filter-btn ${activeFilter === 'Available' ? 'plot-filter-btn--active' : ''}`}
-              onClick={() => {
-                setActiveFilter('Available')
-                if (selectedPlot && selectedPlot.status !== 'Available') {
-                  setSelectedPlot(null)
-                }
-              }}
-              title="Filter available plots"
-            >
-              <span className="plot-filter-btn__dot plot-filter-btn__dot--avail" />
-              Available
-              <span className="plot-filter-btn__count">{counts.Available}</span>
-            </button>
-
-            {(counts.Sold > 0 || counts.Booked > 0) && (
-              <button
-                type="button"
-                className={`plot-filter-btn ${(activeFilter === 'Sold' || activeFilter === 'Booked / Sold') ? 'plot-filter-btn--active' : ''}`}
-                onClick={() => {
-                  setActiveFilter('Booked / Sold')
-                  if (selectedPlot && selectedPlot.status === 'Available') {
-                    setSelectedPlot(null)
-                  }
-                }}
-                title="Filter booked and sold plots"
-              >
-                <span className="plot-filter-btn__dot plot-filter-btn__dot--sold" />
-                Booked / Sold
-                <span className="plot-filter-btn__count">{counts.Sold + counts.Booked}</span>
-              </button>
-            )}
-
-            {counts.Blocked > 0 && (
-              <button
-                type="button"
-                className={`plot-filter-btn ${activeFilter === 'Blocked' ? 'plot-filter-btn--active' : ''}`}
-                onClick={() => {
-                  setActiveFilter('Blocked')
-                  if (selectedPlot && selectedPlot.status !== 'Blocked') {
-                    setSelectedPlot(null)
-                  }
-                }}
-                title="Filter blocked plots"
-              >
-                <span className="plot-filter-btn__dot plot-filter-btn__dot--blocked" />
-                Blocked
-                <span className="plot-filter-btn__count">{counts.Blocked}</span>
-              </button>
-            )}
-          </div>
-
-          {/* Desktop Close Button */}
-          {onClose && (
-            <button
-              type="button"
-              onClick={onClose}
-              className="plot-viewer__modal-close-btn plot-viewer__modal-close-btn--desktop"
-              title="Close Full-Screen View (Esc)"
-              aria-label="Close Full-Screen View"
+              onClick={
+                onClose
+                  ? onClose
+                  : () => {
+                      if (backHref) window.location.href = backHref
+                      else window.history.back()
+                    }
+              }
+              className="plot-viewer__modal-close-btn"
+              title="Close (Esc)"
+              aria-label="Close"
             >
               <X size={18} />
             </button>
@@ -640,13 +817,14 @@ export default function PlotViewer({
       <div
         ref={containerRef}
         className={`plot-viewer__canvas-container ${isDragging ? 'plot-viewer__canvas-container--dragging' : ''}`}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
+        onDoubleClick={handleDoubleClick}
         onClick={(e) => {
           // If clicked on canvas background without panning, dismiss open selection
           const dx = e.clientX - mouseDownPosRef.current.x
@@ -674,13 +852,12 @@ export default function PlotViewer({
         <div
           className="plot-viewer__map-stage"
           style={{
-            transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
+            transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${scale})`,
+            willChange: isDragging ? 'transform' : 'auto',
           }}
         >
           {(() => {
-            const [, , vbW, vbH] = (activeViewBox || '0 0 1056 816').split(' ').map(Number)
-            const stageWidth = vbW || 1056
-            const stageHeight = vbH || 816
+            const { width: stageWidth, height: stageHeight, viewBoxStr } = parseViewBox(activeViewBox, 1056, 816)
 
             return (
               <div
@@ -690,20 +867,35 @@ export default function PlotViewer({
                   height: `${stageHeight}px`,
                 }}
               >
-                {/* 1. Background Layout Map Image / Blueprint */}
-                {activeBackgroundUrl && (
+                {/* 1. True Scalable Vector Inline SVG Blueprint */}
+                {inlineSvgContent ? (
+                  <div
+                    className="plot-viewer__bg-inline"
+                    style={{ width: '100%', height: '100%', pointerEvents: 'none' }}
+                    dangerouslySetInnerHTML={{ __html: inlineSvgContent }}
+                  />
+                ) : activeBackgroundUrl && !bgLoadError ? (
+                  /* Initial preview while vector SVG loads */
                   <img
                     src={activeBackgroundUrl}
                     alt={layoutTitle}
                     className="plot-viewer__bg-image"
                     draggable={false}
+                    onError={() => handleBgError(activeBackgroundUrl)}
                   />
-                )}
+                ) : bgLoadError ? (
+                  <div className="plot-viewer__bg-blueprint-fallback">
+                    <div className="pv-blueprint-watermark">CAD VECTOR PLAN</div>
+                    <span className="pv-blueprint-title">{layoutTitle}</span>
+                  </div>
+                ) : null}
 
                 {/* 2. Interactive SVG Overlay Element (Dynamically fetched from DB) */}
                 <svg
-                  viewBox={activeViewBox}
+                  viewBox={viewBoxStr}
                   className="plot-viewer__overlay-svg"
+                  shapeRendering="geometricPrecision"
+                  textRendering="geometricPrecision"
                   aria-label="Interactive Plot Overlay"
                 >
                   {displayPlots.filter((plot) => Boolean(plot.svgPath && plot.svgPath.trim())).map((plot) => {
@@ -715,22 +907,11 @@ export default function PlotViewer({
                     key={plot.id || plot.plotNo}
                     id={`plot-group-${plot.plotNo}`}
                     className={`pv-plot pv-plot--${plot.status} ${isSelected ? 'pv-plot--selected' : ''} ${!isMatch ? 'pv-plot--dimmed' : ''}`}
-                    onMouseEnter={(e) => {
-                      if (!isTouchDevice && !selectedPlot) {
-                        updateTooltipPosition(e.clientX, e.clientY)
-                        setHoveredPlot(plot)
-                      }
-                    }}
-                    onMouseMove={(e) => {
-                      if (!isTouchDevice && !selectedPlot) {
-                        updateTooltipPosition(e.clientX, e.clientY)
-                      }
-                    }}
-                    onMouseLeave={() => setHoveredPlot(null)}
                     onClick={(e) => {
                       e.stopPropagation()
                       setHoveredPlot(null)
                       setSelectedPlot(plot)
+                      centerOnPlot(plot)
                       if (onPlotSelect) onPlotSelect(plot)
                     }}
                     tabIndex={0}
@@ -739,6 +920,7 @@ export default function PlotViewer({
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         setSelectedPlot(plot)
+                        centerOnPlot(plot)
                       }
                     }}
                   >
@@ -748,9 +930,14 @@ export default function PlotViewer({
                       className="pv-plot__boundary"
                     />
 
-                    {/* Centered Plot Number Label (Computed from path centroid if missing/misaligned) */}
+                    {/* Centered Plot Number Label directly inside plot (No circular background) */}
                     {(() => {
-                      const centroid = computePathCentroid(plot.svgPath)
+                      let centroid = null
+                      try {
+                        centroid = computePathCentroid(plot.svgPath)
+                      } catch {
+                        // ignore malformed path
+                      }
                       const isExplicitValid =
                         plot.textX !== undefined &&
                         plot.textY !== undefined &&
@@ -763,24 +950,29 @@ export default function PlotViewer({
                       const labelX = isExplicitValid ? plot.textX : (centroid?.textX ?? plot.textX ?? 0)
                       const labelY = isExplicitValid ? plot.textY : (centroid?.textY ?? plot.textY ?? 0)
 
+                      // Compute font size based on plot bounding box dimensions so it fits cleanly
+                      let fontSize = 8.5
+                      if (centroid) {
+                        const pw = centroid.maxX - centroid.minX
+                        const ph = centroid.maxY - centroid.minY
+                        const minDim = Math.min(pw, ph)
+                        if (minDim > 0) {
+                          fontSize = Math.min(Math.max(minDim * 0.36, 6.5), 13)
+                        }
+                      }
+
                       return (
-                        <g transform={`translate(${labelX}, ${labelY})`}>
-                          <circle
-                            cx="0"
-                            cy="0"
-                            r="8.5"
-                            className="pv-plot__label-bg"
-                          />
-                          <text
-                            x="0"
-                            y="0"
-                            textAnchor="middle"
-                            dominantBaseline="central"
-                            className="pv-plot__label-text"
-                          >
-                            {plot.plotNo}
-                          </text>
-                        </g>
+                        <text
+                          x={labelX}
+                          y={labelY}
+                          textAnchor="middle"
+                          dominantBaseline="central"
+                          stroke="none"
+                          className="pv-plot__label-text"
+                          style={{ fontSize: `${fontSize}px` }}
+                        >
+                          {plot.plotNo}
+                        </text>
                       )
                     })()}
                   </g>
@@ -820,22 +1012,12 @@ export default function PlotViewer({
 
           <button
             type="button"
-            className="pv-control-btn"
+            className="pv-control-btn pv-control-btn--resize"
             onClick={handleResetZoom}
-            title="Reset Zoom & Fit to Screen"
-            aria-label="Reset View"
+            title="Resize to Fit Screen"
+            aria-label="Resize to Fit Screen"
           >
-            <RotateCcw size={16} />
-          </button>
-
-          <button
-            type="button"
-            className="pv-control-btn"
-            onClick={onToggleFullscreen ? onToggleFullscreen : (onClose ? onClose : toggleFullscreen)}
-            title={isFullscreen || isModal ? 'Exit Full-Screen (Esc)' : 'Full-Screen View'}
-            aria-label={isFullscreen || isModal ? 'Exit Full-Screen' : 'Full-Screen View'}
-          >
-            {isFullscreen || isModal ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+            <Maximize2 size={16} />
           </button>
         </div>
 
@@ -990,33 +1172,6 @@ export default function PlotViewer({
             </div>
           </div>
         )}
-      </div>
-
-      {/* ── Footer Status Color Legend (Template Styled) ── */}
-      <div className="plot-viewer__footer">
-        <div className="plot-viewer__legend">
-          <span style={{ fontWeight: 700, color: 'var(--ink, #111e16)' }}>Status Legend:</span>
-          <div className="pv-legend-item">
-            <span className="pv-legend-dot pv-legend-dot--Available" />
-            <span>Available (Sky Blue)</span>
-          </div>
-          <div className="pv-legend-item">
-            <span className="pv-legend-dot pv-legend-dot--Booked" />
-            <span>Booked (Green)</span>
-          </div>
-          <div className="pv-legend-item">
-            <span className="pv-legend-dot pv-legend-dot--Sold" />
-            <span>Sold (Red)</span>
-          </div>
-          <div className="pv-legend-item">
-            <span className="pv-legend-dot pv-legend-dot--Blocked" />
-            <span>Blocked (Orange)</span>
-          </div>
-        </div>
-
-        <div>
-          <span>Database Inventory: <strong>{displayPlots.length} Plots</strong></span>
-        </div>
       </div>
     </div>
   )

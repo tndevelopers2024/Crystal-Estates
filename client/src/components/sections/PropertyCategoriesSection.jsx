@@ -15,7 +15,7 @@ const categories = [
     locations: 'Prime Residential Corridors',
     stat: 'Individual & Gated Plots',
     href: '/projects',
-    image: '/images/plot-1.jpg',
+    image: '/images/somamangalam.jpg',
     icon: Home,
   },
   {
@@ -27,7 +27,7 @@ const categories = [
     locations: 'Fertile Agro Corridors',
     stat: 'Acreage & Farm Parcels',
     href: '/projects',
-    image: '/images/hero-estate.jpg',
+    image: '/images/vedanthangal.jpg',
     icon: Trees,
   },
   {
@@ -39,7 +39,7 @@ const categories = [
     locations: 'Arterial Highway Corridors',
     stat: 'Commercial Frontages',
     href: '/projects',
-    image: '/images/plot-2.jpg',
+    image: '/images/kolapakkam.jpg',
     icon: Building2,
   },
   {
@@ -51,7 +51,7 @@ const categories = [
     locations: 'Strategic Growth Corridors',
     stat: '5+ Acres Multi-Acre Parcels',
     href: '/sell-your-land',
-    image: '/images/hero-estate.jpg',
+    image: '/images/brammadesam.jpg',
     icon: Landmark,
   },
 ]
@@ -189,7 +189,7 @@ export default function PropertyCategoriesSection({
       </div>
 
       {/* Horizontal Category Quick-Filter Bar */}
-      <div className="cat-horizon-filter-bar">
+      {/* <div className="cat-horizon-filter-bar">
         <div className="cat-horizon-filter-track">
           {categories.map((cat, idx) => (
             <button
@@ -202,7 +202,7 @@ export default function PropertyCategoriesSection({
             </button>
           ))}
         </div>
-      </div>
+      </div> */}
 
       {/* Modern Horizontal Scroll Track */}
       <div className="cat-horizon-track-container">

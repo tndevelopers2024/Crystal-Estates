@@ -161,7 +161,7 @@ export default function ProjectsClientView({ initialProjects = null }) {
     <section className="modern-projects-section" aria-label="Projects Catalog">
       <div className="modern-projects-container">
         {/* Category Tabs (News-Style Filter Pills) */}
-        <div className="modern-projects-tabs" role="tablist" aria-label="Land Categories">
+        {/* <div className="modern-projects-tabs" role="tablist" aria-label="Land Categories">
           {categoryTabs.map((tab) => {
             const isActive = filters.type === tab.value
             return (
@@ -178,7 +178,7 @@ export default function ProjectsClientView({ initialProjects = null }) {
               </button>
             )
           })}
-        </div>
+        </div> */}
 
         {/* Filter Control Console */}
         <div className="modern-projects-filter-box">

@@ -12,15 +12,15 @@
   --pv-primary: var(--green-900, #0a5c36);
   --pv-primary-hover: var(--green-700, #0e7a48);
 
-  /* Status Colors */
-  --color-avail: #38bdf8;        /* Sky Blue */
-  --color-avail-rgb: 56, 189, 248;
-  --color-booked: #22c55e;       /* Green */
-  --color-booked-rgb: 34, 197, 94;
+  /* Status Colors Matching Reference Design */
+  --color-avail: #0ea5e9;        /* Sky Blue */
+  --color-avail-rgb: 14, 165, 233;
+  --color-booked: #16a34a;       /* Green */
+  --color-booked-rgb: 22, 163, 74;
   --color-sold: #ef4444;         /* Red */
   --color-sold-rgb: 239, 68, 68;
-  --color-blocked: #f97316;      /* Orange */
-  --color-blocked-rgb: 249, 115, 22;
+  --color-blocked: #f59e0b;      /* Warm Amber / Orange */
+  --color-blocked-rgb: 245, 158, 11;
 
   position: relative;
   display: flex;
@@ -82,71 +82,36 @@
   border-color: var(--green-900, #0a5c36);
 }
 
-/* Header & Filter Bar (Template Styled) */
+/* Header (Minimal & Ultra-Compact - Project Name Only) */
 .plot-viewer__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px 18px;
-  padding: 12px 24px;
+  padding: 8px 18px;
+  min-height: 40px;
   background: #ffffff;
   border-bottom: 1px solid var(--pv-surface-border, #e3ece6);
   z-index: 30;
-  flex-wrap: wrap;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
-}
-
-.plot-viewer__title-group {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.plot-viewer__title-meta {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  flex-shrink: 0;
 }
 
 .plot-viewer__title {
   margin: 0;
   font-family: var(--font-body, var(--font-inter, 'Montserrat', sans-serif));
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   font-weight: 700;
   letter-spacing: -0.015em;
   color: var(--green-900, #0a5c36);
   line-height: 1.2;
 }
 
-.plot-viewer__badge {
-  font-family: var(--font-body, var(--font-inter, 'Inter', system-ui, sans-serif));
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: var(--green-50, #eef6f1);
-  color: var(--green-900, #0a5c36);
-  border: 1px solid rgba(10, 92, 54, 0.2);
-  white-space: nowrap;
-}
-
-.plot-viewer__actions-group {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
 .plot-viewer__modal-close-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   border: 1px solid var(--pv-surface-border, #e3ece6);
   background: #ffffff;
@@ -161,6 +126,143 @@
   color: #dc2626;
   border-color: #fecaca;
   transform: rotate(90deg);
+}
+
+/* Header Actions Container */
+.plot-viewer__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+/* Status Filter Component */
+.plot-viewer__status-filter {
+  display: flex;
+  align-items: center;
+}
+
+/* Desktop: Segmented Pill Filter Group */
+.plot-viewer__status-filter-desktop {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: var(--green-50, #f1f7f4);
+  padding: 3px;
+  border-radius: 999px;
+  border: 1px solid rgba(10, 92, 54, 0.12);
+}
+
+.pv-status-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--muted, #4e6355);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.pv-status-btn:hover {
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--ink, #111e16);
+}
+
+.pv-status-btn--active {
+  background: #ffffff !important;
+  color: var(--green-900, #0a5c36) !important;
+  border-color: rgba(10, 92, 54, 0.2) !important;
+  box-shadow: 0 1px 4px rgba(10, 92, 54, 0.1);
+  font-weight: 700;
+}
+
+.pv-status-btn__label {
+  line-height: 1;
+}
+
+.pv-status-btn__count {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.05);
+  color: inherit;
+  line-height: 1.1;
+}
+
+.pv-status-btn--active .pv-status-btn__count {
+  background: var(--green-900, #0a5c36);
+  color: #ffffff;
+}
+
+/* Status Dots */
+.pv-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.pv-status-dot--avail {
+  background-color: var(--color-avail, #0ea5e9);
+}
+
+.pv-status-dot--booked {
+  background-color: var(--color-booked, #16a34a);
+}
+
+.pv-status-dot--sold {
+  background-color: var(--color-sold, #ef4444);
+}
+
+.pv-status-dot--blocked {
+  background-color: var(--color-blocked, #f59e0b);
+}
+
+/* Mobile Status Dropdown (hidden on desktop) */
+.plot-viewer__status-filter-mobile {
+  display: none;
+  position: relative;
+  align-items: center;
+}
+
+.pv-status-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background: var(--green-50, #f1f7f4);
+  border: 1px solid rgba(10, 92, 54, 0.16);
+  border-radius: 999px;
+  padding: 5px 28px 5px 11px;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--green-900, #0a5c36);
+  cursor: pointer;
+  outline: none;
+  line-height: 1.2;
+  transition: all 0.2s ease;
+}
+
+.pv-status-select:focus {
+  background: #ffffff;
+  border-color: var(--green-900, #0a5c36);
+  box-shadow: 0 0 0 2px rgba(10, 92, 54, 0.15);
+}
+
+.pv-status-select-arrow {
+  position: absolute;
+  right: 9px;
+  pointer-events: none;
+  color: var(--green-900, #0a5c36);
 }
 
 .plot-viewer__subtitle {
@@ -391,8 +493,12 @@
   top: 0;
   left: 0;
   transform-origin: 0 0;
-  will-change: transform;
   pointer-events: auto;
+}
+
+/* Only activate will-change during drag motion for 60fps pan while preserving pristine vector rendering at all zoom levels */
+.plot-viewer__canvas-container--dragging .plot-viewer__map-stage {
+  will-change: transform;
 }
 
 /* Container matching viewBox dynamic aspect ratio */
@@ -402,7 +508,7 @@
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
 }
 
-/* Background Layout Image */
+/* Background Layout Image (Initial raster preview fallback) */
 .plot-viewer__bg-image {
   position: absolute;
   inset: 0;
@@ -413,6 +519,55 @@
   display: block;
 }
 
+/* True Scalable Vector Inline SVG Blueprint */
+.plot-viewer__bg-inline {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.plot-viewer__bg-inline svg {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+  shape-rendering: geometricPrecision;
+  text-rendering: geometricPrecision;
+}
+
+.plot-viewer__bg-blueprint-fallback {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at 50% 50%, #f8fafc 0%, #e2e8f0 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  border: 1px dashed #cbd5e1;
+}
+
+.pv-blueprint-watermark {
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  color: #94a3b8;
+  text-transform: uppercase;
+}
+
+.pv-blueprint-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #64748b;
+  margin-top: 6px;
+}
+
 /* Overlay Interactive SVG */
 .plot-viewer__overlay-svg {
   position: absolute;
@@ -421,6 +576,8 @@
   height: 100%;
   pointer-events: auto;
   overflow: visible;
+  shape-rendering: geometricPrecision;
+  text-rendering: geometricPrecision;
 }
 
 /* Plot SVG Interactive Elements */
@@ -437,97 +594,81 @@
   stroke-linecap: round;
 }
 
-/* Available: Sky Blue - Clean, hairline stroke and translucent fill */
+/* Available: Vibrant Sky Blue / Cyan (Matching Reference Design) */
 .pv-plot--Available .pv-plot__boundary {
-  fill: rgba(56, 189, 248, 0.22);
+  fill: rgba(103, 232, 249, 0.85);
   stroke: #0284c7;
-  stroke-width: 0.85px;
+  stroke-width: 0.35px;
 }
 
-/* Booked: Green - Clean, hairline stroke */
+/* Booked: Fresh Mint Green (Matching Reference Design) */
 .pv-plot--Booked .pv-plot__boundary {
-  fill: rgba(34, 197, 94, 0.22);
+  fill: rgba(134, 239, 172, 0.88);
   stroke: #16a34a;
-  stroke-width: 0.85px;
+  stroke-width: 0.35px;
 }
 
-/* Sold / Registered: Red - Clean, hairline stroke */
+/* Sold / Registered: Soft Coral / Salmon Red (Matching Reference Design) */
 .pv-plot--Sold .pv-plot__boundary,
 .pv-plot--Registered .pv-plot__boundary {
-  fill: rgba(239, 68, 68, 0.22);
+  fill: rgba(252, 165, 165, 0.88);
   stroke: #dc2626;
-  stroke-width: 0.85px;
+  stroke-width: 0.35px;
 }
 
-/* Blocked: Orange - Clean, hairline stroke */
-.pv-plot--Blocked .pv-plot__boundary {
-  fill: rgba(249, 115, 22, 0.22);
-  stroke: #ea580c;
-  stroke-width: 0.85px;
+/* Blocked / Reserved: Warm Golden Amber (Matching Reference Design) */
+.pv-plot--Blocked .pv-plot__boundary,
+.pv-plot--Reserved .pv-plot__boundary {
+  fill: rgba(253, 211, 77, 0.88);
+  stroke: #d97706;
+  stroke-width: 0.35px;
 }
 
-/* Plot Hover State */
-.pv-plot:hover .pv-plot__boundary {
-  stroke-width: 1.5px !important;
-  stroke: #0f3d2e !important;
-  fill-opacity: 0.42 !important;
-  filter: drop-shadow(0 2px 5px rgba(15, 61, 46, 0.25));
-}
+/* Hover effect removed per user request - clean static blueprint lines */
 
+/* Selected Plot State */
 .pv-plot--selected .pv-plot__boundary {
-  stroke-width: 1.8px !important;
-  stroke: #0f3d2e !important;
-  fill: rgba(15, 61, 46, 0.35) !important;
-  filter: drop-shadow(0 3px 8px rgba(15, 61, 46, 0.35));
+  stroke-width: 1.4px !important;
+  stroke: #0a5c36 !important;
+  filter: drop-shadow(0 1px 4px rgba(10, 92, 54, 0.35));
 }
-
-.pv-plot--Available:hover .pv-plot__boundary { fill: rgba(56, 189, 248, 0.55); stroke: #0369a1 !important; }
-.pv-plot--Booked:hover .pv-plot__boundary    { fill: rgba(34, 197, 94, 0.55); stroke: #15803d !important; }
-.pv-plot--Sold:hover .pv-plot__boundary      { fill: rgba(239, 68, 68, 0.55); stroke: #b91c1c !important; }
-.pv-plot--Blocked:hover .pv-plot__boundary   { fill: rgba(249, 115, 22, 0.55); stroke: #c2410c !important; }
 
 /* Dim plots not matching current filter */
 .pv-plot--dimmed {
-  opacity: 0.04 !important;
+  opacity: 0.05 !important;
   pointer-events: none !important;
 }
 
-.pv-plot--dimmed .pv-plot__label-bg,
 .pv-plot--dimmed .pv-plot__label-text {
   display: none !important;
 }
 
-/* Centered Plot Label in SVG */
-.pv-plot__label-bg {
-  fill: #ffffff;
-  stroke-width: 1px;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.15));
-  transition: transform 0.2s ease, fill 0.2s ease;
-}
-
-.pv-plot--Available .pv-plot__label-bg { stroke: #0284c7; }
-.pv-plot--Booked .pv-plot__label-bg    { stroke: #16a34a; }
-.pv-plot--Sold .pv-plot__label-bg      { stroke: #dc2626; }
-.pv-plot--Blocked .pv-plot__label-bg   { stroke: #ea580c; }
-
+/* Direct Centered Plot Number Label (No white border, outline, or circular background) */
 .pv-plot__label-text {
-  font-family: inherit;
-  font-size: 9.5px;
-  font-weight: 800;
+  font-family: var(--font-body, var(--font-inter, 'Inter', system-ui, -apple-system, sans-serif));
+  font-weight: 700;
   fill: #0f172a;
   pointer-events: none;
-  letter-spacing: -0.02em;
+  user-select: none;
+  letter-spacing: -0.015em;
+  stroke: none !important;
+  stroke-width: 0 !important;
+  paint-order: normal !important;
+  shape-rendering: geometricPrecision;
+  text-rendering: geometricPrecision;
+  transition: transform 0.15s ease, fill 0.15s ease;
 }
 
-.pv-plot:hover .pv-plot__label-bg,
-.pv-plot--selected .pv-plot__label-bg {
-  fill: #0f3d2e;
-  stroke: #ffffff;
+.pv-plot:hover .pv-plot__label-text {
+  fill: #0a5c36;
+  stroke: none !important;
+  stroke-width: 0 !important;
 }
 
-.pv-plot:hover .pv-plot__label-text,
 .pv-plot--selected .pv-plot__label-text {
   fill: #ffffff;
+  stroke: none !important;
+  stroke-width: 0 !important;
 }
 
 /* Floating Zoom Controls Toolbar (Centered on right edge to prevent blocking layout/cards) */
@@ -962,137 +1103,58 @@
   transform: translateY(-1px);
 }
 
-/* Footer Status Legend */
-.plot-viewer__footer {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px 24px;
-  background: #ffffff;
-  border-top: 1px solid var(--pv-surface-border);
-  font-size: 0.8rem;
-  color: var(--pv-text-muted);
-}
-
-.plot-viewer__legend {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 16px;
-}
-
-.pv-legend-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.pv-legend-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 2px;
-}
-
-.pv-legend-dot--Available { background: var(--color-avail); }
-.pv-legend-dot--Booked    { background: var(--color-booked); }
-.pv-legend-dot--Sold      { background: var(--color-sold); }
-.pv-legend-dot--Blocked   { background: var(--color-blocked); }
-
-/* Modal Close Buttons (Desktop vs Mobile Placement) */
-.plot-viewer__modal-close-btn--mobile {
-  display: none !important;
-}
-
-.plot-viewer__modal-close-btn--desktop {
-  display: flex !important;
-}
-
-/* Responsive Adjustments down to 320px */
+/* Responsive Adjustments across Desktop, Tablet, and Mobile */
 @media (max-width: 900px) {
   .plot-viewer__header {
-    padding: 10px 16px;
-    gap: 10px;
+    padding: 8px 16px;
+    min-height: 38px;
   }
 
   .plot-viewer__title {
-    font-size: 1.05rem;
-  }
-
-  .plot-viewer__filter-bar {
-    gap: 6px;
-  }
-
-  .plot-filter-btn {
-    padding: 5px 11px;
-    font-size: 0.76rem;
+    font-size: 1.02rem;
   }
 }
 
 @media (max-width: 768px) {
   .plot-viewer__header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
-    padding: 10px 14px;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 6px 14px !important;
+    min-height: 36px !important;
   }
 
-  .plot-viewer__title-group {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    gap: 8px;
+  .plot-viewer__title {
+    font-size: 0.95rem !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 140px !important;
   }
 
-  .plot-viewer__modal-close-btn--desktop {
+  .plot-viewer__header-actions {
+    gap: 8px !important;
+  }
+
+  /* Switch status filter to dropdown on mobile */
+  .plot-viewer__status-filter-desktop {
     display: none !important;
   }
 
-  .plot-viewer__modal-close-btn--mobile {
-    display: flex !important;
-    margin-left: auto;
+  .plot-viewer__status-filter-mobile {
+    display: inline-flex !important;
   }
 
-  .plot-viewer__phase-switcher {
-    width: 100%;
-    overflow-x: auto;
-    justify-content: flex-start;
-    padding: 3px;
-    scrollbar-width: none;
-  }
-  .plot-viewer__phase-switcher::-webkit-scrollbar {
-    display: none;
+  .pv-status-select {
+    padding: 4px 24px 4px 9px !important;
+    font-size: 0.74rem !important;
+    max-width: 135px;
   }
 
-  .plot-viewer__actions-group {
-    width: 100%;
-    justify-content: flex-start;
-    gap: 8px;
-  }
-
-  .plot-viewer__filter-bar {
-    width: 100%;
-    overflow-x: auto;
-    padding-bottom: 2px;
-    flex-wrap: nowrap;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-  }
-  .plot-viewer__filter-bar::-webkit-scrollbar {
-    display: none;
-  }
-
-  .plot-filter-btn {
-    white-space: nowrap !important;
-    flex-shrink: 0 !important;
-  }
-
-  .plot-filter-btn__count {
-    white-space: nowrap !important;
-    display: inline-block !important;
-    flex-shrink: 0 !important;
+  .plot-viewer__modal-close-btn {
+    width: 28px !important;
+    height: 28px !important;
   }
 
   .plot-viewer:fullscreen .plot-viewer__canvas-container,
@@ -1102,6 +1164,11 @@
     flex: 1 1 0% !important;
     height: auto !important;
     min-height: 0 !important;
+  }
+
+  .plot-viewer:not(.plot-viewer--fullscreen):not(.plot-viewer--fullpage):not(.plot-viewer--modal) .plot-viewer__canvas-container {
+    height: calc(100vh - 80px);
+    min-height: 480px;
   }
 
   .pv-bottom-card,
@@ -1130,49 +1197,29 @@
   .plot-viewer__helper-pill {
     display: none;
   }
-
-  .plot-viewer__footer {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 6px 12px;
-    padding: 8px 14px;
-    font-size: 0.72rem;
-  }
-
-  .plot-viewer__legend {
-    display: flex;
-    align-items: center;
-    gap: 8px 12px;
-    flex-wrap: wrap;
-  }
-
-  .pv-legend-item {
-    white-space: nowrap;
-    font-size: 0.72rem;
-  }
 }
 
 @media (max-width: 480px) {
   .plot-viewer__header {
-    padding: 8px 12px;
+    padding: 6px 12px !important;
+    min-height: 36px !important;
     gap: 6px;
   }
 
   .plot-viewer__title {
-    font-size: 0.95rem;
-    gap: 6px;
+    font-size: 0.88rem !important;
+    max-width: 110px !important;
   }
 
-  .plot-viewer__filter-bar {
-    gap: 4px;
+  .pv-status-select {
+    padding: 3px 22px 3px 8px !important;
+    font-size: 0.72rem !important;
+    max-width: 120px;
   }
 
-  .plot-filter-btn {
-    padding: 4px 9px;
-    font-size: 0.72rem;
+  .pv-mobile-select {
+    padding: 6px 28px 6px 10px;
+    font-size: 0.76rem;
   }
 
   .pv-bottom-card,
@@ -1213,5 +1260,10 @@
     bottom: 6px !important;
     width: calc(100% - 10px) !important;
     padding: 8px 10px 10px !important;
+  }
+
+  .pv-mobile-select {
+    font-size: 0.72rem;
+    padding: 5px 24px 5px 8px;
   }
 }

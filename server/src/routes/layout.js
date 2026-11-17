@@ -4,6 +4,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import { getDb } from '../config/db.js'
 import { computePathCentroid } from '../lib/svgPathCentroid.js'
+import { normalizeAndValidateSvg, parseViewBoxValues } from '../lib/svgProcessor.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const rootDir = path.resolve(__dirname, '../../..')
@@ -25,36 +26,22 @@ function normalizeSlug(slug) {
 }
 
 /**
- * Helper to extract SVG dimensions and viewBox from SVG file
+ * Helper to extract SVG dimensions and viewBox safely from file or buffer
  */
-function getSvgDetailsFromFile(filePath) {
+function getSvgDetailsFromContent(content) {
   try {
-    if (!fs.existsSync(filePath)) return null
-    const content = fs.readFileSync(filePath, 'utf-8')
-    let viewBox = '0 0 1056 816'
-    let width = 1056
-    let height = 816
-
-    const vbMatch = content.match(/viewBox=["']([0-9.\s-]+)["']/i)
-    if (vbMatch && vbMatch[1]) {
-      viewBox = vbMatch[1].trim()
-      const parts = viewBox.split(/\s+/).map(Number)
-      if (parts.length === 4) {
-        width = parts[2]
-        height = parts[3]
-      }
-    } else {
-      const wMatch = content.match(/width=["']([0-9.]+)["']/i)
-      const hMatch = content.match(/height=["']([0-9.]+)["']/i)
-      if (wMatch && hMatch) {
-        width = parseFloat(wMatch[1]) || 1056
-        height = parseFloat(hMatch[1]) || 816
-        viewBox = `0 0 ${width} ${height}`
+    if (!content) return null
+    const norm = normalizeAndValidateSvg(content)
+    if (norm.valid) {
+      return {
+        viewBox: norm.viewBox,
+        width: norm.width,
+        height: norm.height,
       }
     }
-    return { viewBox, width, height }
+    return null
   } catch (err) {
-    console.warn(`Error reading SVG file ${filePath}:`, err.message)
+    console.warn('Error parsing SVG content:', err.message)
     return null
   }
 }
@@ -70,6 +57,44 @@ function resolveSvgFilePath(urlPath) {
   for (const p of candidatePaths) {
     if (fs.existsSync(p)) return p
   }
+  return null
+}
+
+async function resolveSvgDetails(urlPath, db) {
+  if (!urlPath) return null
+  const localPath = resolveSvgFilePath(urlPath)
+  if (localPath) {
+    try {
+      const content = fs.readFileSync(localPath, 'utf-8')
+      const details = getSvgDetailsFromContent(content)
+      if (details) return details
+    } catch (e) {
+      console.warn('Local SVG read warning:', e.message)
+    }
+  }
+
+  // Fallback: check MongoDB uploaded_files
+  if (db) {
+    try {
+      const filename = path.basename(urlPath)
+      const doc = await db.collection('uploaded_files').findOne({ filename })
+      if (doc) {
+        let buf = null
+        if (doc.binaryData) {
+          buf = doc.binaryData.buffer || doc.binaryData
+        } else if (doc.data) {
+          buf = Buffer.from(doc.data, 'base64')
+        }
+        if (buf) {
+          const details = getSvgDetailsFromContent(buf)
+          if (details) return details
+        }
+      }
+    } catch (dbErr) {
+      console.warn('DB SVG details warning:', dbErr.message)
+    }
+  }
+
   return null
 }
 
@@ -221,14 +246,11 @@ router.get('/layout/:slug', async (req, res) => {
     // Ensure viewBox strictly matches SVG file coordinate system if available
     const targetUrl = metadataDoc.layoutBackgroundUrl || metadataDoc.layoutUrl
     if (targetUrl && /\.svg$/i.test(targetUrl)) {
-      const svgPath = resolveSvgFilePath(targetUrl)
-      if (svgPath) {
-        const svgDetails = getSvgDetailsFromFile(svgPath)
-        if (svgDetails && svgDetails.viewBox) {
-          metadataDoc.viewBox = svgDetails.viewBox
-          metadataDoc.width = svgDetails.width
-          metadataDoc.height = svgDetails.height
-        }
+      const svgDetails = await resolveSvgDetails(targetUrl, db)
+      if (svgDetails && svgDetails.viewBox) {
+        metadataDoc.viewBox = svgDetails.viewBox
+        metadataDoc.width = svgDetails.width
+        metadataDoc.height = svgDetails.height
       }
     }
 

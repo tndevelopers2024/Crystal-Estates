@@ -107,7 +107,21 @@ const staticOptions = {
   lastModified: true,
 }
 
-app.use('/plots', express.static(path.join(uploadsDir, 'plots'), staticOptions), express.static(path.join(rootDir, 'client/public/plots'), staticOptions))
+const plotsStaticOptions = {
+  ...staticOptions,
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.svg')) {
+      res.set('Content-Type', 'image/svg+xml; charset=utf-8')
+    }
+  },
+}
+
+app.use(
+  '/plots',
+  express.static(path.join(uploadsDir, 'plots'), plotsStaticOptions),
+  express.static(path.join(rootDir, 'client/public/plots'), plotsStaticOptions),
+  express.static(path.join(rootDir, 'crm/public/plots'), plotsStaticOptions)
+)
 app.use('/images/plots', express.static(path.join(uploadsDir, 'images'), staticOptions), express.static(path.join(rootDir, 'client/public/images/plots'), staticOptions))
 app.use('/images', express.static(path.join(uploadsDir, 'images'), staticOptions), express.static(path.join(rootDir, 'client/public/images'), staticOptions))
 app.use('/documents', express.static(path.join(uploadsDir, 'documents'), staticOptions), express.static(path.join(rootDir, 'client/public/documents'), staticOptions))
@@ -120,6 +134,7 @@ app.get(
   async (req, res, next) => {
     try {
       const filename = req.params.filename
+      const isSvg = filename.toLowerCase().endsWith('.svg')
       const db = await getDb()
       const fileDoc = await db.collection('uploaded_files').findOne({ filename })
       if (fileDoc) {
@@ -130,7 +145,8 @@ app.get(
           buffer = Buffer.from(fileDoc.data, 'base64')
         }
         if (buffer) {
-          res.set('Content-Type', fileDoc.contentType || 'application/octet-stream')
+          const contentType = isSvg ? 'image/svg+xml; charset=utf-8' : (fileDoc.contentType || 'application/octet-stream')
+          res.set('Content-Type', contentType)
           res.set('Cache-Control', 'public, max-age=31536000, immutable')
           return res.send(buffer)
         }

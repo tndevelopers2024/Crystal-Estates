@@ -113,12 +113,12 @@ export default function About() {
           </div>
         </div>
 
-        {/* Center Column: Portrait Luxury Villa Image with Smooth Rounded Corners */}
+        {/* Center Column: Demarcated Plotted Development Land Image with Smooth Rounded Corners */}
         <div className="excellence-col excellence-col--center">
           <div className="excellence-art">
             <img
               src="/images/excellence-villa.jpg"
-              alt="Luxury modern architectural estate at sunset"
+              alt="Approved residential plotted development with demarcated boundary stones and blacktop avenue roads"
               className="excellence-art__img"
               loading="lazy"
             />

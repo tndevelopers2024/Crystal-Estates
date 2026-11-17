@@ -18,6 +18,7 @@ import {
   AlertCircle,
 } from 'lucide-react'
 import { computePathCentroid } from '../../lib/svgPathCentroid'
+import { parseViewBox } from '../../lib/svgUtils'
 import { getClientUrl, getApiUrl } from '../../lib/api'
 
 const FACING_OPTIONS = [
@@ -32,10 +33,10 @@ const FACING_OPTIONS = [
 ]
 
 const STATUS_OPTIONS = [
-  { id: 'Available', label: 'Available', color: '#0284C7', bg: '#E0F2FE', border: '#BAE6FD' },
-  { id: 'Booked', label: 'Booked', color: '#16A34A', bg: '#DCFCE7', border: '#BBF7D0' },
-  { id: 'Sold', label: 'Sold', color: '#DC2626', bg: '#FEE2E2', border: '#FECACA' },
-  { id: 'Blocked', label: 'Blocked', color: '#EA580C', bg: '#FFEDD5', border: '#FED7AA' },
+  { id: 'Available', label: 'Available', color: '#0284C7', bg: '#67E8F9', border: '#38BDF8' },
+  { id: 'Booked', label: 'Booked', color: '#16A34A', bg: '#86EFAC', border: '#4ADE80' },
+  { id: 'Sold', label: 'Sold', color: '#DC2626', bg: '#FCA5A5', border: '#F87171' },
+  { id: 'Blocked', label: 'Blocked', color: '#D97706', bg: '#FCD34D', border: '#FBBF24' },
 ]
 
 const PLOT_TYPES = [
@@ -108,6 +109,36 @@ export default function PropertyPlotModal({
   // Map canvas zoom & pan
   const [zoom, setZoom] = useState(1)
   const [hoveredPlot, setHoveredPlot] = useState(null)
+  const [inlineSvgContent, setInlineSvgContent] = useState(null)
+
+  useEffect(() => {
+    if (!layoutBackgroundUrl || (!layoutBackgroundUrl.toLowerCase().includes('.svg') && !layoutBackgroundUrl.startsWith('data:image/svg+xml'))) {
+      setInlineSvgContent(null)
+      return
+    }
+    let isMounted = true
+    fetch(layoutBackgroundUrl)
+      .then((res) => (res.ok ? res.text() : null))
+      .then((text) => {
+        if (!isMounted) return
+        if (text && text.includes('<svg')) {
+          const cleanSvg = text
+            .replace(/<\?xml[\s\S]*?\?>/i, '')
+            .replace(/<!DOCTYPE[\s\S]*?>/i, '')
+            .replace(/<sodipodi:namedview[\s\S]*?\/>/i, '')
+            .trim()
+          setInlineSvgContent(cleanSvg)
+        } else {
+          setInlineSvgContent(null)
+        }
+      })
+      .catch(() => {
+        if (isMounted) setInlineSvgContent(null)
+      })
+    return () => {
+      isMounted = false
+    }
+  }, [layoutBackgroundUrl])
 
   // Sync state if property or phase changes
   useEffect(() => {
@@ -189,13 +220,11 @@ export default function PropertyPlotModal({
     property.layoutBackgroundUrl ||
     property.layoutUrl ||
     null
-  const activeViewBox =
+  const rawViewBox =
     currentPhase?.viewBox ||
     property.viewBox ||
     '0 0 1056 816'
-  const [, , vbW, vbH] = activeViewBox.split(' ').map(Number)
-  const mapWidth = vbW || 1056
-  const mapHeight = vbH || 816
+  const { width: mapWidth, height: mapHeight, viewBoxStr: activeViewBox } = parseViewBox(rawViewBox, 1056, 816)
 
   // Status counts
   const counts = {
@@ -545,15 +574,24 @@ export default function PropertyPlotModal({
                     }}
                   >
                     {/* Background layout map */}
-                    <img
-                      src={layoutBackgroundUrl}
-                      alt={property.name}
-                      className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
-                    />
+                    {inlineSvgContent ? (
+                      <div
+                        className="absolute inset-0 w-full h-full pointer-events-none select-none flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:block"
+                        dangerouslySetInnerHTML={{ __html: inlineSvgContent }}
+                      />
+                    ) : (
+                      <img
+                        src={layoutBackgroundUrl}
+                        alt={property.name}
+                        className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
+                      />
+                    )}
 
                     {/* Interactive Plot Boundary Overlays */}
                     <svg
                       viewBox={activeViewBox}
+                      shapeRendering="geometricPrecision"
+                      textRendering="geometricPrecision"
                       className="absolute inset-0 w-full h-full pointer-events-auto"
                       style={{ overflow: 'visible' }}
                     >
@@ -574,34 +612,28 @@ export default function PropertyPlotModal({
                             <path
                               d={p.svgPath}
                               fill={statusCfg.bg}
-                              fillOpacity={isHovered || isEditingThis ? 0.75 : 0.45}
+                              fillOpacity={isHovered || isEditingThis ? 0.9 : 0.78}
                               stroke={statusCfg.color}
-                              strokeWidth={isHovered || isEditingThis ? 2.5 : 1.5}
+                              strokeWidth={isHovered || isEditingThis ? 2.0 : 0.85}
+                              style={{ vectorEffect: 'non-scaling-stroke' }}
                             />
-                            {/* Plot number pin */}
+                            {/* Plot number directly inside plot (No circular background, outline, or border) */}
                             {p.textX != null && p.textY != null && (
-                              <g transform={`translate(${p.textX}, ${p.textY})`}>
-                                <circle
-                                  cx="0"
-                                  cy="0"
-                                  r="10"
-                                  fill={statusCfg.color}
-                                  stroke="#ffffff"
-                                  strokeWidth="1.5"
-                                  className="shadow-sm"
-                                />
-                                <text
-                                  x="0"
-                                  y="0"
-                                  textAnchor="middle"
-                                  dominantBaseline="central"
-                                  fill="#ffffff"
-                                  fontSize="8"
-                                  fontWeight="bold"
-                                >
-                                  {p.plotNo}
-                                </text>
-                              </g>
+                              <text
+                                x={p.textX}
+                                y={p.textY}
+                                textAnchor="middle"
+                                dominantBaseline="central"
+                                fill="#0F172A"
+                                fontSize="8.5"
+                                fontWeight="700"
+                                stroke="none"
+                                style={{
+                                  pointerEvents: 'none',
+                                }}
+                              >
+                                {p.plotNo}
+                              </text>
                             )}
                           </g>
                         )

@@ -3,8 +3,8 @@ import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import multer from 'multer'
-import { Binary } from 'mongodb'
 import { getDb } from '../config/db.js'
+import { normalizeAndValidateSvg } from '../lib/svgProcessor.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const rootDir = path.resolve(__dirname, '../../..')
@@ -69,29 +69,15 @@ function sanitizeSlug(str) {
 }
 
 function extractSvgDimensions(svgContent) {
-  let viewBox = '0 0 1056 816'
-  let width = 1056
-  let height = 816
-
-  const viewBoxMatch = svgContent.match(/viewBox=["']([0-9.\s-]+)["']/i)
-  if (viewBoxMatch && viewBoxMatch[1]) {
-    viewBox = viewBoxMatch[1].trim()
-    const parts = viewBox.split(/\s+/).map(Number)
-    if (parts.length === 4) {
-      width = parts[2]
-      height = parts[3]
-    }
-  } else {
-    const widthMatch = svgContent.match(/width=["']([0-9.]+)["']/i)
-    const heightMatch = svgContent.match(/height=["']([0-9.]+)["']/i)
-    if (widthMatch && heightMatch) {
-      width = parseFloat(widthMatch[1]) || 1056
-      height = parseFloat(heightMatch[1]) || 816
-      viewBox = `0 0 ${width} ${height}`
+  const norm = normalizeAndValidateSvg(svgContent)
+  if (norm.valid) {
+    return {
+      viewBox: norm.viewBox,
+      width: norm.width,
+      height: norm.height,
     }
   }
-
-  return { viewBox, width, height }
+  return { viewBox: '0 0 1056 816', width: 1056, height: 816 }
 }
 
 /**
@@ -150,16 +136,21 @@ router.post('/image', upload.single('image'), async (req, res) => {
           : ext === '.webp'
           ? 'image/webp'
           : 'image/jpeg'
+      const isUnderLimit = buffer.length < 15 * 1024 * 1024
+      const updateFields = {
+        filename,
+        contentType,
+        size: buffer.length,
+        storedOnDisk: true,
+        updatedAt: new Date(),
+      }
+      if (isUnderLimit) {
+        updateFields.binaryData = buffer
+      }
       await db.collection('uploaded_files').updateOne(
         { filename },
         {
-          $set: {
-            filename,
-            contentType,
-            binaryData: new Binary(buffer),
-            size: buffer.length,
-            updatedAt: new Date(),
-          },
+          $set: updateFields,
           $setOnInsert: { createdAt: new Date() },
         },
         { upsert: true }
@@ -255,7 +246,7 @@ router.post('/video', upload.single('video'), async (req, res) => {
 /**
  * POST /api/upload/layout-file
  * Accepts any layout blueprint file format (PDF, CAD DWG/DXF, SVG, PNG, JPG, DOC, etc.)
- * Saves directly without any conversion.
+ * Validates and normalizes SVGs, persists to local disk and MongoDB Atlas uploaded_files.
  */
 router.post('/layout-file', upload.single('layoutFile'), async (req, res) => {
   try {
@@ -263,9 +254,29 @@ router.post('/layout-file', upload.single('layoutFile'), async (req, res) => {
       return res.status(400).json({ success: false, error: 'No layout file provided' })
     }
 
-    const buffer = req.file.buffer
+    let buffer = req.file.buffer
     const originalName = req.file.originalname
     const ext = path.extname(originalName).toLowerCase() || '.pdf'
+    const isSvg = ext === '.svg' || req.file.mimetype === 'image/svg+xml'
+
+    let viewBox = '0 0 1056 816'
+    let width = 1056
+    let height = 816
+
+    if (isSvg) {
+      const normResult = normalizeAndValidateSvg(buffer)
+      if (!normResult.valid) {
+        return res.status(400).json({
+          success: false,
+          error: normResult.error || 'The uploaded file is not a valid SVG vector layout.',
+        })
+      }
+      buffer = normResult.normalizedBuffer
+      viewBox = normResult.viewBox
+      width = normResult.width
+      height = normResult.height
+    }
+
     const timestamp = Date.now()
     const safeBase = sanitizeSlug(path.basename(originalName, ext))
     const projectName = req.body.projectName || safeBase
@@ -277,29 +288,39 @@ router.post('/layout-file', upload.single('layoutFile'), async (req, res) => {
       buffer
     )
 
-    const publicUrl = `/plots/${filename}`
-    const isSvg = ext === '.svg'
+    // Persist file into MongoDB Atlas uploaded_files collection for permanent cloud streaming across instances
+    try {
+      const db = await getDb()
+      const contentType = isSvg ? 'image/svg+xml; charset=utf-8' : (req.file.mimetype || 'application/octet-stream')
+      const isUnderLimit = buffer.length < 15 * 1024 * 1024
+      const updateFields = {
+        filename,
+        contentType,
+        size: buffer.length,
+        storedOnDisk: true,
+        updatedAt: new Date(),
+      }
+      if (isUnderLimit) {
+        updateFields.binaryData = buffer
+      }
+      await db.collection('uploaded_files').updateOne(
+        { filename },
+        {
+          $set: updateFields,
+          $setOnInsert: { createdAt: new Date() },
+        },
+        { upsert: true }
+      )
 
-    let viewBox = '0 0 1056 816'
-    let width = 1056
-    let height = 816
-
-    if (isSvg) {
-      try {
-        const svgContent = buffer.toString('utf-8')
-        const dims = extractSvgDimensions(svgContent)
-        viewBox = dims.viewBox
-        width = dims.width
-        height = dims.height
-
-        const db = await getDb()
+      if (isSvg) {
         await db.collection('layout_metadata').updateOne(
           { slug: safeBase },
           {
             $set: {
               slug: safeBase,
               name: projectName,
-              layoutBackgroundUrl: publicUrl,
+              layoutBackgroundUrl: `/plots/${filename}`,
+              layoutUrl: `/plots/${filename}`,
               viewBox,
               width,
               height,
@@ -311,10 +332,12 @@ router.post('/layout-file', upload.single('layoutFile'), async (req, res) => {
           },
           { upsert: true }
         )
-      } catch (svgErr) {
-        console.warn('SVG layout metadata extraction warning:', svgErr.message)
       }
+    } catch (dbErr) {
+      console.warn('MongoDB file persistence warning:', dbErr.message)
     }
+
+    const publicUrl = `/plots/${filename}`
 
     return res.json({
       success: true,
@@ -337,21 +360,20 @@ router.post('/layout-file', upload.single('layoutFile'), async (req, res) => {
 
 /**
  * POST /api/upload/layout-svg
- * Accepts converted SVG content string (e.g. from PDF conversion) and saves as
- * client/public/plots/<slug>-layout.svg like kolapakkam-layout.svg
+ * Accepts converted SVG content string or SVG file and saves with validation & normalization
  */
 router.post('/layout-svg', upload.single('svgFile'), async (req, res) => {
   try {
-    let svgContent = ''
+    let rawContent = ''
     let slug = ''
     let projectName = ''
 
     if (req.file) {
-      svgContent = req.file.buffer.toString('utf-8')
+      rawContent = req.file.buffer
       slug = req.body.layoutSlug || path.basename(req.file.originalname, '.svg')
       projectName = req.body.projectName || slug
     } else if (req.body.svgContent) {
-      svgContent = req.body.svgContent
+      rawContent = req.body.svgContent
       slug = req.body.layoutSlug || 'layout'
       projectName = req.body.projectName || slug
     } else {
@@ -361,35 +383,66 @@ router.post('/layout-svg', upload.single('svgFile'), async (req, res) => {
       })
     }
 
+    const normResult = normalizeAndValidateSvg(rawContent)
+    if (!normResult.valid) {
+      return res.status(400).json({
+        success: false,
+        error: normResult.error || 'The uploaded file is not a valid SVG vector layout.',
+      })
+    }
+
     const cleanSlug = sanitizeSlug(slug)
     const filename = `${cleanSlug}-layout.svg`
-    const { viewBox, width, height } = extractSvgDimensions(svgContent)
+    const finalBuffer = normResult.normalizedBuffer
+    const { viewBox, width, height } = normResult
 
-    saveToDirs([clientPlotsDir, crmPlotsDir, serverUploadsPlotsDir], filename, Buffer.from(svgContent, 'utf-8'))
+    saveToDirs([clientPlotsDir, crmPlotsDir, serverUploadsPlotsDir], filename, finalBuffer)
 
     const layoutBackgroundUrl = `/plots/${filename}`
 
-    // Save/update layout metadata in MongoDB
+    // Persist to MongoDB Atlas uploaded_files and layout_metadata
     try {
       const db = await getDb()
-      await db.collection('layout_metadata').updateOne(
-        { slug: cleanSlug },
-        {
-          $set: {
-            slug: cleanSlug,
-            name: projectName,
-            layoutBackgroundUrl,
-            viewBox,
-            width,
-            height,
-            updatedAt: new Date(),
+      const isUnderLimit = finalBuffer.length < 15 * 1024 * 1024
+      const updateFields = {
+        filename,
+        contentType: 'image/svg+xml; charset=utf-8',
+        size: finalBuffer.length,
+        storedOnDisk: true,
+        updatedAt: new Date(),
+      }
+      if (isUnderLimit) {
+        updateFields.binaryData = finalBuffer
+      }
+      await Promise.all([
+        db.collection('uploaded_files').updateOne(
+          { filename },
+          {
+            $set: updateFields,
+            $setOnInsert: { createdAt: new Date() },
           },
-          $setOnInsert: {
-            createdAt: new Date(),
+          { upsert: true }
+        ),
+        db.collection('layout_metadata').updateOne(
+          { slug: cleanSlug },
+          {
+            $set: {
+              slug: cleanSlug,
+              name: projectName,
+              layoutBackgroundUrl,
+              layoutUrl: layoutBackgroundUrl,
+              viewBox,
+              width,
+              height,
+              updatedAt: new Date(),
+            },
+            $setOnInsert: {
+              createdAt: new Date(),
+            },
           },
-        },
-        { upsert: true }
-      )
+          { upsert: true }
+        ),
+      ])
     } catch (dbErr) {
       console.warn('MongoDB layout metadata upsert warning:', dbErr.message)
     }
@@ -399,10 +452,11 @@ router.post('/layout-svg', upload.single('svgFile'), async (req, res) => {
       slug: cleanSlug,
       filename,
       layoutBackgroundUrl,
+      layoutUrl: layoutBackgroundUrl,
       viewBox,
       width,
       height,
-      sizeBytes: Buffer.byteLength(svgContent, 'utf-8'),
+      sizeBytes: finalBuffer.length,
     })
   } catch (err) {
     console.error('Layout SVG upload error:', err)

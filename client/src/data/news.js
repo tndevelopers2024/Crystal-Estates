@@ -13,7 +13,7 @@ export const newsArticles = [
     date: 'February 18, 2026',
     readTime: '4 min read',
     author: 'Crystal Research Desk',
-    image: '/images/plot-1.jpg',
+    image: '/images/somamangalam.jpg',
     content: `
       <p>Chennai’s peri-urban growth corridors have witnessed historic appreciation over the past decade. For families and long-term investors, purchasing approved residential plots and agricultural parcels in emerging belts has delivered substantially higher returns than finished apartments.</p>
       
@@ -37,7 +37,7 @@ export const newsArticles = [
     date: 'January 29, 2026',
     readTime: '6 min read',
     author: 'Karthik Sundaram (Legal Counsel)',
-    image: '/images/plot-2.jpg',
+    image: '/images/kolapakkam.jpg',
     content: `
       <p>In Tamil Nadu, having a registered sale deed is only half the journey. A buyer’s title is truly unassailable when the Patta and Chitta are transferred to their name in the government revenue registry.</p>
 
@@ -61,7 +61,7 @@ export const newsArticles = [
     date: 'January 12, 2026',
     readTime: '5 min read',
     author: 'Ramesh Kumar',
-    image: '/images/hero-estate.jpg',
+    image: '/images/vedanthangal.jpg',
     content: `
       <p>East Indian Sandalwood (<em>Santalum Album</em>) is celebrated worldwide for its heartwood and essential oil value. Under amended Tamil Nadu forest department guidelines, individuals can legally cultivate and own sandalwood trees on private patta land.</p>
 
@@ -82,7 +82,7 @@ export const newsArticles = [
     date: 'December 20, 2025',
     readTime: '5 min read',
     author: 'Crystal Research Desk',
-    image: '/images/plot-3.jpg',
+    image: '/images/brammadesam.jpg',
     content: `
       <p>Before purchasing any residential plot in Chennai, confirming the layout approval authority is essential. Unapproved layouts pose significant risks of non-registration, denial of electricity connections, and difficulty securing bank loans.</p>
 

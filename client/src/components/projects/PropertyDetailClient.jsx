@@ -30,6 +30,7 @@ import EnquiryForm from '../forms/EnquiryForm'
 import { ProjectCard } from './ProjectCard'
 import PlotViewer from '../plot-viewer/PlotViewer'
 import { resolveMapEmbedUrl, resolveMapDirectUrl } from '../../lib/api'
+import { parseViewBox } from '../../lib/svgUtils'
 import { business } from '../../data/site'
 
 export default function PropertyDetailClient({ initialProject, staticAllProjects = [] }) {
@@ -149,9 +150,14 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
   }, [rawPhases, project, fallbackLayoutUrl])
 
   const [activePhaseIndex, setActivePhaseIndex] = useState(0)
+  const [previewImgError, setPreviewImgError] = useState(false)
   const currentPhase = layoutPhases[activePhaseIndex] || layoutPhases[0]
   const currentPhaseLayoutUrl = currentPhase?.layoutUrl || fallbackLayoutUrl
   const currentPhasePlots = currentPhase?.plots || []
+
+  useEffect(() => {
+    setPreviewImgError(false)
+  }, [currentPhaseLayoutUrl])
 
   const hasLayout = Boolean(
     project.hasLayoutMap ||
@@ -443,22 +449,17 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
                     </div>
                   )}
 
-                  <div className="project-plot-card__stat-pills">
+                  <div className="project-plot-card__stats-plain">
                     {totalPhasePlots > 0 && (
-                      <span className="project-plot-stat-chip">
-                        <strong>{totalPhasePlots}</strong> Total
+                      <span className="project-plot-stat-plain">
+                        <span className="project-plot-stat-plain__label">Total:</span>{' '}
+                        <strong className="project-plot-stat-plain__count">{totalPhasePlots}</strong>
                       </span>
                     )}
                     {availablePhasePlots > 0 && (
-                      <span className="project-plot-stat-chip project-plot-stat-chip--avail">
-                        <span className="project-chip-dot project-chip-dot--avail" />
-                        <strong>{availablePhasePlots}</strong> Available
-                      </span>
-                    )}
-                    {bookedPhasePlots > 0 && (
-                      <span className="project-plot-stat-chip project-plot-stat-chip--booked">
-                        <span className="project-chip-dot project-chip-dot--booked" />
-                        <strong>{bookedPhasePlots}</strong> Booked / Sold
+                      <span className="project-plot-stat-plain project-plot-stat-plain--avail">
+                        <span className="project-plot-stat-plain__label">Available:</span>{' '}
+                        <strong className="project-plot-stat-plain__count">{availablePhasePlots}</strong>
                       </span>
                     )}
                   </div>
@@ -481,17 +482,40 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
                 aria-label="Click to open interactive plot layout in full-screen view"
               >
                 <div className="project-svg-preview-viewport">
-                  {currentPhaseLayoutUrl ? (
+                  {currentPhaseLayoutUrl && !previewImgError ? (
                     <div className="project-svg-preview-layers" style={{ pointerEvents: 'none' }}>
                       <img
                         src={currentPhaseLayoutUrl}
                         alt={`${project.name} ${currentPhase.name} Layout SVG`}
                         className="project-svg-preview-bg"
                         draggable={false}
+                        onError={() => setPreviewImgError(true)}
                       />
                       {currentPhasePlots.some((p) => p.svgPath) && (
                         <svg
-                          viewBox={currentPhase.viewBox || project.viewBox || '0 0 1056 816'}
+                          viewBox={parseViewBox(currentPhase.viewBox || project.viewBox, 1056, 816).viewBoxStr}
+                          className="project-svg-preview-svg"
+                        >
+                          {currentPhasePlots.filter((p) => p.svgPath).map((plot) => (
+                            <g
+                              key={plot.id || plot.plotNo}
+                              className={`pv-plot pv-plot--${plot.status}`}
+                            >
+                              <path
+                                d={plot.svgPath}
+                                className="pv-plot__boundary"
+                              />
+                            </g>
+                          ))}
+                        </svg>
+                      )}
+                    </div>
+                  ) : currentPhaseLayoutUrl && previewImgError ? (
+                    <div className="project-svg-preview-layers" style={{ pointerEvents: 'none' }}>
+                      <div className="pv-blueprint-grid" style={{ position: 'absolute', inset: 0, opacity: 0.15 }} />
+                      {currentPhasePlots.some((p) => p.svgPath) && (
+                        <svg
+                          viewBox={parseViewBox(currentPhase.viewBox || project.viewBox, 1056, 816).viewBoxStr}
                           className="project-svg-preview-svg"
                         >
                           {currentPhasePlots.filter((p) => p.svgPath).map((plot) => (
@@ -1065,14 +1089,13 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
                 village: project.village || project.location || '',
                 taluk: project.taluk || '',
                 layoutBackgroundUrl: currentPhaseLayoutUrl,
-                viewBox: currentPhase.viewBox || project.viewBox || '0 0 1056 816',
+                viewBox: parseViewBox(currentPhase.viewBox || project.viewBox, 1056, 816).viewBoxStr,
                 layouts: layoutPhases,
                 phases: layoutPhases,
               }}
               whatsappNumber={business.whatsapp}
               onClose={() => setIsFullScreenOpen(false)}
               isModal={true}
-              onToggleFullscreen={() => setIsFullScreenOpen(false)}
             />
           </div>
         </div>
