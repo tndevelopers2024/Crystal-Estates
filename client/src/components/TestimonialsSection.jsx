@@ -256,17 +256,22 @@ export function TestimonialsSection({
               transform: `translateX(${slideOffset})`,
             }}
           >
-            {items.map((item, idx) => (
-              <article
-                key={item.id || idx}
-                className="modern-testimonial-card"
-                style={{
-                  flex: `0 0 calc((100% - ${(cardsPerView - 1) * gap}px) / ${cardsPerView})`,
-                }}
-                role="group"
-                aria-roledescription="slide"
-                aria-label={`${idx + 1} of ${items.length}`}
-              >
+            {items.map((item, idx) => {
+              const cardWidthCalc = `calc((100% - ${(cardsPerView - 1) * gap}px) / ${cardsPerView})`
+              return (
+                <article
+                  key={item.id || idx}
+                  className="modern-testimonial-card"
+                  style={{
+                    flex: `0 0 ${cardWidthCalc}`,
+                    width: cardWidthCalc,
+                    minWidth: cardWidthCalc,
+                    maxWidth: cardWidthCalc,
+                  }}
+                  role="group"
+                  aria-roledescription="slide"
+                  aria-label={`${idx + 1} of ${items.length}`}
+                >
                 {/* Card Top: Stars & Quote Icon */}
                 <div className="modern-testimonial-card__header">
                   <StarRating rating={item.rating || 5} />
@@ -319,7 +324,8 @@ export function TestimonialsSection({
                   </div>
                 </div>
               </article>
-            ))}
+              )
+            })}
           </div>
         </div>
 

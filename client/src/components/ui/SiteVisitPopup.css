@@ -38,6 +38,7 @@
   flex-direction: column;
   align-items: flex-end;
   gap: 14px;
+  pointer-events: none;
 }
 
 /* ---------- Launcher: round button + live bubble ---------- */
@@ -45,6 +46,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  pointer-events: auto;
   animation: pv-in 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.2) both 0.5s;
 }
 
@@ -163,6 +165,7 @@
 
 /* ---------- Card ---------- */
 .pv-card {
+  display: none;
   width: 388px;
   max-width: calc(100vw - 28px);
   max-height: calc(100vh - 44px);
@@ -173,10 +176,9 @@
   border: 1px solid var(--line);
   box-shadow: 0 24px 60px rgba(15, 61, 46, 0.22);
   opacity: 0;
-  transform: translateY(30px) scale(0.94);
+  transform: translateY(20px) scale(0.96);
   transform-origin: bottom right;
   pointer-events: none;
-  transition: opacity 0.35s, transform 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.12);
 }
 
 .pv-card::-webkit-scrollbar {
@@ -184,9 +186,22 @@
 }
 
 .pv.open .pv-card {
+  display: block;
   opacity: 1;
   transform: none;
   pointer-events: auto;
+  animation: pv-card-in 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.12) both;
+}
+
+@keyframes pv-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .pv-top {

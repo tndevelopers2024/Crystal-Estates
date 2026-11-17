@@ -10790,6 +10790,8 @@ video {
   display: flex;
   align-items: center;
   gap: 12px;
+  position: relative;
+  z-index: 10;
 }
 
 .modern-testimonials-nav-btn {
@@ -10803,6 +10805,7 @@ video {
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  user-select: none;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -10813,6 +10816,10 @@ video {
   color: #FFFFFF;
   transform: scale(1.05);
   box-shadow: 0 4px 12px rgba(15, 61, 46, 0.2);
+}
+
+.modern-testimonials-nav-btn:active {
+  transform: scale(0.95);
 }
 
 .modern-testimonials-viewport {
@@ -12731,28 +12738,28 @@ video {
 }
 
 .project-svg-preview-svg .pv-plot--Available .pv-plot__boundary {
-  fill: rgba(56, 189, 248, 0.45);
+  fill: rgba(56, 189, 248, 0.22);
   stroke: #0284c7;
-  stroke-width: 1.8px;
+  stroke-width: 0.85px;
 }
 
 .project-svg-preview-svg .pv-plot--Booked .pv-plot__boundary {
-  fill: rgba(34, 197, 94, 0.48);
+  fill: rgba(34, 197, 94, 0.22);
   stroke: #16a34a;
-  stroke-width: 1.8px;
+  stroke-width: 0.85px;
 }
 
 .project-svg-preview-svg .pv-plot--Sold .pv-plot__boundary,
 .project-svg-preview-svg .pv-plot--Registered .pv-plot__boundary {
-  fill: rgba(239, 68, 68, 0.48);
+  fill: rgba(239, 68, 68, 0.22);
   stroke: #dc2626;
-  stroke-width: 1.8px;
+  stroke-width: 0.85px;
 }
 
 .project-svg-preview-svg .pv-plot--Blocked .pv-plot__boundary {
-  fill: rgba(249, 115, 22, 0.5);
+  fill: rgba(249, 115, 22, 0.22);
   stroke: #ea580c;
-  stroke-width: 1.8px;
+  stroke-width: 0.85px;
 }
 
 .project-svg-preview-empty {
@@ -12766,8 +12773,8 @@ video {
   position: absolute;
   bottom: 16px;
   right: 16px;
-  z-index: 5;
-  pointer-events: none;
+  z-index: 25;
+  pointer-events: auto;
 }
 
 .project-svg-preview-prompt-pill {
@@ -12781,14 +12788,21 @@ video {
   font-weight: 600;
   padding: 8px 16px;
   border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
+  cursor: pointer;
+  user-select: none;
   transition: all 0.2s ease;
 }
 
-.project-svg-preview-stage:hover .project-svg-preview-prompt-pill {
+.project-svg-preview-prompt-pill:hover {
   background: #0F3D2E;
   transform: translateY(-2px);
   box-shadow: 0 6px 18px rgba(15, 61, 46, 0.3);
+}
+
+.project-svg-preview-prompt-pill:active {
+  transform: translateY(0) scale(0.97);
 }
 
 /* "Book a Plot" Action Bar Below SVG Layout */
@@ -12981,7 +12995,7 @@ video {
   overflow: hidden;
   width: 100%;
   height: 100%;
-  background: #FAF8F5;
+  background: #FFFFFF;
 }
 
 /* Fullscreen Overrides for PlotViewer */
@@ -12998,7 +13012,7 @@ video {
 
 .project-fullscreen-body .plot-viewer__canvas-container {
   flex: 1 !important;
-  height: calc(100vh - 130px) !important;
+  height: calc(100vh - 105px) !important;
 }
 
 /* ─────────────────────────────────────────────────────────────

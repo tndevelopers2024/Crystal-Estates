@@ -35,6 +35,9 @@ export default function PlotViewer({
   className = '',
   onPlotSelect = null,
   backHref = null,
+  onClose = null,
+  isModal = false,
+  onToggleFullscreen = null,
 }) {
   // Data state loaded purely from API or passed props
   const [plots, setPlots] = useState(() => (Array.isArray(initialPlots) ? initialPlots : []))
@@ -384,16 +387,20 @@ export default function PlotViewer({
     return () => document.removeEventListener('fullscreenchange', handleFsChange)
   }, [handleResetZoom])
 
-  // Close modal on ESC key
+  // Close plot selection or exit modal on ESC key
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
-        setSelectedPlot(null)
+        if (selectedPlot) {
+          setSelectedPlot(null)
+        } else if (onClose) {
+          onClose()
+        }
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [])
+  }, [selectedPlot, onClose])
 
   // Plot Counts for Filter Pills
   const counts = {
@@ -404,11 +411,24 @@ export default function PlotViewer({
     Blocked: displayPlots.filter((p) => p.status === 'Blocked').length,
   }
 
+  // Filter Match Checker
+  const isPlotMatchingFilter = (plot) => {
+    if (activeFilter === 'All') return true
+    if (activeFilter === 'Available') return plot.status === 'Available'
+    if (activeFilter === 'Booked') return plot.status === 'Booked'
+    if (activeFilter === 'Sold' || activeFilter === 'Booked / Sold') {
+      return plot.status === 'Sold' || plot.status === 'Registered' || plot.status === 'Booked'
+    }
+    if (activeFilter === 'Blocked') return plot.status === 'Blocked'
+    return true
+  }
+
   // Build WhatsApp Inquiry URL
   const getWhatsAppUrl = (plot) => {
     if (!plot) return '#'
     const layoutTitle = meta?.title || meta?.name || 'Crystal Estates'
-    const message = `Hello Crystal Estates, I am interested in ${layoutTitle} Plot No ${plot.plotNo} (${plot.area}, ${plot.facing} facing). Please share current pricing and schedule a site visit.`
+    const boundaryDetails = plot.dimensions ? ` Dimensions: ${plot.dimensions}.` : ''
+    const message = `Hello Crystal Estates, I am interested in ${layoutTitle} Plot No ${plot.plotNo} (${plot.area || ''}, ${plot.facing || 'East'} facing).${boundaryDetails} Please share current pricing and schedule a site visit.`
     return `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`
   }
 
@@ -418,23 +438,29 @@ export default function PlotViewer({
     currentPhase && layoutPhases && layoutPhases.length > 1
       ? `${cleanTitle} (${currentPhase.name || `Phase ${currentPhaseIdx + 1}`})`
       : rawTitle
-  const subtitleParts = [
-    meta?.sNo ? `S.No: ${meta.sNo}` : null,
-    meta?.village,
-    meta?.taluk ? `${meta.taluk} Taluk` : null,
-    meta?.district || meta?.location,
-  ].filter(Boolean)
 
   return (
     <div
       ref={viewerRef}
       className={`plot-viewer ${isFullscreen ? 'plot-viewer--fullscreen' : ''} ${className}`}
     >
-      {/* ── Top Header & Filter Bar (Template Styled) ── */}
+      {/* ── Single Minimal & Polished Master Plan Header ── */}
       <div className="plot-viewer__header">
+        {/* Left: Back Action & Project Name / Sanctioned Phase Info */}
         <div className="plot-viewer__title-group">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-            {backHref && (
+          {(onClose || backHref) && (
+            onClose ? (
+              <button
+                type="button"
+                onClick={onClose}
+                className="plot-viewer__back-btn"
+                title="Back to Project Details (Esc)"
+                aria-label="Back to Project Details"
+              >
+                <ArrowLeft size={15} />
+                <span className="pv-back-text">Back to Project</span>
+              </button>
+            ) : (
               <Link
                 href={backHref}
                 className="plot-viewer__back-btn"
@@ -442,22 +468,22 @@ export default function PlotViewer({
                 aria-label="Back to Project Details"
               >
                 <ArrowLeft size={15} />
-                <span className="pv-back-text">Back</span>
+                <span className="pv-back-text">Back to Project</span>
               </Link>
-            )}
-            <h3 className="plot-viewer__title">
-              {layoutTitle}
-              <span className="plot-viewer__badge">Interactive Plan</span>
-            </h3>
-          </div>
-          {subtitleParts.length > 0 && (
-            <p className="plot-viewer__subtitle">
-              {subtitleParts.join(' • ')}
-            </p>
+            )
           )}
+
+          <div className="plot-viewer__title-meta">
+            <h3 className="plot-viewer__title">
+              {cleanTitle}
+            </h3>
+            <span className="plot-viewer__badge">
+              {currentPhase?.name || 'Master Plan'} • Sanctioned Layout
+            </span>
+          </div>
         </div>
 
-        {/* Phase Switcher (if multiple phases exist) */}
+        {/* Center: Phase Selector Tabs (if multiple phases exist) */}
         {layoutPhases && layoutPhases.length > 1 && (
           <div className="plot-viewer__phase-switcher" role="tablist" aria-label="Select layout phase">
             {layoutPhases.map((phase, idx) => {
@@ -485,56 +511,86 @@ export default function PlotViewer({
           </div>
         )}
 
-        {/* Filter Pills */}
-        <div className="plot-viewer__filter-bar" role="tablist" aria-label="Filter plots by status">
-          <button
-            type="button"
-            className={`plot-filter-btn ${activeFilter === 'All' ? 'plot-filter-btn--active' : ''}`}
-            onClick={() => setActiveFilter('All')}
-          >
-            All Plots
-            <span className="plot-filter-btn__count">{counts.All}</span>
-          </button>
-
-          <button
-            type="button"
-            className={`plot-filter-btn ${activeFilter === 'Available' ? 'plot-filter-btn--active' : ''}`}
-            onClick={() => setActiveFilter('Available')}
-          >
-            <span className="plot-filter-btn__dot plot-filter-btn__dot--avail" />
-            Available
-            <span className="plot-filter-btn__count">{counts.Available}</span>
-          </button>
-
-          <button
-            type="button"
-            className={`plot-filter-btn ${activeFilter === 'Booked' ? 'plot-filter-btn--active' : ''}`}
-            onClick={() => setActiveFilter('Booked')}
-          >
-            <span className="plot-filter-btn__dot plot-filter-btn__dot--booked" />
-            Booked
-            <span className="plot-filter-btn__count">{counts.Booked}</span>
-          </button>
-
-          <button
-            type="button"
-            className={`plot-filter-btn ${activeFilter === 'Sold' ? 'plot-filter-btn--active' : ''}`}
-            onClick={() => setActiveFilter('Sold')}
-          >
-            <span className="plot-filter-btn__dot plot-filter-btn__dot--sold" />
-            Sold
-            <span className="plot-filter-btn__count">{counts.Sold}</span>
-          </button>
-
-          {counts.Blocked > 0 && (
+        {/* Right: Working Status Filter Buttons & Modal Close Button */}
+        <div className="plot-viewer__actions-group">
+          <div className="plot-viewer__filter-bar" role="tablist" aria-label="Filter plots by status">
             <button
               type="button"
-              className={`plot-filter-btn ${activeFilter === 'Blocked' ? 'plot-filter-btn--active' : ''}`}
-              onClick={() => setActiveFilter('Blocked')}
+              className={`plot-filter-btn ${activeFilter === 'All' ? 'plot-filter-btn--active' : ''}`}
+              onClick={() => {
+                setActiveFilter('All')
+                if (selectedPlot && !displayPlots.some((p) => p.id === selectedPlot.id)) {
+                  setSelectedPlot(null)
+                }
+              }}
+              title="Show all plots"
             >
-              <span className="plot-filter-btn__dot plot-filter-btn__dot--blocked" />
-              Blocked
-              <span className="plot-filter-btn__count">{counts.Blocked}</span>
+              All Plots
+              <span className="plot-filter-btn__count">{counts.All}</span>
+            </button>
+
+            <button
+              type="button"
+              className={`plot-filter-btn ${activeFilter === 'Available' ? 'plot-filter-btn--active' : ''}`}
+              onClick={() => {
+                setActiveFilter('Available')
+                if (selectedPlot && selectedPlot.status !== 'Available') {
+                  setSelectedPlot(null)
+                }
+              }}
+              title="Filter available plots"
+            >
+              <span className="plot-filter-btn__dot plot-filter-btn__dot--avail" />
+              Available
+              <span className="plot-filter-btn__count">{counts.Available}</span>
+            </button>
+
+            {(counts.Sold > 0 || counts.Booked > 0) && (
+              <button
+                type="button"
+                className={`plot-filter-btn ${(activeFilter === 'Sold' || activeFilter === 'Booked / Sold') ? 'plot-filter-btn--active' : ''}`}
+                onClick={() => {
+                  setActiveFilter('Booked / Sold')
+                  if (selectedPlot && selectedPlot.status === 'Available') {
+                    setSelectedPlot(null)
+                  }
+                }}
+                title="Filter booked and sold plots"
+              >
+                <span className="plot-filter-btn__dot plot-filter-btn__dot--sold" />
+                Booked / Sold
+                <span className="plot-filter-btn__count">{counts.Sold + counts.Booked}</span>
+              </button>
+            )}
+
+            {counts.Blocked > 0 && (
+              <button
+                type="button"
+                className={`plot-filter-btn ${activeFilter === 'Blocked' ? 'plot-filter-btn--active' : ''}`}
+                onClick={() => {
+                  setActiveFilter('Blocked')
+                  if (selectedPlot && selectedPlot.status !== 'Blocked') {
+                    setSelectedPlot(null)
+                  }
+                }}
+                title="Filter blocked plots"
+              >
+                <span className="plot-filter-btn__dot plot-filter-btn__dot--blocked" />
+                Blocked
+                <span className="plot-filter-btn__count">{counts.Blocked}</span>
+              </button>
+            )}
+          </div>
+
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="plot-viewer__modal-close-btn"
+              title="Close Full-Screen View (Esc)"
+              aria-label="Close Full-Screen View"
+            >
+              <X size={18} />
             </button>
           )}
         </div>
@@ -602,11 +658,7 @@ export default function PlotViewer({
                   aria-label="Interactive Plot Overlay"
                 >
                   {displayPlots.filter((plot) => Boolean(plot.svgPath && plot.svgPath.trim())).map((plot) => {
-                const isMatch =
-                  activeFilter === 'All' ||
-                  plot.status === activeFilter ||
-                  (activeFilter === 'Sold' && plot.status === 'Registered')
-
+                const isMatch = isPlotMatchingFilter(plot)
                 const isSelected = selectedPlot?.id === plot.id
 
                 return (
@@ -662,7 +714,7 @@ export default function PlotViewer({
                           <circle
                             cx="0"
                             cy="0"
-                            r="11"
+                            r="8.5"
                             className="pv-plot__label-bg"
                           />
                           <text
@@ -692,7 +744,7 @@ export default function PlotViewer({
             type="button"
             className="pv-control-btn"
             onClick={() => handleZoom(1.25)}
-            title="Zoom In"
+            title="Zoom In (+)"
             aria-label="Zoom In"
           >
             <ZoomIn size={18} />
@@ -706,7 +758,7 @@ export default function PlotViewer({
             type="button"
             className="pv-control-btn"
             onClick={() => handleZoom(0.8)}
-            title="Zoom Out"
+            title="Zoom Out (-)"
             aria-label="Zoom Out"
           >
             <ZoomOut size={18} />
@@ -716,7 +768,7 @@ export default function PlotViewer({
             type="button"
             className="pv-control-btn"
             onClick={handleResetZoom}
-            title="Reset Zoom & Center"
+            title="Reset Zoom & Fit to Screen"
             aria-label="Reset View"
           >
             <RotateCcw size={16} />
@@ -725,11 +777,11 @@ export default function PlotViewer({
           <button
             type="button"
             className="pv-control-btn"
-            onClick={toggleFullscreen}
-            title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
-            aria-label="Toggle Fullscreen"
+            onClick={onToggleFullscreen ? onToggleFullscreen : (onClose ? onClose : toggleFullscreen)}
+            title={isFullscreen || isModal ? 'Exit Full-Screen (Esc)' : 'Full-Screen View'}
+            aria-label={isFullscreen || isModal ? 'Exit Full-Screen' : 'Full-Screen View'}
           >
-            {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+            {isFullscreen || isModal ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
           </button>
         </div>
 
@@ -759,13 +811,17 @@ export default function PlotViewer({
             </div>
             <div className="pv-tooltip__grid">
               <span className="pv-tooltip__label">Facing:</span>
-              <span className="pv-tooltip__val">{hoveredPlot.facing}</span>
-              <span className="pv-tooltip__label">Dimensions:</span>
-              <span className="pv-tooltip__val">
-                {hoveredPlot.dimensions || `${hoveredPlot.width || ''} × ${hoveredPlot.length || ''}`}
-              </span>
+              <span className="pv-tooltip__val">{hoveredPlot.facing || 'East'}</span>
               <span className="pv-tooltip__label">Area:</span>
               <span className="pv-tooltip__val">{hoveredPlot.area}</span>
+              {(hoveredPlot.dimensions || hoveredPlot.width || hoveredPlot.length) && (
+                <>
+                  <span className="pv-tooltip__label">Dimensions:</span>
+                  <span className="pv-tooltip__val pv-tooltip__val--dimensions" title={hoveredPlot.dimensions || `${hoveredPlot.width || ''} × ${hoveredPlot.length || ''}`}>
+                    {hoveredPlot.dimensions || `${hoveredPlot.width || ''} × ${hoveredPlot.length || ''}`}
+                  </span>
+                </>
+              )}
             </div>
             <div className="pv-tooltip__hint">Click for full details & WhatsApp inquiry</div>
           </div>
@@ -808,14 +864,23 @@ export default function PlotViewer({
               </div>
               <div className="pv-tiny-card__spec">
                 <span className="pv-tiny-card__label">Facing</span>
-                <strong className="pv-tiny-card__val">{selectedPlot.facing}</strong>
+                <strong className="pv-tiny-card__val">{selectedPlot.facing || 'East'}</strong>
               </div>
-              <div className="pv-tiny-card__spec">
-                <span className="pv-tiny-card__label">Size</span>
-                <strong className="pv-tiny-card__val">
-                  {selectedPlot.dimensions || `${selectedPlot.width || ''} × ${selectedPlot.length || ''}`}
-                </strong>
-              </div>
+              {(selectedPlot.width || selectedPlot.length) ? (
+                <div className="pv-tiny-card__spec">
+                  <span className="pv-tiny-card__label">W × L</span>
+                  <strong className="pv-tiny-card__val">
+                    {`${selectedPlot.width || '—'} × ${selectedPlot.length || '—'}`}
+                  </strong>
+                </div>
+              ) : selectedPlot.dimensions ? (
+                <div className="pv-tiny-card__spec pv-tiny-card__spec--full">
+                  <span className="pv-tiny-card__label">Dimensions</span>
+                  <strong className="pv-tiny-card__val" title={selectedPlot.dimensions}>
+                    {selectedPlot.dimensions}
+                  </strong>
+                </div>
+              ) : null}
               {selectedPlot.price && (
                 <div className="pv-tiny-card__spec">
                   <span className="pv-tiny-card__label">Price</span>
@@ -823,6 +888,33 @@ export default function PlotViewer({
                 </div>
               )}
             </div>
+
+            {/* Excel-based Boundary Dimensions (N, S, E, W in ft) */}
+            {(selectedPlot.north != null || selectedPlot.south != null || selectedPlot.east != null || selectedPlot.west != null) && (
+              <div className="pv-tiny-card__boundaries">
+                <div className="pv-tiny-card__boundaries-header">
+                  <span className="pv-tiny-card__boundaries-title">Boundary Dimensions (Excel)</span>
+                </div>
+                <div className="pv-tiny-card__boundaries-grid">
+                  <div className={`pv-boundary-chip ${selectedPlot.north != null ? 'pv-boundary-chip--active' : ''}`}>
+                    <span className="pv-boundary-chip__dir">North</span>
+                    <span className="pv-boundary-chip__val">{selectedPlot.north != null ? `${selectedPlot.north}'` : '—'}</span>
+                  </div>
+                  <div className={`pv-boundary-chip ${selectedPlot.south != null ? 'pv-boundary-chip--active' : ''}`}>
+                    <span className="pv-boundary-chip__dir">South</span>
+                    <span className="pv-boundary-chip__val">{selectedPlot.south != null ? `${selectedPlot.south}'` : '—'}</span>
+                  </div>
+                  <div className={`pv-boundary-chip ${selectedPlot.east != null ? 'pv-boundary-chip--active' : ''}`}>
+                    <span className="pv-boundary-chip__dir">East</span>
+                    <span className="pv-boundary-chip__val">{selectedPlot.east != null ? `${selectedPlot.east}'` : '—'}</span>
+                  </div>
+                  <div className={`pv-boundary-chip ${selectedPlot.west != null ? 'pv-boundary-chip--active' : ''}`}>
+                    <span className="pv-boundary-chip__dir">West</span>
+                    <span className="pv-boundary-chip__val">{selectedPlot.west != null ? `${selectedPlot.west}'` : '—'}</span>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Compact WhatsApp Action */}
             <a

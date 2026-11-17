@@ -367,10 +367,10 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
                 </div>
               </div>
 
-              <Link href="/projects" className="project-hero__back-btn">
+              {/* <Link href="/projects" className="project-hero__back-btn">
                 <ArrowLeft size={15} />
                 <span>Back to Projects Directory</span>
-              </Link>
+              </Link> */}
             </div>
           </div>
         </div>
@@ -499,12 +499,21 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
                   )}
                 </div>
 
-                {/* Subtle Hover Prompt Pill */}
+                {/* Prompt Pill to Open Fullscreen */}
                 <div className="project-svg-preview-overlay-prompt">
-                  <div className="project-svg-preview-prompt-pill">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setIsFullScreenOpen(true)
+                    }}
+                    className="project-svg-preview-prompt-pill"
+                    title="Open interactive master plan in full-screen"
+                    aria-label="Open full-screen interactive plot layout"
+                  >
                     <Maximize2 size={13} />
                     <span>Click to open full-screen</span>
-                  </div>
+                  </button>
                 </div>
               </div>
 
@@ -525,7 +534,7 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
                 </button>
 
                 <p className="project-plot-book-hint">
-                  Click &ldquo;Book a Plot&rdquo; to open the full-screen view and easily interact with plot details, measurements, and live booking.
+                  Click &ldquo;Book a Plot&rdquo; or &ldquo;Click to open full-screen&rdquo; to open the full-screen view and easily interact with plot details, measurements, and live booking.
                 </p>
               </div>
             </div>
@@ -998,64 +1007,7 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
           aria-modal="true"
           aria-label={`${project.name} Fullscreen Plot Layout`}
         >
-          {/* Fullscreen Navigation & Control Bar */}
-          <div className="project-fullscreen-header">
-            <div className="project-fullscreen-header__left">
-              <button
-                type="button"
-                onClick={() => setIsFullScreenOpen(false)}
-                className="project-fullscreen-back-btn"
-                title="Back to Project Details (Esc)"
-              >
-                <ArrowLeft size={16} />
-                <span>Back to Project</span>
-              </button>
-
-              <div className="project-fullscreen-title-group">
-                <h2 className="project-fullscreen-title">{project.name}</h2>
-                <span className="project-fullscreen-phase-badge">
-                  {currentPhase.name} • Master Plan
-                </span>
-              </div>
-            </div>
-
-            <div className="project-fullscreen-header__right">
-              {/* Phase Switcher Tabs (if multi-phase) */}
-              {layoutPhases.length > 1 && (
-                <div className="project-plot-phases">
-                  {layoutPhases.map((phase, idx) => {
-                    const isSelected = idx === activePhaseIndex
-                    const plotCount = (phase.plots || []).length
-                    return (
-                      <button
-                        key={phase.id || idx}
-                        type="button"
-                        onClick={() => setActivePhaseIndex(idx)}
-                        className={`project-plot-phase-tab ${isSelected ? 'is-active' : ''}`}
-                      >
-                        <span>{phase.name}</span>
-                        <span className="project-plot-phase-badge">
-                          {plotCount} Plots
-                        </span>
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
-
-              <button
-                type="button"
-                onClick={() => setIsFullScreenOpen(false)}
-                className="project-fullscreen-close-btn"
-                aria-label="Close Fullscreen View"
-                title="Close (Esc)"
-              >
-                <X size={20} />
-              </button>
-            </div>
-          </div>
-
-          {/* Fullscreen Interactive Plot Viewer */}
+          {/* Fullscreen Interactive Plot Viewer with Unified Minimal Header */}
           <div className="project-fullscreen-body">
             <PlotViewer
               key={`fs-${project.id || project.slug}-${currentPhase.id || activePhaseIndex}-${currentPhaseLayoutUrl}`}
@@ -1066,7 +1018,7 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
               fetchUrl={null}
               backgroundUrl={currentPhaseLayoutUrl}
               metadata={{
-                title: `${project.name}${layoutPhases.length > 1 ? ` (${currentPhase.name})` : ''}`,
+                title: project.name,
                 sNo: project.surveyNumber || '',
                 village: project.village || project.location || '',
                 taluk: project.taluk || '',
@@ -1076,7 +1028,9 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
                 phases: layoutPhases,
               }}
               whatsappNumber={business.whatsapp}
-              backHref={null}
+              onClose={() => setIsFullScreenOpen(false)}
+              isModal={true}
+              onToggleFullscreen={() => setIsFullScreenOpen(false)}
             />
           </div>
         </div>

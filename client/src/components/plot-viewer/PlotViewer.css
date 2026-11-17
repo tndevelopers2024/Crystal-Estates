@@ -85,32 +85,39 @@
 /* Header & Filter Bar (Template Styled) */
 .plot-viewer__header {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
-  padding: 18px 24px;
+  gap: 12px 18px;
+  padding: 12px 24px;
   background: #ffffff;
-  border-bottom: 1px solid var(--pv-surface-border);
-  z-index: 10;
+  border-bottom: 1px solid var(--pv-surface-border, #e3ece6);
+  z-index: 30;
+  flex-wrap: wrap;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
 }
 
 .plot-viewer__title-group {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.plot-viewer__title-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .plot-viewer__title {
   margin: 0;
-  font-family: var(--font-display, var(--font-cormorant, 'Cormorant Garamond', Georgia, serif));
-  font-size: 1.35rem;
+  font-family: var(--font-body, var(--font-inter, 'Montserrat', sans-serif));
+  font-size: 1.15rem;
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
   color: var(--green-900, #0a5c36);
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  line-height: 1.2;
 }
 
 .plot-viewer__badge {
@@ -124,6 +131,36 @@
   background: var(--green-50, #eef6f1);
   color: var(--green-900, #0a5c36);
   border: 1px solid rgba(10, 92, 54, 0.2);
+  white-space: nowrap;
+}
+
+.plot-viewer__actions-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.plot-viewer__modal-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--pv-surface-border, #e3ece6);
+  background: #ffffff;
+  color: var(--muted, #5e6660);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.plot-viewer__modal-close-btn:hover {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fecaca;
+  transform: rotate(90deg);
 }
 
 .plot-viewer__subtitle {
@@ -391,60 +428,75 @@
 .pv-plot__boundary {
   transition: fill-opacity 0.2s ease, stroke-width 0.2s ease, stroke 0.2s ease, filter 0.2s ease;
   vector-effect: non-scaling-stroke;
+  stroke-linejoin: round;
+  stroke-linecap: round;
 }
 
-/* Available: Sky Blue */
+/* Available: Sky Blue - Clean, hairline stroke and translucent fill */
 .pv-plot--Available .pv-plot__boundary {
-  fill: rgba(var(--color-avail-rgb), 0.45);
+  fill: rgba(56, 189, 248, 0.22);
   stroke: #0284c7;
-  stroke-width: 1.8px;
+  stroke-width: 0.85px;
 }
 
-/* Booked: Green */
+/* Booked: Green - Clean, hairline stroke */
 .pv-plot--Booked .pv-plot__boundary {
-  fill: rgba(var(--color-booked-rgb), 0.48);
+  fill: rgba(34, 197, 94, 0.22);
   stroke: #16a34a;
-  stroke-width: 1.8px;
+  stroke-width: 0.85px;
 }
 
-/* Sold / Registered: Red */
-.pv-plot--Sold .pv-plot__boundary {
-  fill: rgba(var(--color-sold-rgb), 0.48);
+/* Sold / Registered: Red - Clean, hairline stroke */
+.pv-plot--Sold .pv-plot__boundary,
+.pv-plot--Registered .pv-plot__boundary {
+  fill: rgba(239, 68, 68, 0.22);
   stroke: #dc2626;
-  stroke-width: 1.8px;
+  stroke-width: 0.85px;
 }
 
-/* Blocked: Orange */
+/* Blocked: Orange - Clean, hairline stroke */
 .pv-plot--Blocked .pv-plot__boundary {
-  fill: rgba(var(--color-blocked-rgb), 0.5);
+  fill: rgba(249, 115, 22, 0.22);
   stroke: #ea580c;
-  stroke-width: 1.8px;
+  stroke-width: 0.85px;
 }
 
 /* Plot Hover State */
-.pv-plot:hover .pv-plot__boundary,
-.pv-plot--selected .pv-plot__boundary {
-  stroke-width: 3.2px !important;
-  stroke: #0a5c36 !important;
-  filter: drop-shadow(0 4px 10px rgba(10, 92, 54, 0.3));
+.pv-plot:hover .pv-plot__boundary {
+  stroke-width: 1.5px !important;
+  stroke: #0f3d2e !important;
+  fill-opacity: 0.42 !important;
+  filter: drop-shadow(0 2px 5px rgba(15, 61, 46, 0.25));
 }
 
-.pv-plot--Available:hover .pv-plot__boundary { fill: rgba(var(--color-avail-rgb), 0.8); }
-.pv-plot--Booked:hover .pv-plot__boundary    { fill: rgba(var(--color-booked-rgb), 0.8); }
-.pv-plot--Sold:hover .pv-plot__boundary      { fill: rgba(var(--color-sold-rgb), 0.8); }
-.pv-plot--Blocked:hover .pv-plot__boundary   { fill: rgba(var(--color-blocked-rgb), 0.8); }
+.pv-plot--selected .pv-plot__boundary {
+  stroke-width: 1.8px !important;
+  stroke: #0f3d2e !important;
+  fill: rgba(15, 61, 46, 0.35) !important;
+  filter: drop-shadow(0 3px 8px rgba(15, 61, 46, 0.35));
+}
+
+.pv-plot--Available:hover .pv-plot__boundary { fill: rgba(56, 189, 248, 0.55); stroke: #0369a1 !important; }
+.pv-plot--Booked:hover .pv-plot__boundary    { fill: rgba(34, 197, 94, 0.55); stroke: #15803d !important; }
+.pv-plot--Sold:hover .pv-plot__boundary      { fill: rgba(239, 68, 68, 0.55); stroke: #b91c1c !important; }
+.pv-plot--Blocked:hover .pv-plot__boundary   { fill: rgba(249, 115, 22, 0.55); stroke: #c2410c !important; }
 
 /* Dim plots not matching current filter */
 .pv-plot--dimmed {
-  opacity: 0.14;
-  pointer-events: none;
+  opacity: 0.04 !important;
+  pointer-events: none !important;
+}
+
+.pv-plot--dimmed .pv-plot__label-bg,
+.pv-plot--dimmed .pv-plot__label-text {
+  display: none !important;
 }
 
 /* Centered Plot Label in SVG */
 .pv-plot__label-bg {
   fill: #ffffff;
-  stroke-width: 1.5px;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+  stroke-width: 1px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.15));
   transition: transform 0.2s ease, fill 0.2s ease;
 }
 
@@ -455,7 +507,7 @@
 
 .pv-plot__label-text {
   font-family: inherit;
-  font-size: 11px;
+  font-size: 9.5px;
   font-weight: 800;
   fill: #0f172a;
   pointer-events: none;
@@ -464,7 +516,7 @@
 
 .pv-plot:hover .pv-plot__label-bg,
 .pv-plot--selected .pv-plot__label-bg {
-  fill: var(--green-900, #0a5c36);
+  fill: #0f3d2e;
   stroke: #ffffff;
 }
 
@@ -626,6 +678,13 @@
   text-align: right;
 }
 
+.pv-tooltip__val--dimensions {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .pv-tooltip__hint {
   margin-top: 8px;
   font-size: 0.7rem;
@@ -641,7 +700,8 @@
   position: absolute;
   bottom: 16px;
   left: 16px;
-  width: 270px;
+  width: 285px;
+  max-width: calc(100% - 32px);
   background: #ffffff;
   border: 1px solid var(--pv-surface-border, #e3ece6);
   border-radius: 14px;
@@ -760,6 +820,84 @@
   color: var(--green-900, #0a5c36);
 }
 
+.pv-tiny-card__spec--full {
+  grid-column: span 2;
+}
+
+/* Boundary Dimensions Section (Excel Dimensions) */
+.pv-tiny-card__boundaries {
+  margin-bottom: 10px;
+  background: var(--bg-soft, #fcfaf6);
+  border: 1px solid rgba(227, 221, 209, 0.7);
+  border-radius: 9px;
+  padding: 8px 9px;
+}
+
+.pv-tiny-card__boundaries-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.pv-tiny-card__boundaries-title {
+  font-size: 9.5px;
+  text-transform: uppercase;
+  color: var(--green-900, #0a5c36);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.pv-tiny-card__boundaries-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
+.pv-boundary-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border: 1px solid #e2ece5;
+  border-radius: 6px;
+  padding: 4px 2px;
+  text-align: center;
+  transition: all 0.15s ease;
+}
+
+.pv-boundary-chip--active {
+  border-color: #0a5c36;
+  background: #f1f8f4;
+}
+
+.pv-boundary-chip__dir {
+  font-size: 8.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--muted, #5e6660);
+  letter-spacing: 0.02em;
+  line-height: 1;
+  margin-bottom: 2px;
+}
+
+.pv-boundary-chip--active .pv-boundary-chip__dir {
+  color: var(--green-900, #0a5c36);
+}
+
+.pv-boundary-chip__val {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink, #22262a);
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.pv-boundary-chip--active .pv-boundary-chip__val {
+  color: var(--green-900, #0a5c36);
+}
+
 .pv-tiny-card__btn-wa {
   display: flex;
   align-items: center;
@@ -822,18 +960,66 @@
 .pv-legend-dot--Blocked   { background: var(--color-blocked); }
 
 /* Responsive Adjustments down to 320px */
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .plot-viewer__header {
-    flex-direction: column;
-    align-items: flex-start;
+    padding: 10px 16px;
+    gap: 10px;
+  }
+
+  .plot-viewer__title {
+    font-size: 1.05rem;
   }
 
   .plot-viewer__filter-bar {
+    gap: 6px;
+  }
+
+  .plot-filter-btn {
+    padding: 5px 11px;
+    font-size: 0.76rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .plot-viewer__header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 10px 14px;
+  }
+
+  .plot-viewer__title-group {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .plot-viewer__phase-switcher {
     width: 100%;
     overflow-x: auto;
-    padding-bottom: 4px;
+    justify-content: flex-start;
+    padding: 3px;
+    scrollbar-width: none;
+  }
+  .plot-viewer__phase-switcher::-webkit-scrollbar {
+    display: none;
+  }
+
+  .plot-viewer__actions-group {
+    width: 100%;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .plot-viewer__filter-bar {
+    flex: 1;
+    overflow-x: auto;
+    padding-bottom: 2px;
     flex-wrap: nowrap;
+    scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
+  }
+  .plot-viewer__filter-bar::-webkit-scrollbar {
+    display: none;
   }
 
   .plot-viewer__canvas-container {
@@ -852,31 +1038,28 @@
   .plot-viewer__footer {
     flex-direction: column;
     align-items: flex-start;
+    gap: 8px;
+    padding: 10px 16px;
   }
 }
 
 @media (max-width: 480px) {
   .plot-viewer__header {
-    padding: 12px 14px;
+    padding: 8px 12px;
     gap: 8px;
   }
 
   .plot-viewer__title {
-    font-size: clamp(1.1rem, 4.5vw, 1.3rem);
-    flex-wrap: wrap;
+    font-size: 0.95rem;
     gap: 6px;
   }
 
-  .plot-viewer__subtitle {
-    font-size: 0.76rem;
-  }
-
   .plot-viewer__filter-bar {
-    gap: 5px;
+    gap: 4px;
   }
 
   .plot-filter-btn {
-    padding: 5px 9px;
+    padding: 4px 9px;
     font-size: 0.72rem;
   }
 
@@ -885,10 +1068,11 @@
   }
 
   .pv-tiny-card {
-    left: 10px;
-    bottom: 10px;
-    width: calc(100% - 20px);
-    max-width: 280px;
+    left: 8px;
+    bottom: 8px;
+    width: calc(100% - 16px);
+    max-width: 290px;
+    padding: 10px 12px;
   }
 
   .pv-control-btn {
@@ -903,21 +1087,20 @@
   }
 
   .pv-tiny-card {
-    left: 8px;
-    bottom: 8px;
-    width: calc(100% - 16px);
-    max-width: 280px;
-    padding: 10px 12px;
+    left: 6px;
+    bottom: 6px;
+    width: calc(100% - 12px);
+    padding: 8px 10px;
   }
 
   .pv-tiny-card__specs {
-    gap: 4px 8px;
+    gap: 4px 6px;
     padding: 6px 8px;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
   }
 
   .pv-tiny-card__val {
-    font-size: 11.5px;
+    font-size: 11px;
   }
 
   .pv-tiny-card__btn-wa {
