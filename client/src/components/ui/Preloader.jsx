@@ -8,7 +8,7 @@ import './Preloader.css'
  * Preserves the original animated plot blueprint, typographic wordmark,
  * sprouting leaf accent, and progress meter from the design.
  */
-export default function Preloader() {
+export default function Preloader({ forceShow = false, isSuspense = false }) {
   const [isDone, setIsDone] = useState(false)
   const [isGone, setIsGone] = useState(false)
   const [pct, setPct] = useState(0)
@@ -16,13 +16,24 @@ export default function Preloader() {
   const animFrameRef = useRef(null)
 
   useEffect(() => {
-    // Check if user has already seen preloader in this browser session
-    try {
-      if (typeof window !== 'undefined' && sessionStorage.getItem('crystal_preloaded') === 'true') {
+    // If this is a Suspense/loading fallback, avoid rendering a duplicate if one is already active
+    if (isSuspense && typeof document !== 'undefined') {
+      const existing = document.getElementById('pre')
+      if (existing && !existing.classList.contains('done')) {
         setIsGone(true)
         return
       }
-    } catch (_) {}
+    }
+
+    // Check if user has already seen preloader in this browser session (only when not forced)
+    if (!forceShow && !isSuspense) {
+      try {
+        if (typeof window !== 'undefined' && sessionStorage.getItem('crystal_preloaded') === 'true') {
+          setIsGone(true)
+          return
+        }
+      } catch (_) {}
+    }
 
     // Check for reduced motion preference
     const reduce = typeof window !== 'undefined'
