@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import {
@@ -245,6 +245,29 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
     mapLocationInput,
     `${project.location || project.name} Chennai`
   )
+
+  // Lazy load map iframe when scrolled near viewport
+  const [isMapInView, setIsMapInView] = useState(false)
+  const mapRef = useRef(null)
+
+  useEffect(() => {
+    if (!mapRef.current) return
+    if (typeof IntersectionObserver === 'undefined') {
+      setIsMapInView(true)
+      return
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setIsMapInView(true)
+          observer.disconnect()
+        }
+      },
+      { rootMargin: '300px' }
+    )
+    observer.observe(mapRef.current)
+    return () => observer.disconnect()
+  }, [])
 
   // Lightbox handlers
   const openLightbox = (idx) => setLightboxIndex(idx)
@@ -876,7 +899,7 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
                   </p>
                 </div>
 
-                <div className="project-map-frame">
+                <div className="project-map-frame" ref={mapRef}>
                   <a
                     href={mapDirectLink}
                     target="_blank"
@@ -886,12 +909,31 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
                     <span>Open in Google Maps</span>
                     <ArrowUpRight size={13} />
                   </a>
-                  <iframe
-                    title={`${project.name} Location Map`}
-                    loading="lazy"
-                    allowFullScreen
-                    src={mapEmbedSrc}
-                  />
+                  {isMapInView ? (
+                    <iframe
+                      title={`${project.name} Location Map`}
+                      loading="lazy"
+                      allowFullScreen
+                      src={mapEmbedSrc}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        minHeight: '320px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'rgba(234, 243, 230, 0.6)',
+                        fontSize: '13px',
+                        fontFamily: 'var(--font-manrope)',
+                        background: '#0a2214',
+                      }}
+                    >
+                      <span>Interactive map loading on scroll...</span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

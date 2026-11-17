@@ -1,0 +1,228 @@
+/* ==========================================================================
+   Crystal Estates Preloader Styles
+   Preserves original design, SVG plot drawing, brand typography and reveal animation
+   ========================================================================== */
+
+.crystal-preloader {
+  --forest: #1f8a34;
+  --leaf: #3fae4f;
+  --deep: #0a2214;
+  --mist: #eaf3e6;
+  --paper: #f4f7f1;
+  --serif: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+  --sans: "Jost", system-ui, -apple-system, sans-serif;
+
+  position: fixed;
+  inset: 0;
+  z-index: 99999999;
+  background: var(--deep);
+  color: var(--mist);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  clip-path: inset(0 0 0 0);
+  transition: clip-path 0.7s cubic-bezier(.77, 0, .18, 1);
+  pointer-events: auto;
+}
+
+.crystal-preloader.done {
+  clip-path: inset(0 0 100% 0);
+  pointer-events: none;
+}
+
+.crystal-preloader.gone {
+  display: none !important;
+}
+
+.crystal-preloader .plots {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: .9;
+  pointer-events: none;
+}
+
+.crystal-preloader .plots path {
+  fill: none;
+  stroke: rgba(63, 174, 79, .32);
+  stroke-width: 1.2;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: crystalPreDraw 1.1s cubic-bezier(.6, 0, .2, 1) forwards;
+}
+
+.crystal-preloader .plots .road {
+  stroke: rgba(234, 243, 230, .14);
+  stroke-width: 1;
+}
+
+.crystal-preloader .plots .mine {
+  fill: rgba(31, 138, 52, 0);
+  stroke: var(--leaf);
+  stroke-width: 2;
+  animation: crystalPreDraw 0.8s 0.35s cubic-bezier(.6, 0, .2, 1) forwards, crystalPreFillin 0.5s 0.9s ease forwards;
+}
+
+@keyframes crystalPreDraw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes crystalPreFillin {
+  to {
+    fill: rgba(31, 138, 52, .28);
+  }
+}
+
+.crystal-preloader .brand {
+  position: relative;
+  text-align: center;
+  line-height: 1;
+  z-index: 2;
+  user-select: none;
+}
+
+.crystal-preloader .word {
+  display: flex;
+  justify-content: center;
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: clamp(52px, 13vw, 148px);
+  letter-spacing: .01em;
+  color: var(--forest);
+  text-shadow: 0 0 40px rgba(63, 174, 79, .18);
+}
+
+.crystal-preloader .word span {
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+  padding: .06em .01em 0;
+}
+
+.crystal-preloader .word span i {
+  display: block;
+  font-style: normal;
+  transform: translateY(105%);
+  animation: crystalPreRise .65s cubic-bezier(.2, .8, .2, 1) forwards;
+  animation-delay: calc(.12s + var(--n) * .05s);
+}
+
+@keyframes crystalPreRise {
+  to {
+    transform: none;
+  }
+}
+
+.crystal-preloader .leaf {
+  position: absolute;
+  left: 12%;
+  top: -6%;
+  width: .78em;
+  height: .5em;
+  overflow: visible;
+}
+
+.crystal-preloader .leaf svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.crystal-preloader .leaf path {
+  fill: var(--leaf);
+  transform-origin: 8% 90%;
+  transform: scale(0) rotate(-30deg);
+  animation: crystalPreGrow .65s .55s cubic-bezier(.2, 1.2, .3, 1) forwards;
+}
+
+@keyframes crystalPreGrow {
+  to {
+    transform: none;
+  }
+}
+
+.crystal-preloader .word .a {
+  overflow: visible;
+}
+
+.crystal-preloader .word .a i {
+  overflow: visible;
+}
+
+.crystal-preloader .sub {
+  margin-top: .2em;
+  font-family: var(--serif);
+  font-weight: 600;
+  color: var(--mist);
+  font-size: clamp(26px, 6.6vw, 76px);
+  letter-spacing: .6em;
+  padding-left: .6em;
+  opacity: 0;
+  animation: crystalPreSub .8s .65s cubic-bezier(.2, .8, .2, 1) forwards;
+}
+
+@keyframes crystalPreSub {
+  from {
+    opacity: 0;
+    letter-spacing: .9em;
+  }
+  to {
+    opacity: 1;
+    letter-spacing: .34em;
+  }
+}
+
+.crystal-preloader .meter {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 7vh);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  z-index: 2;
+  user-select: none;
+}
+
+.crystal-preloader .bar {
+  width: min(260px, 60vw);
+  height: 2px;
+  background: rgba(234, 243, 230, .14);
+  overflow: hidden;
+  border-radius: 2px;
+}
+
+.crystal-preloader .bar b {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: var(--leaf);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+.crystal-preloader .pct {
+  font-family: var(--sans);
+  font-size: 13px;
+  letter-spacing: .18em;
+  font-weight: 300;
+  color: rgba(234, 243, 230, .7);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .crystal-preloader .plots path,
+  .crystal-preloader .word span i,
+  .crystal-preloader .leaf path,
+  .crystal-preloader .sub {
+    animation-duration: .01s !important;
+    animation-delay: 0s !important;
+  }
+  .crystal-preloader {
+    transition-duration: .01s !important;
+  }
+}

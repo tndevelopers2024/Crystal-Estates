@@ -98,6 +98,7 @@ export default function PlotViewer({
   const [isDragging, setIsDragging] = useState(false)
   const dragStartRef = useRef({ x: 0, y: 0 })
   const panStartRef = useRef({ x: 0, y: 0 })
+  const mouseDownPosRef = useRef({ x: 0, y: 0 })
 
   // Fullscreen state
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -105,11 +106,19 @@ export default function PlotViewer({
   const containerRef = useRef(null)
   const tooltipRef = useRef(null)
 
+  // Touch device detection to prevent sticky hover tooltips on mobile
+  const [isTouchDevice, setIsTouchDevice] = useState(false)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsTouchDevice('ontouchstart' in window || navigator.maxTouchPoints > 0)
+    }
+  }, [])
+
   // Hover Tooltip state
   const [hoveredPlot, setHoveredPlot] = useState(null)
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0, flipBelow: false })
 
-  // Selected Plot Modal state
+  // Selected Plot Modal state (strictly one plot at a time)
   const [selectedPlot, setSelectedPlot] = useState(null)
 
   // Touch pinch zoom state
@@ -190,14 +199,25 @@ export default function PlotViewer({
     if (!containerRef.current) return
     const containerWidth = containerRef.current.clientWidth
     const containerHeight = containerRef.current.clientHeight
+    if (!containerWidth || !containerHeight) return
+
     const [, , vbW, vbH] = (activeViewBox || '0 0 1056 816').split(' ').map(Number)
+    const targetW = vbW || 1056
+    const targetH = vbH || 816
 
-    const scaleX = (containerWidth - 40) / (vbW || 1056)
-    const scaleY = (containerHeight - 40) / (vbH || 816)
-    const initialScale = Math.min(Math.max(Math.min(scaleX, scaleY), 0.7), 1.3)
+    // Adaptive padding based on container size
+    const padX = containerWidth < 600 ? 14 : 36
+    const padY = containerHeight < 600 ? 14 : 36
 
-    const initialPanX = (containerWidth - (vbW || 1056) * initialScale) / 2
-    const initialPanY = (containerHeight - (vbH || 816) * initialScale) / 2
+    const scaleX = (containerWidth - padX) / targetW
+    const scaleY = (containerHeight - padY) / targetH
+    const fitScale = Math.min(scaleX, scaleY)
+
+    // Fit complete SVG without cropping; maintain original proportions
+    const initialScale = Math.max(fitScale, 0.05)
+
+    const initialPanX = (containerWidth - targetW * initialScale) / 2
+    const initialPanY = (containerHeight - targetH * initialScale) / 2
 
     setScale(initialScale)
     setPan({ x: initialPanX, y: initialPanY })
@@ -216,7 +236,10 @@ export default function PlotViewer({
   // Zoom In / Out Handlers
   const handleZoom = (factor) => {
     if (!containerRef.current) return
-    const newScale = Math.min(Math.max(scale * factor, 0.6), 4.0)
+    const minAllowed = 0.05
+    const maxAllowed = 4.0
+    const newScale = Math.min(Math.max(scale * factor, minAllowed), maxAllowed)
+    if (newScale === scale) return
 
     const containerWidth = containerRef.current.clientWidth
     const containerHeight = containerRef.current.clientHeight
@@ -245,7 +268,9 @@ export default function PlotViewer({
       const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85
 
       setScale((prevScale) => {
-        const newScale = Math.min(Math.max(prevScale * zoomFactor, 0.6), 4.0)
+        const minAllowed = 0.05
+        const maxAllowed = 4.0
+        const newScale = Math.min(Math.max(prevScale * zoomFactor, minAllowed), maxAllowed)
         setPan((prevPan) => {
           const newPanX = cursorX - ((cursorX - prevPan.x) / prevScale) * newScale
           const newPanY = cursorY - ((cursorY - prevPan.y) / prevScale) * newScale
@@ -266,6 +291,7 @@ export default function PlotViewer({
     if (e.button !== 0) return
     setIsDragging(true)
     dragStartRef.current = { x: e.clientX, y: e.clientY }
+    mouseDownPosRef.current = { x: e.clientX, y: e.clientY }
     panStartRef.current = { ...pan }
   }
 
@@ -353,7 +379,7 @@ export default function PlotViewer({
         e.touches[0].clientY - e.touches[1].clientY
       )
       const factor = dist / touchDistRef.current
-      setScale((prev) => Math.min(Math.max(prev * factor, 0.6), 4.0))
+      setScale((prev) => Math.min(Math.max(prev * factor, 0.05), 4.0))
       touchDistRef.current = dist
     }
   }
@@ -481,6 +507,19 @@ export default function PlotViewer({
               {currentPhase?.name || 'Master Plan'} • Sanctioned Layout
             </span>
           </div>
+
+          {/* Mobile Close Button (Aligned in Top Row) */}
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="plot-viewer__modal-close-btn plot-viewer__modal-close-btn--mobile"
+              title="Close Full-Screen View (Esc)"
+              aria-label="Close Full-Screen View"
+            >
+              <X size={18} />
+            </button>
+          )}
         </div>
 
         {/* Center: Phase Selector Tabs (if multiple phases exist) */}
@@ -582,11 +621,12 @@ export default function PlotViewer({
             )}
           </div>
 
+          {/* Desktop Close Button */}
           {onClose && (
             <button
               type="button"
               onClick={onClose}
-              className="plot-viewer__modal-close-btn"
+              className="plot-viewer__modal-close-btn plot-viewer__modal-close-btn--desktop"
               title="Close Full-Screen View (Esc)"
               aria-label="Close Full-Screen View"
             >
@@ -607,6 +647,15 @@ export default function PlotViewer({
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
+        onClick={(e) => {
+          // If clicked on canvas background without panning, dismiss open selection
+          const dx = e.clientX - mouseDownPosRef.current.x
+          const dy = e.clientY - mouseDownPosRef.current.y
+          if (Math.hypot(dx, dy) < 8) {
+            setSelectedPlot(null)
+            setHoveredPlot(null)
+          }
+        }}
       >
         {loading && (
           <div className="plot-viewer__loading-overlay">
@@ -667,15 +716,20 @@ export default function PlotViewer({
                     id={`plot-group-${plot.plotNo}`}
                     className={`pv-plot pv-plot--${plot.status} ${isSelected ? 'pv-plot--selected' : ''} ${!isMatch ? 'pv-plot--dimmed' : ''}`}
                     onMouseEnter={(e) => {
-                      updateTooltipPosition(e.clientX, e.clientY)
-                      setHoveredPlot(plot)
+                      if (!isTouchDevice && !selectedPlot) {
+                        updateTooltipPosition(e.clientX, e.clientY)
+                        setHoveredPlot(plot)
+                      }
                     }}
                     onMouseMove={(e) => {
-                      updateTooltipPosition(e.clientX, e.clientY)
+                      if (!isTouchDevice && !selectedPlot) {
+                        updateTooltipPosition(e.clientX, e.clientY)
+                      }
                     }}
                     onMouseLeave={() => setHoveredPlot(null)}
                     onClick={(e) => {
                       e.stopPropagation()
+                      setHoveredPlot(null)
                       setSelectedPlot(plot)
                       if (onPlotSelect) onPlotSelect(plot)
                     }}
@@ -793,8 +847,8 @@ export default function PlotViewer({
           </div>
         )}
 
-        {/* ── Hover Tooltip Card ── */}
-        {hoveredPlot && !isDragging && (
+        {/* ── Hover Tooltip Card (Only when no plot is selected and non-touch) ── */}
+        {hoveredPlot && !selectedPlot && !isTouchDevice && !isDragging && (
           <div
             ref={tooltipRef}
             className={`pv-tooltip ${tooltipPos.flipBelow ? 'pv-tooltip--bottom' : ''}`}
@@ -827,75 +881,81 @@ export default function PlotViewer({
           </div>
         )}
 
-        {/* ── Selected Plot Tiny Sweet Card (Bottom-Left Corner) ── */}
+        {/* ── Selected Plot Bottom Popup Card (Positioned at bottom of screen) ── */}
         {selectedPlot && (
           <div
-            className="pv-tiny-card"
-            role="region"
+            className="pv-bottom-card pv-tiny-card"
+            key={`selected-plot-${selectedPlot.plotNo}-${selectedPlot.id || ''}`}
+            role="dialog"
             aria-label={`Plot No ${selectedPlot.plotNo} Details`}
             onClick={(e) => e.stopPropagation()}
             onMouseDown={(e) => e.stopPropagation()}
             onTouchStart={(e) => e.stopPropagation()}
           >
-            {/* Header: Title + Status + Close */}
-            <div className="pv-tiny-card__header">
-              <div className="pv-tiny-card__title-wrap">
-                <span className="pv-tiny-card__title">Plot {selectedPlot.plotNo}</span>
-                <span className={`pv-tiny-card__badge pv-tiny-card__badge--${selectedPlot.status}`}>
+            {/* Header: Title + Status + Extent Pill + Close */}
+            <div className="pv-bottom-card__header pv-tiny-card__header">
+              <div className="pv-bottom-card__title-wrap pv-tiny-card__title-wrap">
+                <span className="pv-bottom-card__title pv-tiny-card__title">Plot {selectedPlot.plotNo}</span>
+                <span className={`pv-bottom-card__badge pv-tiny-card__badge pv-tiny-card__badge--${selectedPlot.status}`}>
                   {selectedPlot.status}
                 </span>
+                {selectedPlot.area && (
+                  <span className="pv-bottom-card__extent-pill">
+                    {selectedPlot.area}
+                  </span>
+                )}
               </div>
               <button
                 type="button"
-                className="pv-tiny-card__close"
+                className="pv-bottom-card__close pv-tiny-card__close"
                 onClick={() => setSelectedPlot(null)}
-                aria-label="Close"
-                title="Close"
+                aria-label="Close plot details"
+                title="Close (Esc)"
               >
-                <X size={14} />
+                <X size={15} />
               </button>
             </div>
 
             {/* Quick Compact Specs Grid */}
-            <div className="pv-tiny-card__specs">
-              <div className="pv-tiny-card__spec">
-                <span className="pv-tiny-card__label">Extent</span>
-                <strong className="pv-tiny-card__val">{selectedPlot.area}</strong>
+            <div className="pv-bottom-card__specs pv-tiny-card__specs">
+              <div className="pv-bottom-card__spec pv-tiny-card__spec">
+                <span className="pv-bottom-card__label pv-tiny-card__label">Extent</span>
+                <strong className="pv-bottom-card__val pv-tiny-card__val">{selectedPlot.area}</strong>
               </div>
-              <div className="pv-tiny-card__spec">
-                <span className="pv-tiny-card__label">Facing</span>
-                <strong className="pv-tiny-card__val">{selectedPlot.facing || 'East'}</strong>
+              <div className="pv-bottom-card__spec pv-tiny-card__spec">
+                <span className="pv-bottom-card__label pv-tiny-card__label">Facing</span>
+                <strong className="pv-bottom-card__val pv-tiny-card__val">{selectedPlot.facing || 'East'}</strong>
               </div>
               {(selectedPlot.width || selectedPlot.length) ? (
-                <div className="pv-tiny-card__spec">
-                  <span className="pv-tiny-card__label">W × L</span>
-                  <strong className="pv-tiny-card__val">
+                <div className="pv-bottom-card__spec pv-tiny-card__spec">
+                  <span className="pv-bottom-card__label pv-tiny-card__label">W × L</span>
+                  <strong className="pv-bottom-card__val pv-tiny-card__val">
                     {`${selectedPlot.width || '—'} × ${selectedPlot.length || '—'}`}
                   </strong>
                 </div>
               ) : selectedPlot.dimensions ? (
-                <div className="pv-tiny-card__spec pv-tiny-card__spec--full">
-                  <span className="pv-tiny-card__label">Dimensions</span>
-                  <strong className="pv-tiny-card__val" title={selectedPlot.dimensions}>
+                <div className="pv-bottom-card__spec pv-tiny-card__spec pv-tiny-card__spec--full">
+                  <span className="pv-bottom-card__label pv-tiny-card__label">Dimensions</span>
+                  <strong className="pv-bottom-card__val pv-tiny-card__val" title={selectedPlot.dimensions}>
                     {selectedPlot.dimensions}
                   </strong>
                 </div>
               ) : null}
               {selectedPlot.price && (
-                <div className="pv-tiny-card__spec">
-                  <span className="pv-tiny-card__label">Price</span>
-                  <strong className="pv-tiny-card__val pv-tiny-card__val--price">{selectedPlot.price}</strong>
+                <div className="pv-bottom-card__spec pv-tiny-card__spec pv-bottom-card__spec--price">
+                  <span className="pv-bottom-card__label pv-tiny-card__label">Price</span>
+                  <strong className="pv-bottom-card__val pv-tiny-card__val pv-tiny-card__val--price">{selectedPlot.price}</strong>
                 </div>
               )}
             </div>
 
             {/* Excel-based Boundary Dimensions (N, S, E, W in ft) */}
             {(selectedPlot.north != null || selectedPlot.south != null || selectedPlot.east != null || selectedPlot.west != null) && (
-              <div className="pv-tiny-card__boundaries">
-                <div className="pv-tiny-card__boundaries-header">
-                  <span className="pv-tiny-card__boundaries-title">Boundary Dimensions (Excel)</span>
+              <div className="pv-bottom-card__boundaries pv-tiny-card__boundaries">
+                <div className="pv-bottom-card__boundaries-header pv-tiny-card__boundaries-header">
+                  <span className="pv-bottom-card__boundaries-title pv-tiny-card__boundaries-title">Boundary Dimensions (Excel)</span>
                 </div>
-                <div className="pv-tiny-card__boundaries-grid">
+                <div className="pv-bottom-card__boundaries-grid pv-tiny-card__boundaries-grid">
                   <div className={`pv-boundary-chip ${selectedPlot.north != null ? 'pv-boundary-chip--active' : ''}`}>
                     <span className="pv-boundary-chip__dir">North</span>
                     <span className="pv-boundary-chip__val">{selectedPlot.north != null ? `${selectedPlot.north}'` : '—'}</span>
@@ -917,15 +977,17 @@ export default function PlotViewer({
             )}
 
             {/* Compact WhatsApp Action */}
-            <a
-              href={getWhatsAppUrl(selectedPlot)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="pv-tiny-card__btn-wa"
-            >
-              <WhatsAppIcon size={15} />
-              <span>Contact on WhatsApp</span>
-            </a>
+            <div className="pv-bottom-card__footer">
+              <a
+                href={getWhatsAppUrl(selectedPlot)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="pv-bottom-card__btn-wa pv-tiny-card__btn-wa"
+              >
+                <WhatsAppIcon size={15} />
+                <span>Enquire Plot {selectedPlot.plotNo} on WhatsApp</span>
+              </a>
+            </div>
           </div>
         )}
       </div>

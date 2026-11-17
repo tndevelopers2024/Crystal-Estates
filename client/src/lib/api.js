@@ -263,7 +263,7 @@ export async function fetchPlots() {
   try {
     const isServer = typeof window === 'undefined'
     const url = isServer ? `${SERVER_BASE}/api/plots` : '/api/plots'
-    const res = await fetch(url, { cache: 'no-store' })
+    const res = await fetch(url, { next: { revalidate: 60 } })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const data = await res.json()
     if (data.success && Array.isArray(data.plots)) {
@@ -282,7 +282,7 @@ export async function fetchPlotBySlugOrId(slug) {
   try {
     const isServer = typeof window === 'undefined'
     const url = isServer ? `${SERVER_BASE}/api/plots/${slug}` : `/api/plots/${slug}`
-    const res = await fetch(url, { cache: 'no-store' })
+    const res = await fetch(url, { next: { revalidate: 60 } })
     if (res.ok) {
       const data = await res.json()
       if (data.success && data.plot) {

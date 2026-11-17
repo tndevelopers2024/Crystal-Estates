@@ -13011,8 +13011,9 @@ video {
 }
 
 .project-fullscreen-body .plot-viewer__canvas-container {
-  flex: 1 !important;
-  height: calc(100vh - 105px) !important;
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  height: auto !important;
 }
 
 /* ─────────────────────────────────────────────────────────────

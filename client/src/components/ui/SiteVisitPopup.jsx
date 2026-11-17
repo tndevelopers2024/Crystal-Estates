@@ -42,45 +42,65 @@ export default function SiteVisitPopup() {
     return list
   }, [])
 
-  // 1. Fetch real projects & actual plots from API
+  // 1. Fetch real projects & actual plots from API only when popup is opened or deferred when idle
   useEffect(() => {
-    fetch('/api/plots')
-      .then((res) => res.json())
-      .then((data) => {
-        const list = Array.isArray(data.plots) ? data.plots : Array.isArray(data) ? data : []
-        if (list.length > 0) {
-          // Find projects that have plots or are available
-          const validProjects = list.filter((p) => Array.isArray(p.plots) && p.plots.length > 0)
-          const fallbackProjects = list.filter((p) => p.status !== 'Sold Out' && p.status !== 'Sold')
-          const finalProjects = validProjects.length > 0 ? validProjects : fallbackProjects
+    let isMounted = true
 
-          setProjects(finalProjects)
+    function loadPlots() {
+      if (projects.length > 0) return
+      fetch('/api/plots')
+        .then((res) => res.json())
+        .then((data) => {
+          if (!isMounted) return
+          const list = Array.isArray(data.plots) ? data.plots : Array.isArray(data) ? data : []
+          if (list.length > 0) {
+            // Find projects that have plots or are available
+            const validProjects = list.filter((p) => Array.isArray(p.plots) && p.plots.length > 0)
+            const fallbackProjects = list.filter((p) => p.status !== 'Sold Out' && p.status !== 'Sold')
+            const finalProjects = validProjects.length > 0 ? validProjects : fallbackProjects
 
-          // If current URL matches a project slug, pre-select it
-          if (pathname) {
-            const currentSlug = pathname.replace(/^\/projects\/?/, '').trim()
-            const matchIdx = finalProjects.findIndex(
-              (p) => p.slug === currentSlug || p.id === currentSlug || p.projectId === currentSlug
-            )
-            if (matchIdx >= 0) {
-              setSelectedProjectIndex(matchIdx)
-              return
+            setProjects(finalProjects)
+
+            // If current URL matches a project slug, pre-select it
+            if (pathname) {
+              const currentSlug = pathname.replace(/^\/projects\/?/, '').trim()
+              const matchIdx = finalProjects.findIndex(
+                (p) => p.slug === currentSlug || p.id === currentSlug || p.projectId === currentSlug
+              )
+              if (matchIdx >= 0) {
+                setSelectedProjectIndex(matchIdx)
+                return
+              }
             }
-          }
 
-          // Otherwise prefer project with the most available plots (e.g. Somamangalam)
-          const bestIdx = finalProjects.reduce((best, cur, idx) => {
-            const curAvail = (cur.plots || []).filter((x) => String(x.status).toLowerCase() === 'available').length
-            const bestAvail = (finalProjects[best]?.plots || []).filter((x) => String(x.status).toLowerCase() === 'available').length
-            return curAvail > bestAvail ? idx : best
-          }, 0)
-          setSelectedProjectIndex(bestIdx)
-        }
-      })
-      .catch((err) => {
-        console.warn('Could not fetch plots for site visit popup:', err)
-      })
-  }, [pathname])
+            // Otherwise prefer project with the most available plots (e.g. Somamangalam)
+            const bestIdx = finalProjects.reduce((best, cur, idx) => {
+              const curAvail = (cur.plots || []).filter((x) => String(x.status).toLowerCase() === 'available').length
+              const bestAvail = (finalProjects[best]?.plots || []).filter((x) => String(x.status).toLowerCase() === 'available').length
+              return curAvail > bestAvail ? idx : best
+            }, 0)
+            setSelectedProjectIndex(bestIdx)
+          }
+        })
+        .catch((err) => {
+          console.warn('Could not fetch plots for site visit popup:', err)
+        })
+    }
+
+    if (isOpen) {
+      loadPlots()
+    } else if (projects.length === 0 && typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      const idleId = window.requestIdleCallback(loadPlots, { timeout: 5000 })
+      return () => {
+        isMounted = false
+        window.cancelIdleCallback(idleId)
+      }
+    }
+
+    return () => {
+      isMounted = false
+    }
+  }, [isOpen, pathname, projects.length])
 
   const currentProject = projects[selectedProjectIndex] || null
 

@@ -81,8 +81,9 @@ export function TestimonialsSection({
   const touchEndX = useRef(null)
   const sliderRef = useRef(null)
 
-  // Data fetching fallback
+  // Data fetching fallback only when testimonials list is empty
   useEffect(() => {
+    if (testimonials && testimonials.length > 0) return
     let isMounted = true
     fetch('/api/testimonials', { headers: { Accept: 'application/json' } })
       .then((res) => {
@@ -102,7 +103,7 @@ export function TestimonialsSection({
     return () => {
       isMounted = false
     }
-  }, [])
+  }, [testimonials])
 
   // Responsive cardsPerView detector
   useEffect(() => {

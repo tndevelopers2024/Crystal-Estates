@@ -51,6 +51,7 @@ router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params
     const db = await getDb()
+    const nameRegex = new RegExp(`^${id.replace(/[-_]/g, '[-_ ]?')}$`, 'i')
     const plot = await db.collection('featured_plots').findOne(
       {
         $or: [
@@ -58,6 +59,7 @@ router.get('/:id', async (req, res) => {
           { projectId: id },
           { slug: id },
           { layoutSlug: id },
+          { name: nameRegex },
         ],
       },
       { projection: { _id: 0 } }

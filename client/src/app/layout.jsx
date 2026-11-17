@@ -2,6 +2,7 @@ import { Manrope, Montserrat, Playfair_Display } from 'next/font/google'
 import Header from '../components/sections/Header'
 import Footer from '../components/sections/Footer'
 import SiteVisitPopup from '../components/ui/SiteVisitPopup'
+import Preloader from '../components/ui/Preloader'
 import SmoothScroll from '../components/providers/SmoothScroll'
 import '../index.css'
 
@@ -178,12 +179,19 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${manrope.variable} ${montserrat.variable} ${playfair.variable}`}>
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Jost:wght@300;400&display=swap"
+          rel="stylesheet"
+        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(realEstateAgentJsonLd) }}
         />
       </head>
       <body>
+        <Preloader />
         <SmoothScroll>
           <Header />
           {children}

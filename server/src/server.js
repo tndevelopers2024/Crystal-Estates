@@ -1,5 +1,6 @@
 import express from 'express'
 import cors from 'cors'
+import compression from 'compression'
 import dotenv from 'dotenv'
 import path from 'path'
 import { fileURLToPath } from 'url'
@@ -10,6 +11,7 @@ import layoutRouter from './routes/layout.js'
 import leadsRouter from './routes/leads.js'
 import visitsRouter from './routes/visits.js'
 import authRouter from './routes/auth.js'
+import { testimonials } from './data/testimonials.js'
 import { getDb, closeDb } from './config/db.js'
 
 dotenv.config()
@@ -83,6 +85,9 @@ const corsOptions = {
 app.use(cors(corsOptions))
 app.options('*', cors(corsOptions))
 
+// Gzip / Deflate compression for all responses (drastically speeds up SVG and JSON transfers)
+app.use(compression())
+
 // Support high payload size for SVG vector data and base64 images
 app.use(express.json({ limit: '50mb' }))
 app.use(express.urlencoded({ limit: '50mb', extended: true }))
@@ -94,14 +99,20 @@ app.use((req, res, next) => {
   next()
 })
 
-// Serve static layout SVGs, plot images, documents and videos (checks server/uploads first, falls back to client/public)
+// Serve static layout SVGs, plot images, documents and videos with cache headers
 const uploadsDir = path.join(__dirname, '../uploads')
-app.use('/plots', express.static(path.join(uploadsDir, 'plots')), express.static(path.join(rootDir, 'client/public/plots')))
-app.use('/images/plots', express.static(path.join(uploadsDir, 'images')), express.static(path.join(rootDir, 'client/public/images/plots')))
-app.use('/images', express.static(path.join(uploadsDir, 'images')), express.static(path.join(rootDir, 'client/public/images')))
-app.use('/documents', express.static(path.join(uploadsDir, 'documents')), express.static(path.join(rootDir, 'client/public/documents')))
-app.use('/videos', express.static(path.join(uploadsDir, 'videos')), express.static(path.join(rootDir, 'client/public/videos')))
-app.use('/uploads', express.static(uploadsDir))
+const staticOptions = {
+  maxAge: '1d',
+  etag: true,
+  lastModified: true,
+}
+
+app.use('/plots', express.static(path.join(uploadsDir, 'plots'), staticOptions), express.static(path.join(rootDir, 'client/public/plots'), staticOptions))
+app.use('/images/plots', express.static(path.join(uploadsDir, 'images'), staticOptions), express.static(path.join(rootDir, 'client/public/images/plots'), staticOptions))
+app.use('/images', express.static(path.join(uploadsDir, 'images'), staticOptions), express.static(path.join(rootDir, 'client/public/images'), staticOptions))
+app.use('/documents', express.static(path.join(uploadsDir, 'documents'), staticOptions), express.static(path.join(rootDir, 'client/public/documents'), staticOptions))
+app.use('/videos', express.static(path.join(uploadsDir, 'videos'), staticOptions), express.static(path.join(rootDir, 'client/public/videos'), staticOptions))
+app.use('/uploads', express.static(uploadsDir, staticOptions))
 
 // MongoDB persistent streaming fallback for uploaded images, layout SVGs, and documents (critical for Render / Vercel cloud deploys)
 app.get(
@@ -172,6 +183,15 @@ app.use('/api/plots', plotsRouter)
 app.use('/api/leads', leadsRouter)
 app.use('/api/visits', visitsRouter)
 app.use('/api/auth', authRouter)
+
+// Testimonials endpoint
+app.get('/api/testimonials', (req, res) => {
+  res.set('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800')
+  res.json({
+    success: true,
+    testimonials: testimonials || [],
+  })
+})
 
 // Direct website enquiry endpoint saving into leads collection under "new" stage
 app.post('/api/enquiry', async (req, res) => {
