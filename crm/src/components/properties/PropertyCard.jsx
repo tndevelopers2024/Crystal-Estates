@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { MapPin, Trash2, Edit2, FileCode2, ImageOff, Video, FileText, Layers } from 'lucide-react'
 import { getClientUrl } from '../../lib/api'
+import { canonicalLayoutSlug, resolveMediaUrl } from '../../lib/plotUtils'
 
 // Status badge styling for properties
 const STATUS_STYLES = {
@@ -46,7 +47,13 @@ export default function PropertyCard({ property, onEdit, onDelete, onAddPlot }) 
     property.layoutSlug
   )
   const fallbackSlug = property.name ? property.name.toLowerCase().replace(/[^a-z0-9]/g, '-') : (property.id || '')
-  const layoutSlug = property.layoutSlug || property.slug || property.projectId || property.id || fallbackSlug
+  const layoutSlug =
+    canonicalLayoutSlug(property.layoutSlug) ||
+    canonicalLayoutSlug(property.layoutBackgroundUrl) ||
+    property.slug ||
+    property.projectId ||
+    property.id ||
+    fallbackSlug
   const targetLayoutLink = isSvgLayout || property.layoutSlug
     ? getClientUrl(`/layout-viewer?slug=${encodeURIComponent(layoutSlug)}`)
     : property.layoutBackgroundUrl || property.layoutUrl
@@ -58,10 +65,12 @@ export default function PropertyCard({ property, onEdit, onDelete, onAddPlot }) 
   const hasDocs = Boolean(property.documents && property.documents.length > 0)
   const hasVideos = Boolean(property.videos && property.videos.length > 0)
 
-  const imgSrc =
+  const imgSrc = resolveMediaUrl(
     property.image ||
-    (Array.isArray(property.images) && property.images[0]) ||
-    (Array.isArray(property.gallery) && property.gallery[0])
+      (Array.isArray(property.images) && property.images[0]) ||
+      (Array.isArray(property.gallery) && property.gallery[0]) ||
+      '',
+  )
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200/90 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col group">
@@ -131,7 +140,8 @@ export default function PropertyCard({ property, onEdit, onDelete, onAddPlot }) 
         </div>
 
         {/* Action buttons on bottom right of banner */}
-        <div className="absolute bottom-3 right-3 z-10 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition duration-200">
+        {/* Always visible on touch screens; reveal on hover/focus with a mouse */}
+        <div className="absolute bottom-3 right-3 z-10 flex items-center gap-1.5 transition duration-200 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-focus-within:opacity-100">
           {onEdit && (
             <button
               type="button"

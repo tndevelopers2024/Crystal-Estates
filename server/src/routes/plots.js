@@ -18,6 +18,31 @@ function formatPrice(amount) {
   return `₹ ${num.toLocaleString('en-IN')}`
 }
 
+/** available / booked / sold counts derived from a plot list. */
+function summarizeStatuses(plots = []) {
+  const st = (p) => String(p?.status || 'Available').toLowerCase()
+  const available = plots.filter((p) => st(p) === 'available').length
+  return {
+    available,
+    availablePlots: available,
+    booked: plots.filter((p) => ['booked', 'reserved'].includes(st(p))).length,
+    sold: plots.filter((p) => ['sold', 'registered'].includes(st(p))).length,
+  }
+}
+
+/** "/plots/layout-foo_bar-1794467980605.svg" -> "foo_bar" */
+function slugFromLayoutUrl(url) {
+  if (!url) return null
+  const file = String(url).split('?')[0].split('/').pop()
+  return (
+    file
+      .replace(/\.svg$/i, '')
+      .replace(/^layout-/i, '')
+      .replace(/-layout$/i, '')
+      .replace(/-\d{10,}$/, '') || null
+  )
+}
+
 /**
  * GET /api/plots
  * Retrieve all featured plots dynamically from MongoDB
@@ -172,7 +197,7 @@ router.post('/', async (req, res) => {
     const layoutPlots = Array.isArray(req.body.plots) ? req.body.plots : []
     const computedSlug =
       layoutSlug ||
-      (layoutBackgroundUrl ? layoutBackgroundUrl.replace('/plots/', '').replace('-layout.svg', '') : null) ||
+      slugFromLayoutUrl(layoutBackgroundUrl) ||
       finalName.toLowerCase().replace(/[^a-z0-9_-]/g, '-')
 
     const newPlot = {
@@ -221,7 +246,7 @@ router.post('/', async (req, res) => {
       phases: Array.isArray(req.body.layouts) ? req.body.layouts : (Array.isArray(req.body.phases) ? req.body.phases : []),
       plots: layoutPlots,
       totalPlots: layoutPlots.length,
-      availablePlots: layoutPlots.filter((p) => p.status === 'Available').length,
+      ...summarizeStatuses(layoutPlots),
       viewBox: req.body.viewBox || null,
       width: req.body.width || null,
       height: req.body.height || null,
@@ -289,8 +314,10 @@ const handlePatchPlot = async (req, res) => {
     }
 
     if (Array.isArray(updates.plots)) {
+      // Inventory counters are always derived from the plots themselves so
+      // cards never show stale numbers (e.g. "18 available" vs 52 real).
+      Object.assign(updates, summarizeStatuses(updates.plots))
       updates.totalPlots = updates.plots.length
-      updates.availablePlots = updates.plots.filter((p) => p.status === 'Available').length
       updates.hasLayoutMap = Boolean(updates.hasLayoutMap || updates.layoutBackgroundUrl || updates.plots.length > 0)
     }
 

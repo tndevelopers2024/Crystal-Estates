@@ -1,6 +1,7 @@
-import React, { useState } from 'react'
-import { Plus, Edit2, Trash2, Eye, Compass, Layers, CheckCircle2, AlertCircle, FileCode } from 'lucide-react'
+import React, { useState, useMemo } from 'react'
+import { Plus, Edit2, Trash2, Layers } from 'lucide-react'
 import AddPlotModal from './AddPlotModal'
+import { ensurePlotUids, newPlotUid, summarizePlotStatuses } from '../../lib/plotUtils'
 
 const STATUS_BADGES = {
   Available: 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -9,24 +10,19 @@ const STATUS_BADGES = {
   Blocked: 'bg-slate-100 text-slate-700 border-slate-200',
 }
 
-export default function PlotManagementSection({
-  plots = [],
-  onChange,
-  layoutUrl = null,
-  projectName = '',
-}) {
+const STATUS_GROUP = { Reserved: 'Booked', Registered: 'Sold' }
+const statusGroup = (s) => STATUS_GROUP[s] || s || 'Available'
+
+export default function PlotManagementSection({ plots: rawPlots = [], onChange, phaseName }) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingPlot, setEditingPlot] = useState(null)
   const [filter, setFilter] = useState('All')
 
-  // Status counts
-  const counts = {
-    All: plots.length,
-    Available: plots.filter((p) => p.status === 'Available').length,
-    Booked: plots.filter((p) => p.status === 'Booked').length,
-    Sold: plots.filter((p) => p.status === 'Sold').length,
-    Blocked: plots.filter((p) => p.status === 'Blocked').length,
-  }
+  // Every plot gets a unique uid so duplicate plot numbers stay independent
+  const plots = useMemo(() => ensurePlotUids(rawPlots), [rawPlots])
+
+  const s = summarizePlotStatuses(plots)
+  const counts = { All: s.total, Available: s.available, Booked: s.booked, Sold: s.sold, Blocked: s.blocked }
 
   const handleOpenAdd = () => {
     setEditingPlot(null)
@@ -38,33 +34,21 @@ export default function PlotManagementSection({
     setIsModalOpen(true)
   }
 
-  const handleDelete = (plotNo) => {
-    if (window.confirm(`Are you sure you want to delete Plot ${plotNo}?`)) {
-      const updated = plots.filter((p) => String(p.plotNo) !== String(plotNo))
-      onChange(updated)
+  const handleDelete = (plot) => {
+    if (window.confirm(`Are you sure you want to delete Plot ${plot.plotNo}?`)) {
+      onChange(plots.filter((p) => p.uid !== plot.uid))
     }
   }
 
   const handleSavePlot = (plotData) => {
-    const existingIndex = plots.findIndex(
-      (p) => String(p.plotNo).toLowerCase() === String(plotData.plotNo).toLowerCase()
-    )
-
-    let updated
-    if (existingIndex >= 0) {
-      // Update existing
-      updated = [...plots]
-      updated[existingIndex] = { ...updated[existingIndex], ...plotData }
+    if (editingPlot) {
+      onChange(plots.map((p) => (p.uid === editingPlot.uid ? { ...p, ...plotData, uid: p.uid } : p)))
     } else {
-      // Add new
-      updated = [...plots, plotData]
+      onChange([...plots, { ...plotData, uid: newPlotUid(phaseName, plotData.plotNo) }])
     }
-    onChange(updated)
   }
 
-  // Filtered plots
-  const filteredPlots =
-    filter === 'All' ? plots : plots.filter((p) => p.status === filter)
+  const filteredPlots = filter === 'All' ? plots : plots.filter((p) => statusGroup(p.status) === filter)
 
   return (
     <div className="space-y-4 pt-4 border-t border-slate-200">
@@ -157,7 +141,7 @@ export default function PlotManagementSection({
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filteredPlots.map((plot) => (
-                  <tr key={plot.plotNo || plot.id} className="hover:bg-slate-50/60 transition">
+                  <tr key={plot.uid} className="hover:bg-slate-50/60 transition">
                     {/* Plot # */}
                     <td className="py-2.5 px-3.5 font-bold text-slate-900">
                       Plot {plot.plotNo}
@@ -167,7 +151,7 @@ export default function PlotManagementSection({
                     <td className="py-2.5 px-3.5">
                       <span
                         className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold border ${
-                          STATUS_BADGES[plot.status] || STATUS_BADGES.Available
+                          STATUS_BADGES[statusGroup(plot.status)] || STATUS_BADGES.Available
                         }`}
                       >
                         {plot.status || 'Available'}
@@ -215,7 +199,7 @@ export default function PlotManagementSection({
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleDelete(plot.plotNo)}
+                          onClick={() => handleDelete(plot)}
                           className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
                           title="Delete plot"
                         >

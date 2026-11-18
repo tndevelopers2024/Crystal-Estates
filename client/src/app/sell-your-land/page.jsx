@@ -5,7 +5,7 @@ import {
   Users,
   FileCheck2,
 } from 'lucide-react'
-import { PageHero, Container, Section } from '../../components/ui'
+import { PageHero } from '../../components/ui'
 import SellLandFormClient from '../../components/forms/SellLandFormClient'
 import TestimonialsSection from '../../components/TestimonialsSection'
 
@@ -73,98 +73,69 @@ export default function SellYourLandPage() {
       />
 
       {/* Benefits */}
-      <Section title="Why Sell Through Crystal Estates?" subtitle="We provide landowners with total safety, fair valuation, and end-to-end documentation assistance" center>
-        <Container>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-              gap: '24px',
-              marginTop: '20px',
-            }}
-          >
-            {benefits.map((b, i) => {
+      <section className="split-sec split-sec--white">
+        <div className="split-sec__grid">
+          <aside className="split-sec__aside">
+            <span className="featured-showcase-sidebar__badge">For Landowners</span>
+            <h2 className="featured-showcase-sidebar__title">Why Sell Through Crystal Estates?</h2>
+            <p className="featured-showcase-sidebar__subtitle">
+              Total safety, fair valuation, and end-to-end documentation assistance for every landowner.
+            </p>
+          </aside>
+          <div className="split-sec__content split-sec__cards">
+            {benefits.map((b) => {
               const Icon = b.icon
               return (
-                <div
-                  key={i}
-                  style={{
-                    background: '#ffffff',
-                    borderRadius: '16px',
-                    padding: '28px 24px',
-                    border: '1px solid rgba(227, 221, 209, 0.9)',
-                    boxShadow: 'var(--shadow-sm)',
-                  }}
-                >
-                  <div
-                    style={{
-                      width: '44px',
-                      height: '44px',
-                      borderRadius: '10px',
-                      background: 'var(--green-50)',
-                      color: 'var(--green-900)',
-                      display: 'grid',
-                      placeItems: 'center',
-                      marginBottom: '16px',
-                    }}
-                  >
-                    <Icon size={22} color="var(--gold)" />
-                  </div>
-                  <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', color: 'var(--green-900)', marginBottom: '8px' }}>
-                    {b.title}
-                  </h3>
-                  <p style={{ fontSize: '14px', color: 'var(--ink-2)', lineHeight: '1.6', margin: 0 }}>
-                    {b.desc}
-                  </p>
-                </div>
+                <article key={b.title} className="split-card">
+                  <span className="split-card__icon" aria-hidden="true">
+                    <Icon size={20} />
+                  </span>
+                  <h3 className="split-card__title">{b.title}</h3>
+                  <p className="split-card__text">{b.desc}</p>
+                </article>
               )
             })}
           </div>
-        </Container>
-      </Section>
+        </div>
+      </section>
 
       {/* 4-Step Process */}
-      <Section variant="light" title="Our 4-Step Selling Process" subtitle="Transparent, structured, and fast-track closure for landowners" center>
-        <Container>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-              gap: '20px',
-            }}
-          >
+      <section className="split-sec split-sec--soft">
+        <div className="split-sec__grid">
+          <aside className="split-sec__aside">
+            <span className="featured-showcase-sidebar__badge">The Selling Process</span>
+            <h2 className="featured-showcase-sidebar__title">Our 4-Step Selling Process</h2>
+            <p className="featured-showcase-sidebar__subtitle">
+              Transparent, structured, and fast-track closure for landowners.
+            </p>
+          </aside>
+          <ol className="split-sec__content split-sec__cards">
             {steps.map((st) => (
-              <div
-                key={st.num}
-                style={{
-                  background: '#ffffff',
-                  borderRadius: '14px',
-                  padding: '24px 20px',
-                  border: '1.5px solid rgba(184, 150, 78, 0.3)',
-                  boxShadow: 'var(--shadow-sm)',
-                }}
-              >
-                <div style={{ fontSize: '20px', fontWeight: '800', color: 'var(--gold)', marginBottom: '8px' }}>
-                  {st.num}
-                </div>
-                <h4 style={{ fontFamily: 'var(--font-display)', fontSize: '17px', color: 'var(--green-900)', marginBottom: '8px' }}>
-                  {st.title}
-                </h4>
-                <p style={{ fontSize: '13.5px', color: 'var(--muted)', lineHeight: '1.55', margin: 0 }}>
-                  {st.desc}
-                </p>
-              </div>
+              <li key={st.num} className="split-card">
+                <span className="split-card__num">{st.num}</span>
+                <h3 className="split-card__title">{st.title}</h3>
+                <p className="split-card__text">{st.desc}</p>
+              </li>
             ))}
-          </div>
-        </Container>
-      </Section>
+          </ol>
+        </div>
+      </section>
 
       {/* Landowner Intake Form */}
-      <Section title="Submit Your Property for Assessment" subtitle="Fill out your land specifications below to schedule an evaluation with our acquisitions team" center>
-        <Container>
-          <SellLandFormClient />
-        </Container>
-      </Section>
+      <section className="split-sec split-sec--white" id="assessment">
+        <div className="split-sec__grid">
+          <aside className="split-sec__aside">
+            <span className="featured-showcase-sidebar__badge">Free Assessment</span>
+            <h2 className="featured-showcase-sidebar__title">Submit Your Property for Assessment</h2>
+            <p className="featured-showcase-sidebar__subtitle">
+              Share your land specifications to schedule an evaluation with our acquisitions team.
+            </p>
+          </aside>
+          <div className="split-sec__content">
+            <SellLandFormClient />
+          </div>
+        </div>
+      </section>
 
       <TestimonialsSection
         title="Verified Landowner Experiences"

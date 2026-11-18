@@ -100,13 +100,12 @@ export default function SellLandFormClient() {
   return (
     <div
       style={{
-        maxWidth: '780px',
-        margin: '0 auto',
+        width: '100%',
         background: '#ffffff',
-        borderRadius: '20px',
-        border: '1.5px solid rgba(227, 221, 209, 0.9)',
-        padding: 'clamp(28px, 4vw, 44px)',
-        boxShadow: 'var(--shadow-md)',
+        borderRadius: '28px',
+        border: '1px solid #ECECEE',
+        padding: 'clamp(24px, 4vw, 44px)',
+        boxShadow: '0 8px 24px -4px rgba(0, 0, 0, 0.06)',
       }}
     >
       <form onSubmit={handleSubmit}>

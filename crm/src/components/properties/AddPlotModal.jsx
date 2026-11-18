@@ -82,8 +82,10 @@ export default function AddPlotModal({
       setSvgPath(initialData.svgPath || '')
       setError(null)
     } else {
-      // Auto-suggest next plot number
-      const nextNum = existingPlots.length > 0 ? existingPlots.length + 1 : 1
+      // Suggest the next free numeric plot number
+      const taken = new Set(existingPlots.map((p) => String(p.plotNo ?? '').trim().toLowerCase()))
+      let nextNum = existingPlots.length + 1
+      while (taken.has(String(nextNum))) nextNum += 1
       setPlotNo(String(nextNum))
       setStatus('Available')
       setFacing('East')
@@ -125,22 +127,23 @@ export default function AddPlotModal({
       return
     }
 
-    if (!cleanedPath) {
-      setError('SVG Path data is required for the plot layout boundary.')
-      return
-    }
-
-    // Check duplicate plot number if adding new plot
-    const isEditing = Boolean(initialData)
-    if (!isEditing && existingPlots.some((p) => String(p.plotNo).toLowerCase() === plotNo.trim().toLowerCase())) {
+    // Boundary path is optional so plots without one can still be edited
+    // Block duplicate plot numbers when adding, or when renaming during an edit.
+    // Editing a plot that keeps its (already duplicated) number is allowed.
+    const keepsNumber =
+      initialData && String(initialData.plotNo ?? '').trim().toLowerCase() === plotNo.trim().toLowerCase()
+    const clash = !keepsNumber && existingPlots.some(
+      (p) =>
+        String(p.plotNo ?? '').trim().toLowerCase() === plotNo.trim().toLowerCase() &&
+        (!initialData || p.uid !== initialData.uid),
+    )
+    if (clash) {
       setError(`Plot number "${plotNo.trim()}" already exists. Please choose a unique plot number.`)
       return
     }
 
-    const numId = parseInt(plotNo.trim(), 10)
-
     const plotData = {
-      id: initialData?.id || (!isNaN(numId) ? numId : Date.now()),
+      id: initialData?.id ?? `plot-${plotNo.trim()}`,
       plotNo: plotNo.trim(),
       status,
       facing,
@@ -153,8 +156,8 @@ export default function AddPlotModal({
       type: type || 'Residential Plot',
       surveyNo: surveyNo.trim(),
       svgPath: cleanedPath,
-      textX: centroid ? centroid.textX : 100,
-      textY: centroid ? centroid.textY : 100,
+      textX: centroid ? centroid.textX : null,
+      textY: centroid ? centroid.textY : null,
       updatedAt: new Date(),
     }
 
@@ -339,14 +342,13 @@ export default function AddPlotModal({
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="text-xs font-bold text-slate-700">
-                SVG Path Boundary (<code className="font-mono text-[#0F3D2E] font-semibold">d="..."</code>) <span className="text-rose-500">*</span>
+                SVG Path Boundary (<code className="font-mono text-[#0F3D2E] font-semibold">d="..."</code>)
               </label>
               <span className="text-[11px] text-slate-400">
                 Paste path &apos;d&apos; attribute or complete &lt;path&gt; tag
               </span>
             </div>
             <textarea
-              required
               rows={3}
               value={svgPath}
               onChange={handleSvgPathChange}

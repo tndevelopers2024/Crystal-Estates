@@ -498,7 +498,7 @@
 
 .lv-mgmt-title {
   margin: 0;
-  font-family: var(--font-display, var(--font-cormorant, 'Cormorant Garamond', Georgia, serif));
+  font-family: var(--font-body);
   font-size: 1.35rem;
   font-weight: 700;
   color: var(--green-900, #0a5c36);
@@ -641,7 +641,7 @@
 
 .lv-modal__title {
   margin: 0;
-  font-family: var(--font-display, var(--font-cormorant, 'Cormorant Garamond', Georgia, serif));
+  font-family: var(--font-body);
   font-size: 1.45rem;
   font-weight: 700;
   color: var(--green-900, #0a5c36);

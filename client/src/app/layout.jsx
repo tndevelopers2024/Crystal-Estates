@@ -1,4 +1,4 @@
-import { Manrope, Montserrat, Playfair_Display } from 'next/font/google'
+import { Montserrat } from 'next/font/google'
 import Header from '../components/sections/Header'
 import Footer from '../components/sections/Footer'
 import SiteVisitPopup from '../components/ui/SiteVisitPopup'
@@ -6,25 +6,12 @@ import Preloader from '../components/ui/Preloader'
 import SmoothScroll from '../components/providers/SmoothScroll'
 import '../index.css'
 
-const manrope = Manrope({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-manrope',
-  display: 'swap',
-})
-
+// Single site-wide typeface (matches the "Experience Excellence" section).
 const montserrat = Montserrat({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
-  variable: '--font-montserrat',
-  display: 'swap',
-})
-
-const playfair = Playfair_Display({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800'],
   style: ['normal', 'italic'],
-  variable: '--font-playfair',
+  variable: '--font-montserrat',
   display: 'swap',
 })
 
@@ -177,14 +164,8 @@ const realEstateAgentJsonLd = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${manrope.variable} ${montserrat.variable} ${playfair.variable}`}>
+    <html lang="en" className={montserrat.variable}>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Jost:wght@300;400&display=swap"
-          rel="stylesheet"
-        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(realEstateAgentJsonLd) }}

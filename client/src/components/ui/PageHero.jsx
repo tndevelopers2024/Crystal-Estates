@@ -39,16 +39,6 @@ export function PageHero({
   return (
     <section className={`page-hero ${background ? 'page-hero--has-bg' : ''} ${className}`.trim()} style={style}>
       <Container className="page-hero__container">
-        {eyebrow && (
-          <div className="page-hero__eyebrow-wrap">
-            <span className="page-hero__eyebrow">{eyebrow}</span>
-          </div>
-        )}
-
-        <h1 className="page-hero__title">{title}</h1>
-
-        {subtitle && <p className="page-hero__subtitle">{subtitle}</p>}
-
         <nav aria-label="Breadcrumb" className="page-hero__breadcrumb">
           <ol>
             {items.map((item, idx) => {
@@ -70,6 +60,16 @@ export function PageHero({
             })}
           </ol>
         </nav>
+
+        {eyebrow && (
+          <div className="page-hero__eyebrow-wrap">
+            <span className="page-hero__eyebrow">{eyebrow}</span>
+          </div>
+        )}
+
+        <h1 className="page-hero__title">{title}</h1>
+
+        {subtitle && <p className="page-hero__subtitle">{subtitle}</p>}
 
         {children && <div className="page-hero__extra">{children}</div>}
       </Container>

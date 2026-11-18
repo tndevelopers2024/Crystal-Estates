@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { fetchPlots, deletePlot } from '../lib/api'
+import { canonicalLayoutSlug, summarizePlotStatuses } from '../lib/plotUtils'
 
 export function useProperties() {
   const [dbPlots, setDbPlots] = useState([])
@@ -30,7 +31,11 @@ export function useProperties() {
 
   // Map real database plots without any injected dummy data or numbers
   const allProperties = useMemo(() => {
-    return dbPlots.map((p, index) => ({
+    return dbPlots.map((p, index) => {
+      const plotList = Array.isArray(p.plots) ? p.plots : []
+      // Real inventory comes from the plots themselves; stored counters can be stale
+      const inv = plotList.length > 0 ? summarizePlotStatuses(plotList) : null
+      return {
       id: p.id || `db-${index}`,
       projectId: p.projectId || null,
       name: p.name || p.projectName || 'Unnamed Project',
@@ -61,19 +66,15 @@ export function useProperties() {
       gallery: Array.isArray(p.gallery) ? p.gallery : [],
       documents: Array.isArray(p.documents) ? p.documents : [],
       videos: Array.isArray(p.videos) ? p.videos : [],
-      available: typeof p.available === 'number' ? p.available : null,
-      booked: typeof p.booked === 'number' ? p.booked : null,
-      sold: typeof p.sold === 'number' ? p.sold : null,
+      available: inv ? inv.available : typeof p.available === 'number' ? p.available : null,
+      booked: inv ? inv.booked : typeof p.booked === 'number' ? p.booked : null,
+      sold: inv ? inv.sold : typeof p.sold === 'number' ? p.sold : null,
       approval: p.approval || p.approvalStatus || '',
       approvalStatus: p.approvalStatus || p.approval || '',
       rera: p.rera || p.approvalStatus || p.approval || '',
       leadsCount: typeof p.leadsCount === 'number' ? p.leadsCount : null,
       hasLayoutMap: Boolean(p.layoutBackgroundUrl || p.hasLayoutMap || (p.plots && p.plots.length > 0)),
-      layoutSlug:
-        p.layoutSlug ||
-        (p.layoutBackgroundUrl
-          ? p.layoutBackgroundUrl.replace('/plots/', '').replace('-layout.svg', '')
-          : null),
+      layoutSlug: p.layoutSlug || canonicalLayoutSlug(p.layoutBackgroundUrl) || null,
       layoutBackgroundUrl: p.layoutBackgroundUrl || null,
       layoutUrl: p.layoutUrl || p.layoutBackgroundUrl || null,
       layoutImage: p.layoutImage || p.layoutBackgroundUrl || null,
@@ -81,13 +82,14 @@ export function useProperties() {
       layouts: Array.isArray(p.layouts) ? p.layouts : (Array.isArray(p.phases) ? p.phases : []),
       phases: Array.isArray(p.phases) ? p.phases : (Array.isArray(p.layouts) ? p.layouts : []),
       plots: Array.isArray(p.plots) ? p.plots : [],
-      totalPlots: typeof p.totalPlots === 'number' ? p.totalPlots : (Array.isArray(p.plots) ? p.plots.length : 0),
-      availablePlots: typeof p.availablePlots === 'number' ? p.availablePlots : (Array.isArray(p.plots) ? p.plots.filter(x => x.status === 'Available').length : 0),
+      totalPlots: inv ? inv.total : typeof p.totalPlots === 'number' ? p.totalPlots : 0,
+      availablePlots: inv ? inv.available : typeof p.availablePlots === 'number' ? p.availablePlots : 0,
       viewBox: p.viewBox || null,
       width: p.width || null,
       height: p.height || null,
       description: p.description || '',
-    }))
+      }
+    })
   }, [dbPlots])
 
   // Filter properties by search term

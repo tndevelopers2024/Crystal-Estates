@@ -1,87 +1,130 @@
 'use client'
 
-import React, { useState, useEffect, useRef, useCallback, useSyncExternalStore } from 'react'
-import { Star, StarHalf, ChevronLeft, ChevronRight, Quote, ShieldCheck } from 'lucide-react'
-import { Container } from './ui'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { Star, StarHalf, ArrowLeft, ArrowRight, Quote, ShieldCheck } from 'lucide-react'
 import defaultTestimonials from '../data/testimonials'
 
 /**
- * Helper to get user initials for fallback avatar
+ * Initials for the fallback avatar
  */
 function getInitials(name = '') {
   return name
     .split(' ')
-    .filter(Boolean)
+    .filter((part) => /[A-Za-z]/.test(part) && part.replace(/\./g, '').length > 1)
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase())
     .join('') || 'CE'
 }
 
+function toRating(value) {
+  const num = typeof value === 'number' ? value : parseFloat(value)
+  return Number.isFinite(num) ? Math.min(5, Math.max(0, num)) : 5
+}
+
 /**
- * StarRating component supporting half stars (e.g. 3.5, 4.0, 4.5, 5.0)
+ * Star row supporting half stars (3.5, 4.0, 4.5, 5.0)
  */
-function StarRating({ rating = 5 }) {
-  const num = typeof rating === 'number' ? rating : parseFloat(rating) || 5
+function StarRating({ rating = 5, size = 15 }) {
+  const num = toRating(rating)
   const fullStars = Math.floor(num)
   const hasHalfStar = num % 1 >= 0.4
   const emptyStars = Math.max(0, 5 - fullStars - (hasHalfStar ? 1 : 0))
 
   return (
-    <div className="testimonial-rating-wrap" aria-label={`${num} out of 5 stars`}>
-      <div className="testimonial-stars-row">
-        {[...Array(fullStars)].map((_, i) => (
-          <Star key={`full-${i}`} size={16} className="star-icon star-icon--filled" />
-        ))}
-        {hasHalfStar && (
-          <StarHalf key="half" size={16} className="star-icon star-icon--half" />
-        )}
-        {[...Array(emptyStars)].map((_, i) => (
-          <Star key={`empty-${i}`} size={16} className="star-icon star-icon--empty" />
-        ))}
-      </div>
-      <span className="testimonial-rating-badge">
-        {num.toFixed(1)}
-      </span>
+    <div className="testimonial-showcase-stars" aria-label={`${num.toFixed(1)} out of 5 stars`} role="img">
+      {[...Array(fullStars)].map((_, i) => (
+        <Star key={`full-${i}`} size={size} className="testimonial-showcase-star is-filled" aria-hidden="true" />
+      ))}
+      {hasHalfStar && <StarHalf size={size} className="testimonial-showcase-star is-filled" aria-hidden="true" />}
+      {[...Array(emptyStars)].map((_, i) => (
+        <Star key={`empty-${i}`} size={size} className="testimonial-showcase-star" aria-hidden="true" />
+      ))}
     </div>
   )
 }
 
+function TestimonialCard({ item, index, total }) {
+  const [photoFailed, setPhotoFailed] = useState(false)
+  const showPhoto = Boolean(item.photo) && !photoFailed
+  const rating = toRating(item.rating || 5)
+
+  return (
+    <article
+      className="testimonial-showcase-card"
+      role="group"
+      aria-roledescription="slide"
+      aria-label={`${index + 1} of ${total}`}
+    >
+      <div className="testimonial-showcase-card__top">
+        <span className="testimonial-showcase-card__quote-mark" aria-hidden="true">
+          <Quote size={18} />
+        </span>
+        <div className="testimonial-showcase-card__score">
+          <StarRating rating={rating} size={14} />
+          <span>{rating.toFixed(1)}</span>
+        </div>
+      </div>
+
+      <blockquote className="testimonial-showcase-card__quote">{item.quote}</blockquote>
+
+      <div className="testimonial-showcase-card__footer">
+        <div className="testimonial-showcase-card__avatar">
+          {showPhoto ? (
+            <img src={item.photo} alt="" loading="lazy" onError={() => setPhotoFailed(true)} />
+          ) : (
+            <span aria-hidden="true">{getInitials(item.name)}</span>
+          )}
+        </div>
+
+        <div className="testimonial-showcase-card__meta">
+          <div className="testimonial-showcase-card__name-row">
+            <h3 className="testimonial-showcase-card__name">{item.name}</h3>
+            {item.verified !== false && (
+              <span className="testimonial-showcase-card__verified" title="Verified landowner">
+                <ShieldCheck size={13} aria-hidden="true" />
+                Verified
+              </span>
+            )}
+          </div>
+          {(item.role || item.location) && (
+            <p className="testimonial-showcase-card__sub">
+              {[item.role, item.location].filter(Boolean).join(' · ')}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {item.project && (
+        <span className="testimonial-showcase-card__project">
+          {item.project}
+          {item.date ? ` · ${item.date}` : ''}
+        </span>
+      )}
+    </article>
+  )
+}
+
 /**
- * Reusable TestimonialsSection Component
- * Modern, elevated presentation matching the site's editorial design system.
+ * Customer testimonials, laid out like the Featured Projects showcase:
+ * a sticky sidebar (badge, heading, rating summary, arrows) and a
+ * drag-scrollable card track that bleeds off the right edge.
  */
 export function TestimonialsSection({
   title = 'What Our Landowners Say',
   subtitle = 'Authentic reviews and real experiences from families and investors who secured their plots and farmland with Crystal Estates.',
-  badge = 'VERIFIED BUYER REVIEWS',
+  badge = 'Verified Buyer Reviews',
   limit,
-  variant = 'slider',
   className = '',
 }) {
   const [testimonials, setTestimonials] = useState(defaultTestimonials)
-  const [loading, setLoading] = useState(false)
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [cardsPerView, setCardsPerView] = useState(3)
-  const [isHovered, setIsHovered] = useState(false)
-  const [isFocused, setIsFocused] = useState(false)
+  const trackRef = useRef(null)
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(true)
+  const [isDragging, setIsDragging] = useState(false)
+  const dragStart = useRef({ x: 0, scrollLeft: 0 })
+  const hasMoved = useRef(false)
 
-  // Reduced motion preference
-  const prefersReducedMotion = useSyncExternalStore(
-    (notify) => {
-      if (typeof window === 'undefined') return () => {}
-      const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
-      mq.addEventListener('change', notify)
-      return () => mq.removeEventListener('change', notify)
-    },
-    () => (typeof window !== 'undefined' ? window.matchMedia('(prefers-reduced-motion: reduce)').matches : false),
-    () => false
-  )
-
-  const touchStartX = useRef(null)
-  const touchEndX = useRef(null)
-  const sliderRef = useRef(null)
-
-  // Data fetching fallback only when testimonials list is empty
+  // Fallback fetch only when the bundled list is empty
   useEffect(() => {
     if (testimonials && testimonials.length > 0) return
     let isMounted = true
@@ -91,262 +134,154 @@ export function TestimonialsSection({
         return res.json()
       })
       .then((data) => {
-        const items = Array.isArray(data) ? data : data?.testimonials || data?.data || []
-        if (isMounted && items.length > 0) {
-          setTestimonials(items)
-        }
+        const list = Array.isArray(data) ? data : data?.testimonials || data?.data || []
+        if (isMounted && list.length > 0) setTestimonials(list)
       })
-      .catch(() => {
-        if (isMounted) setTestimonials(defaultTestimonials)
-      })
-
+      .catch(() => {})
     return () => {
       isMounted = false
     }
   }, [testimonials])
 
-  // Responsive cardsPerView detector
-  useEffect(() => {
-    const updateCardsPerView = () => {
-      const width = window.innerWidth
-      if (width < 768) {
-        setCardsPerView(1)
-      } else if (width < 1024) {
-        setCardsPerView(2)
-      } else {
-        setCardsPerView(3)
-      }
-    }
-    updateCardsPerView()
-    window.addEventListener('resize', updateCardsPerView)
-    return () => window.removeEventListener('resize', updateCardsPerView)
+  const items = Array.isArray(testimonials) ? (limit ? testimonials.slice(0, limit) : testimonials) : []
+
+  const checkScrollState = useCallback(() => {
+    const el = trackRef.current
+    if (!el) return
+    const { scrollLeft, scrollWidth, clientWidth } = el
+    setCanScrollLeft(scrollLeft > 10)
+    setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 10)
   }, [])
 
-  const items = Array.isArray(testimonials)
-    ? limit ? testimonials.slice(0, limit) : testimonials
-    : []
-
-  const maxIndex = Math.max(0, items.length - cardsPerView)
-  const safeIndex = Math.min(currentIndex, maxIndex)
-
-  const goNext = useCallback(() => {
-    setCurrentIndex((prev) => (prev >= maxIndex ? 0 : prev + 1))
-  }, [maxIndex])
-
-  const goPrev = useCallback(() => {
-    setCurrentIndex((prev) => (prev <= 0 ? maxIndex : prev - 1))
-  }, [maxIndex])
-
-  // Autoplay slider
   useEffect(() => {
-    if (variant !== 'slider' || prefersReducedMotion || isHovered || isFocused || items.length <= cardsPerView) {
-      return
+    const el = trackRef.current
+    if (!el) return
+    checkScrollState()
+    el.addEventListener('scroll', checkScrollState, { passive: true })
+    window.addEventListener('resize', checkScrollState)
+    return () => {
+      el.removeEventListener('scroll', checkScrollState)
+      window.removeEventListener('resize', checkScrollState)
     }
-    const timer = setInterval(() => {
-      goNext()
-    }, 6000)
-    return () => clearInterval(timer)
-  }, [variant, prefersReducedMotion, isHovered, isFocused, items.length, cardsPerView, goNext])
+  }, [checkScrollState, items.length])
 
-  // Touch Swipe handlers
-  const handleTouchStart = (e) => {
-    touchStartX.current = e.touches[0].clientX
-    touchEndX.current = null
-  }
-
-  const handleTouchMove = (e) => {
-    touchEndX.current = e.touches[0].clientX
-  }
-
-  const handleTouchEnd = () => {
-    if (!touchStartX.current || !touchEndX.current) return
-    const diff = touchStartX.current - touchEndX.current
-    if (Math.abs(diff) > 40) {
-      if (diff > 0) goNext()
-      else goPrev()
-    }
-    touchStartX.current = null
-    touchEndX.current = null
+  const scrollByCard = (direction) => {
+    const el = trackRef.current
+    if (!el) return
+    const cardWidth = el.querySelector('.testimonial-showcase-card')?.offsetWidth || 380
+    el.scrollBy({ left: (cardWidth + 24) * (direction === 'left' ? -1 : 1), behavior: 'smooth' })
   }
 
   const handleKeyDown = (e) => {
     if (e.key === 'ArrowLeft') {
       e.preventDefault()
-      goPrev()
+      scrollByCard('left')
     } else if (e.key === 'ArrowRight') {
       e.preventDefault()
-      goNext()
+      scrollByCard('right')
     }
   }
 
-  if (!items || items.length === 0) {
-    return null
+  const handleMouseDown = (e) => {
+    const el = trackRef.current
+    if (!el) return
+    setIsDragging(true)
+    hasMoved.current = false
+    dragStart.current = { x: e.pageX - el.offsetLeft, scrollLeft: el.scrollLeft }
   }
 
-  const gap = 24
-  const slideOffset = `calc(-${safeIndex} * ((100% + ${gap}px) / ${cardsPerView}))`
+  const handleMouseMove = (e) => {
+    if (!isDragging) return
+    const el = trackRef.current
+    if (!el) return
+    const walk = (e.pageX - el.offsetLeft - dragStart.current.x) * 1.5
+    if (Math.abs(walk) > 5) hasMoved.current = true
+    el.scrollLeft = dragStart.current.scrollLeft - walk
+  }
+
+  const handleMouseUpOrLeave = () => {
+    if (!isDragging) return
+    setIsDragging(false)
+    if (hasMoved.current) {
+      const preventClick = (clickEvent) => {
+        clickEvent.stopPropagation()
+        clickEvent.preventDefault()
+        window.removeEventListener('click', preventClick, true)
+      }
+      window.addEventListener('click', preventClick, true)
+    }
+  }
+
+  if (items.length === 0) return null
+
+  const average = items.reduce((sum, t) => sum + toRating(t.rating || 5), 0) / items.length
 
   return (
     <section
       id="testimonials"
-      className={`modern-testimonials-section ${className}`.trim()}
-      aria-label="Landowner Testimonials"
+      className={`featured-showcase-section testimonial-showcase-section ${className}`.trim()}
+      aria-label="Customer testimonials"
     >
-      <Container>
-        {/* Header Block matching About Us & Reference System */}
-        <div className="modern-testimonials-header">
-          <div className="modern-testimonials-header__left">
-            <span className="modern-testimonials-badge">
-              {badge}
-            </span>
-            <h2 className="modern-testimonials-title">
-              {title}
-            </h2>
-            {subtitle && (
-              <p className="modern-testimonials-subtitle">
-                {subtitle}
-              </p>
-            )}
-          </div>
+      <div className="featured-showcase-container">
+        <div className="featured-showcase-sidebar">
+          <div className="featured-showcase-sidebar__top">
+            <span className="featured-showcase-sidebar__badge">{badge}</span>
+            <h2 className="featured-showcase-sidebar__title">{title}</h2>
+            {subtitle && <p className="featured-showcase-sidebar__subtitle">{subtitle}</p>}
 
-          {/* Dual Navigation Controls */}
-          {variant === 'slider' && items.length > cardsPerView && (
-            <div className="modern-testimonials-nav" aria-label="Slider Controls">
-              <button
-                type="button"
-                onClick={goPrev}
-                className="modern-testimonials-nav-btn"
-                aria-label="Previous testimonial"
-              >
-                <ChevronLeft size={18} />
-              </button>
-              <button
-                type="button"
-                onClick={goNext}
-                className="modern-testimonials-nav-btn"
-                aria-label="Next testimonial"
-              >
-                <ChevronRight size={18} />
-              </button>
+            <div className="testimonial-showcase-summary">
+              <span className="testimonial-showcase-summary__score">{average.toFixed(1)}</span>
+              <div className="testimonial-showcase-summary__meta">
+                <StarRating rating={Math.round(average * 2) / 2} size={15} />
+                <span>
+                  From {items.length} verified landowner {items.length === 1 ? 'review' : 'reviews'}
+                </span>
+              </div>
             </div>
-          )}
-        </div>
+          </div>
 
-        {/* Carousel Slider Viewport */}
-        <div
-          className="modern-testimonials-viewport"
-          ref={sliderRef}
-          tabIndex={0}
-          role="region"
-          aria-roledescription="carousel"
-          aria-label="Customer Testimonials Carousel"
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          onKeyDown={handleKeyDown}
-        >
-          <div
-            className={`modern-testimonials-track ${
-              prefersReducedMotion ? 'is-reduced-motion' : ''
-            }`}
-            style={{
-              transform: `translateX(${slideOffset})`,
-            }}
-          >
-            {items.map((item, idx) => {
-              const cardWidthCalc = `calc((100% - ${(cardsPerView - 1) * gap}px) / ${cardsPerView})`
-              return (
-                <article
-                  key={item.id || idx}
-                  className="modern-testimonial-card"
-                  style={{
-                    flex: `0 0 ${cardWidthCalc}`,
-                    width: cardWidthCalc,
-                    minWidth: cardWidthCalc,
-                    maxWidth: cardWidthCalc,
-                  }}
-                  role="group"
-                  aria-roledescription="slide"
-                  aria-label={`${idx + 1} of ${items.length}`}
-                >
-                {/* Card Top: Stars & Quote Icon */}
-                <div className="modern-testimonial-card__header">
-                  <StarRating rating={item.rating || 5} />
-                  <Quote size={20} className="modern-testimonial-card__quote-icon" aria-hidden="true" />
-                </div>
-
-                {/* Real-world review quote */}
-                <blockquote className="modern-testimonial-card__quote">
-                  &ldquo;{item.quote}&rdquo;
-                </blockquote>
-
-                {/* Author Information */}
-                <div className="modern-testimonial-card__footer">
-                  <div className="modern-testimonial-card__avatar">
-                    {item.photo ? (
-                      <img
-                        src={item.photo}
-                        alt={item.name}
-                        loading="lazy"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none'
-                          e.currentTarget.nextElementSibling.style.display = 'flex'
-                        }}
-                      />
-                    ) : null}
-                    <span
-                      className="modern-testimonial-card__avatar-fallback"
-                      style={{ display: item.photo ? 'none' : 'flex' }}
-                    >
-                      {getInitials(item.name)}
-                    </span>
-                  </div>
-
-                  <div className="modern-testimonial-card__meta">
-                    <div className="modern-testimonial-card__name-row">
-                      <h3 className="modern-testimonial-card__name">{item.name}</h3>
-                      <span className="modern-testimonial-card__verified" title="Verified Landowner">
-                        <ShieldCheck size={13} />
-                        <span>Verified</span>
-                      </span>
-                    </div>
-                    <p className="modern-testimonial-card__sub">
-                      {[item.role, item.location].filter(Boolean).join(' • ')}
-                    </p>
-                    {item.project && (
-                      <span className="modern-testimonial-card__project-badge">
-                        {item.project} {item.date ? `• ${item.date}` : ''}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </article>
-              )
-            })}
+          <div className="featured-showcase-sidebar__nav">
+            <button
+              type="button"
+              onClick={() => scrollByCard('left')}
+              disabled={!canScrollLeft}
+              className="featured-showcase-nav-btn"
+              aria-label="Previous testimonials"
+            >
+              <ArrowLeft size={18} />
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollByCard('right')}
+              disabled={!canScrollRight}
+              className="featured-showcase-nav-btn"
+              aria-label="Next testimonials"
+            >
+              <ArrowRight size={18} />
+            </button>
           </div>
         </div>
 
-        {/* Dots Pagination */}
-        {variant === 'slider' && items.length > cardsPerView && (
-          <div className="modern-testimonials-dots" role="tablist" aria-label="Slide pagination">
-            {[...Array(maxIndex + 1)].map((_, dIdx) => (
-              <button
-                key={dIdx}
-                type="button"
-                role="tab"
-                aria-selected={dIdx === safeIndex}
-                className={`modern-testimonials-dot ${dIdx === safeIndex ? 'is-active' : ''}`}
-                onClick={() => setCurrentIndex(dIdx)}
-                aria-label={`Go to slide ${dIdx + 1}`}
-              />
+        <div className="featured-showcase-track-wrapper">
+          <div
+            ref={trackRef}
+            className={`featured-showcase-track testimonial-showcase-track ${isDragging ? 'is-dragging' : ''}`}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUpOrLeave}
+            onMouseLeave={handleMouseUpOrLeave}
+            onKeyDown={handleKeyDown}
+            role="region"
+            aria-roledescription="carousel"
+            aria-label="Customer testimonials carousel"
+            tabIndex={0}
+          >
+            {items.map((item, idx) => (
+              <TestimonialCard key={item.id || idx} item={item} index={idx} total={items.length} />
             ))}
           </div>
-        )}
-      </Container>
+        </div>
+      </div>
     </section>
   )
 }

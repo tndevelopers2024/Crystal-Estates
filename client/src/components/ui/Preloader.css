@@ -9,8 +9,8 @@
   --deep: #0a2214;
   --mist: #eaf3e6;
   --paper: #f4f7f1;
-  --serif: "Cormorant Garamond", Georgia, "Times New Roman", serif;
-  --sans: "Jost", system-ui, -apple-system, sans-serif;
+  --serif: var(--font-body, "Montserrat", system-ui, sans-serif);
+  --sans: var(--font-body, "Montserrat", system-ui, sans-serif);
 
   position: fixed;
   inset: 0;

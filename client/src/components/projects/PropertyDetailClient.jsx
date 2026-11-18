@@ -951,7 +951,7 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
                         justifyContent: 'center',
                         color: 'rgba(234, 243, 230, 0.6)',
                         fontSize: '13px',
-                        fontFamily: 'var(--font-manrope)',
+                        fontFamily: 'var(--font-body)',
                         background: '#0a2214',
                       }}
                     >

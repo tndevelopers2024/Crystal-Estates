@@ -26,6 +26,17 @@ function normalizeSlug(slug) {
 }
 
 /**
+ * Slugs some records may be stored under for the same layout, e.g. a slug
+ * saved as the full filename "layout-ozhalai_…_editable-1794467980605.svg"
+ * resolves to the canonical "ozhalai_…_editable".
+ */
+function slugCandidates(rawSlug, slug) {
+  const raw = String(rawSlug || '').trim()
+  const canonical = slug.replace(/^layout-/, '').replace(/-\d{10,}$/, '')
+  return [...new Set([slug, raw, raw.toLowerCase(), `${slug}.svg`, canonical].filter(Boolean))]
+}
+
+/**
  * Helper to extract SVG dimensions and viewBox safely from file or buffer
  */
 function getSvgDetailsFromContent(content) {
@@ -198,15 +209,16 @@ router.get('/layout/:slug', async (req, res) => {
     }
 
     const collectionName = `${slug}_layout`
+    const candidates = slugCandidates(rawSlug, slug)
 
     const [dbPlots, metaDoc, propertyDoc] = await Promise.all([
       db.collection(collectionName).find({}, { projection: { _id: 0 } }).sort({ plotNo: 1, id: 1 }).toArray().catch(() => []),
-      db.collection('layout_metadata').findOne({ slug }, { projection: { _id: 0 } }),
+      db.collection('layout_metadata').findOne({ slug: { $in: candidates } }, { projection: { _id: 0 } }),
       db.collection('featured_plots').findOne(
         {
           $or: [
-            { layoutSlug: slug },
-            { slug },
+            { layoutSlug: { $in: candidates } },
+            { slug: { $in: candidates } },
             { projectId: slug },
             { id: slug },
           ],
@@ -323,34 +335,39 @@ router.put(['/layout/:slug/plots', '/layout/:slug/batch'], async (req, res) => {
 
     const db = await getDb()
 
-    // Format all plots
+    // Fill in defaults only. Every other field (uid, phase, north/south/east/west,
+    // areaSqFt, …) is preserved — stripping them used to wipe phase tags and
+    // unique ids from featured_plots on every save.
     const formattedPlots = plots.map((p, idx) => {
-      let centroid = { textX: p.textX, textY: p.textY }
-      if ((p.textX === undefined || p.textY === undefined) && p.svgPath) {
-        centroid = computePathCentroid(p.svgPath) || { textX: 100, textY: 100 }
+      const { _id, ...rest } = p || {}
+      let { textX, textY } = rest
+      if ((textX == null || textY == null) && rest.svgPath) {
+        const c = computePathCentroid(rest.svgPath) || {}
+        textX = c.textX ?? c.x ?? 100
+        textY = c.textY ?? c.y ?? 100
       }
-
-      const numId = parseInt(p.plotNo, 10)
+      const numId = parseInt(rest.plotNo, 10)
 
       return {
-        id: p.id || (!isNaN(numId) ? numId : idx + 1),
-        plotNo: String(p.plotNo || idx + 1),
-        status: p.status || 'Available',
-        facing: p.facing || 'East',
-        area: p.area || '1200 sq.ft',
-        dimensions: typeof p.dimensions === 'string' ? p.dimensions : `${p.width || "30'0\""} x ${p.length || "40'0\""}`,
-        width: p.width || "30'0\"",
-        length: p.length || "40'0\"",
-        price: p.price || '',
-        roadWidth: p.roadWidth || '30 ft',
-        type: p.type || 'Residential Plot',
-        surveyNo: p.surveyNo || '',
-        svgPath: p.svgPath || '',
-        textX: Math.round(centroid.textX || centroid.x || 100),
-        textY: Math.round(centroid.textY || centroid.y || 100),
+        ...rest,
+        id: rest.id ?? (!isNaN(numId) ? numId : idx + 1),
+        plotNo: String(rest.plotNo ?? idx + 1),
+        status: rest.status || 'Available',
+        facing: rest.facing || 'East',
+        area: rest.area || '1200 sq.ft',
+        dimensions:
+          typeof rest.dimensions === 'string' && rest.dimensions
+            ? rest.dimensions
+            : `${rest.width || "30'0\""} x ${rest.length || "40'0\""}`,
+        type: rest.type || 'Residential Plot',
+        svgPath: rest.svgPath || '',
+        textX,
+        textY,
         updatedAt: new Date(),
       }
     })
+
+    const statusOf = (p) => String(p.status || '').toLowerCase()
 
     // 1. Update layout collection in DB
     await db.collection(collectionName).deleteMany({})
@@ -358,10 +375,14 @@ router.put(['/layout/:slug/plots', '/layout/:slug/batch'], async (req, res) => {
       await db.collection(collectionName).insertMany(formattedPlots)
     }
 
+    const availableCount = formattedPlots.filter((p) => statusOf(p) === 'available').length
     const layoutSyncFields = {
       plots: formattedPlots,
       totalPlots: formattedPlots.length,
-      availablePlots: formattedPlots.filter((p) => p.status === 'Available').length,
+      availablePlots: availableCount,
+      available: availableCount,
+      booked: formattedPlots.filter((p) => ['booked', 'reserved'].includes(statusOf(p))).length,
+      sold: formattedPlots.filter((p) => ['sold', 'registered'].includes(statusOf(p))).length,
       hasLayoutMap: true,
       updatedAt: new Date(),
     }

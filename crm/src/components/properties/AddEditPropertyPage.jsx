@@ -34,6 +34,46 @@ import {
   fetchLayoutDetails,
 } from '../../lib/api'
 import PlotManagementSection from './PlotManagementSection'
+import { canonicalLayoutSlug, ensurePlotUids, plotsForPhase, summarizePlotStatuses } from '../../lib/plotUtils'
+
+/**
+ * Editable phase list for a property. Plots come from the property-level
+ * `plots` array (the source of truth every save writes), split by phase.
+ */
+function buildPhases(data) {
+  const layouts =
+    Array.isArray(data?.layouts) && data.layouts.length > 0
+      ? data.layouts
+      : Array.isArray(data?.phases) && data.phases.length > 0
+        ? data.phases
+        : null
+
+  if (!layouts) {
+    return [
+      {
+        id: 'phase-1',
+        name: 'Phase 1',
+        existingLayoutUrl: data?.layoutBackgroundUrl || data?.layoutUrl || null,
+        layoutFile: null,
+        plots: ensurePlotUids(Array.isArray(data?.plots) ? data.plots : []),
+        viewBox: data?.viewBox || null,
+        width: data?.width || null,
+        height: data?.height || null,
+      },
+    ]
+  }
+
+  return layouts.map((l, idx) => ({
+    id: l.id || `phase-${idx + 1}`,
+    name: l.name || `Phase ${idx + 1}`,
+    existingLayoutUrl: l.layoutUrl || l.layoutBackgroundUrl || null,
+    layoutFile: null,
+    plots: ensurePlotUids(plotsForPhase(data, l, idx, layouts.length)),
+    viewBox: l.viewBox || null,
+    width: l.width || null,
+    height: l.height || null,
+  }))
+}
 
 function generateProjectId() {
   const randomNum = Math.floor(100000 + Math.random() * 900000)
@@ -104,94 +144,41 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
   const documentInputRef = useRef(null)
 
   // Layout Blueprint Phases State (Supports 1 or more named layout blueprints e.g. Phase 1, Phase 2)
-  const [phases, setPhases] = useState(() => {
-    if (Array.isArray(initialData?.layouts) && initialData.layouts.length > 0) {
-      return initialData.layouts.map((l, idx) => ({
-        id: l.id || `phase-${idx + 1}`,
-        name: l.name || `Phase ${idx + 1}`,
-        existingLayoutUrl: l.layoutUrl || l.layoutBackgroundUrl || null,
-        layoutFile: null,
-        plots: Array.isArray(l.plots) ? l.plots : [],
-        viewBox: l.viewBox || null,
-        width: l.width || null,
-        height: l.height || null,
-      }))
-    }
-    return [
-      {
-        id: 'phase-1',
-        name: 'Phase 1',
-        existingLayoutUrl: initialData?.layoutBackgroundUrl || initialData?.layoutUrl || null,
-        layoutFile: null,
-        plots: Array.isArray(initialData?.plots) ? initialData.plots : [],
-        viewBox: initialData?.viewBox || null,
-        width: initialData?.width || null,
-        height: initialData?.height || null,
-      },
-    ]
-  })
+  const [phases, setPhases] = useState(() => buildPhases(initialData))
   const [activePhaseIndex, setActivePhaseIndex] = useState(0)
   const layoutInputRef = useRef(null)
 
-  // Load existing layout plots and phases from database if editing a property
+  // Rebuild phases when a different property is opened for editing
   useEffect(() => {
     if (!initialData) return
+    setPhases(buildPhases(initialData))
+    setActivePhaseIndex(0)
 
-    // 1. Immediately sync phases from initialData if available
-    const rawLayouts =
-      Array.isArray(initialData.layouts) && initialData.layouts.length > 0
-        ? initialData.layouts
-        : Array.isArray(initialData.phases) && initialData.phases.length > 0
-        ? initialData.phases
-        : null
+    // Legacy records that keep plots only in the layout collection: fetch them
+    // once, and only fill phases that are still empty so user edits are never
+    // overwritten by a late response.
+    const hasLocalPlots =
+      (Array.isArray(initialData.plots) && initialData.plots.length > 0) ||
+      (Array.isArray(initialData.layouts) && initialData.layouts.some((l) => l.plots?.length))
+    const slug =
+      canonicalLayoutSlug(initialData.layoutSlug) ||
+      canonicalLayoutSlug(initialData.layoutBackgroundUrl) ||
+      initialData.slug ||
+      initialData.id
+    if (hasLocalPlots || !slug) return
 
-    if (rawLayouts) {
-      setPhases(
-        rawLayouts.map((l, idx) => ({
-          id: l.id || `phase-${idx + 1}`,
-          name: l.name || `Phase ${idx + 1}`,
-          existingLayoutUrl: l.layoutUrl || l.layoutBackgroundUrl || null,
-          layoutFile: null,
-          plots: Array.isArray(l.plots) ? l.plots : [],
-          viewBox: l.viewBox || null,
-          width: l.width || null,
-          height: l.height || null,
-        }))
-      )
-    }
-
-    // 2. Fetch fresh layout details from backend
-    const slug = initialData.layoutSlug || initialData.slug || initialData.id
-    if (slug) {
-      fetchLayoutDetails(slug)
-        .then((data) => {
-          if (data && data.success) {
-            if (Array.isArray(data.layouts) && data.layouts.length > 0) {
-              setPhases(
-                data.layouts.map((l, idx) => ({
-                  id: l.id || `phase-${idx + 1}`,
-                  name: l.name || `Phase ${idx + 1}`,
-                  existingLayoutUrl: l.layoutUrl || l.layoutBackgroundUrl || null,
-                  layoutFile: null,
-                  plots: Array.isArray(l.plots) ? l.plots : [],
-                  viewBox: l.viewBox || null,
-                  width: l.width || null,
-                  height: l.height || null,
-                }))
-              )
-            } else if (Array.isArray(data.plots) && data.plots.length > 0 && !rawLayouts) {
-              setPhases((prev) => {
-                const next = [...prev]
-                if (next.length > 0 && (!next[0].plots || next[0].plots.length === 0)) {
-                  next[0] = { ...next[0], plots: data.plots }
-                  return next
-                }
-                return prev
-              })
-            }
-          }
-        })
-        .catch(() => {})
+    let active = true
+    fetchLayoutDetails(slug)
+      .then((data) => {
+        if (!active || !data?.success) return
+        const fetched = buildPhases({ ...initialData, layouts: data.layouts, plots: data.plots })
+        setPhases((prev) =>
+          prev.map((p, idx) => (p.plots.length === 0 && fetched[idx]?.plots.length ? { ...p, plots: fetched[idx].plots } : p)),
+        )
+      })
+      .catch(() => {})
+    return () => {
+      active = false
     }
   }, [initialData])
 
@@ -571,7 +558,11 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
         phases: processedPhases,
         plots: allPlots,
         totalPlots: allPlots.length,
-        availablePlots: allPlots.filter((p) => p.status === 'Available').length,
+        // Keep card inventory counters in step with the plots being saved
+        ...(() => {
+          const s = summarizePlotStatuses(allPlots)
+          return { availablePlots: s.available, available: s.available, booked: s.booked, sold: s.sold }
+        })(),
       }
 
       let savedResult
@@ -1383,8 +1374,7 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
                   key={currentPhase?.id || activePhaseIndex}
                   plots={currentPhase?.plots || []}
                   onChange={handlePhasePlotsChange}
-                  layoutUrl={currentPhase?.existingLayoutUrl || (currentPhase?.layoutFile ? currentPhase.layoutFile.name : null)}
-                  projectName={`${formData.name} - ${currentPhase?.name || 'Phase'}`}
+                  phaseName={currentPhase?.name}
                 />
               </div>
 

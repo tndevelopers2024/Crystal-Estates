@@ -786,7 +786,7 @@
 }
 
 .pv-tooltip__title {
-  font-family: var(--font-display, var(--font-cormorant, 'Cormorant Garamond', Georgia, serif));
+  font-family: var(--font-body);
   font-size: 1.05rem;
   font-weight: 700;
   color: var(--green-900, #0a5c36);

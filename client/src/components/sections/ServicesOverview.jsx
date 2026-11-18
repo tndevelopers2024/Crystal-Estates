@@ -78,7 +78,7 @@ export default function ServicesOverview({
                   </div>
                   <h3
                     style={{
-                      fontFamily: 'var(--font-heading, "Playfair Display", Georgia, serif)',
+                      fontFamily: 'var(--font-body)',
                       fontSize: '1.25rem',
                       fontWeight: 600,
                       color: 'var(--green-950, #0a241b)',
