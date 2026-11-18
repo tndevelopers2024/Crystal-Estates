@@ -1,7 +1,7 @@
 import HomeHero from '../components/home/HomeHero'
 import Manifesto, { LocationsMarquee } from '../components/home/Manifesto'
 import ProjectsIndex from '../components/home/ProjectsIndex'
-import PlotToHome from '../components/home/PlotToHome'
+import DreamReveal from '../components/home/DreamReveal'
 import Offerings from '../components/home/Offerings'
 import Pillars from '../components/home/Pillars'
 import Journey from '../components/home/Journey'
@@ -45,7 +45,7 @@ export default async function HomePage() {
       <Manifesto />
       <LocationsMarquee />
       <ProjectsIndex projects={featured} />
-      <PlotToHome />
+      <DreamReveal />
       <Offerings />
       <Pillars />
       <Journey />
