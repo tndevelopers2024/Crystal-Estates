@@ -8,6 +8,12 @@
       "port": 3000
     },
     {
+      "name": "client-alt",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["next", "dev", "client", "-p", "3100"],
+      "port": 3100
+    },
+    {
       "name": "server",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev:server"],
