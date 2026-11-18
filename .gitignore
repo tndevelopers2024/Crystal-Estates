@@ -13,6 +13,7 @@ crm/node_modules/
 # Environment Variables & Secrets
 # ==========================================
 .env
+Dump
 .env.*
 .env*.local
 *.env.local
