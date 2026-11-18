@@ -8,7 +8,6 @@ import Journey from '../components/home/Journey'
 import Voices from '../components/home/Voices'
 import Journal from '../components/home/Journal'
 import Closing from '../components/home/Closing'
-import { instrumentSerif } from '../components/home/fonts'
 import { fetchPlots } from '../lib/api'
 import '../components/home/home.css'
 
@@ -40,7 +39,7 @@ export default async function HomePage() {
   const featured = Array.isArray(plots) ? plots.filter((p) => p && p.featured !== false) : []
 
   return (
-    <div className={`ch-home ${instrumentSerif.variable}`}>
+    <div className="ch-home">
       <HomeHero />
       <Manifesto />
       <LocationsMarquee />

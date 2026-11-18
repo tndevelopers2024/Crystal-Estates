@@ -45,7 +45,7 @@ export default function Offerings() {
           <Eyebrow>What we offer</Eyebrow>
           <h2 id="ch-offer-title" className="ch-h2">
             <WordsPullUpMultiStyle
-              segments={[{ text: 'Every kind of land,' }, { br: true }, { text: 'one trusted', className: '' }, { text: 'partner.', className: 'ch-serif' }]}
+              segments={[{ text: 'Every kind of land,' }, { br: true }, { text: 'one trusted', className: '' }, { text: 'partner.', className: 'ch-accent' }]}
             />
           </h2>
         </div>

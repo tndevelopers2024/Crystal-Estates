@@ -127,7 +127,7 @@ export default function DreamReveal() {
           <Eyebrow className="ch-eyebrow--light">Today · An approved plot</Eyebrow>
           <h2 id="ch-reveal-title" className="ch-reveal__title">
             <WordsPullUpMultiStyle
-              segments={[{ text: 'Every home' }, { br: true }, { text: 'starts with' }, { text: 'land.', className: 'ch-serif' }]}
+              segments={[{ text: 'Every home' }, { br: true }, { text: 'starts with' }, { text: 'land.', className: 'ch-accent' }]}
             />
           </h2>
           <motion.p
@@ -149,7 +149,7 @@ export default function DreamReveal() {
         <div className="ch-reveal__copy ch-reveal__copy--house">
           <Eyebrow className="ch-eyebrow--light">Tomorrow · Your home</Eyebrow>
           <p className="ch-reveal__title ch-reveal__title--house">
-            Build your <em className="ch-serif">dream home.</em>
+            Build your <em className="ch-accent">dream home.</em>
           </p>
           <p className="ch-reveal__text">Your design, your pace, on land that is truly and legally yours.</p>
         </div>

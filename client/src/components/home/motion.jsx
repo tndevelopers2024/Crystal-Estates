@@ -24,7 +24,7 @@ export function WordsPullUp({ text, className = '', as: Tag = 'span', delay = 0,
 
 /**
  * Same as WordsPullUp, but each segment keeps its own className
- * (e.g. an italic serif accent inside a sans headline).
+ * (e.g. a coloured accent inside a sans headline).
  */
 export function WordsPullUpMultiStyle({ segments, className = '', as: Tag = 'span', delay = 0, stagger = 0.08 }) {
   const ref = useRef(null)

@@ -1,7 +1,7 @@
 /* ─────────────────────────────────────────────────────────────
    Crystal Estates — Cinematic homepage
    Forest green + champagne gold brand, warm cream accents,
-   Montserrat body with Instrument Serif italic accents.
+   Montserrat throughout; gold weight-contrast accents.
    All selectors are scoped under .ch-home.
    ───────────────────────────────────────────────────────────── */
 
@@ -18,7 +18,6 @@
   --ch-muted: #5e6660;
   --ch-line: rgba(15, 61, 46, 0.14);
   --ch-ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --ch-serif-font: var(--font-instrument), 'Times New Roman', serif;
   --ch-pad: clamp(20px, 4vw, 48px);
   --ch-radius: clamp(20px, 2.4vw, 32px);
 
@@ -49,11 +48,11 @@
   white-space: nowrap;
 }
 
-.ch-serif {
-  font-family: var(--ch-serif-font);
-  font-style: italic;
+.ch-accent {
+  font-family: inherit;
+  font-style: normal;
   font-weight: 400;
-  letter-spacing: -0.01em;
+  letter-spacing: inherit;
 }
 
 /* ── Shared atoms ─────────────────────────────────────────── */
@@ -96,9 +95,9 @@
   color: var(--ch-green);
   margin-top: 18px;
 }
-.ch-h2 .ch-serif { font-size: 1.08em; color: var(--ch-gold); }
+.ch-h2 .ch-accent { color: var(--ch-gold); }
 .ch-h2--light { color: var(--ch-bone); }
-.ch-h2--light .ch-serif { color: var(--ch-gold-soft); }
+.ch-h2--light .ch-accent { color: var(--ch-gold-soft); }
 
 .ch-pill {
   display: inline-flex;
@@ -225,7 +224,7 @@
   font-weight: 600;
   color: var(--ch-bone);
 }
-.ch-hero__title .ch-serif { color: var(--ch-gold-soft); font-size: 1.1em; }
+.ch-hero__title .ch-accent { color: var(--ch-gold-soft); }
 .ch-hero__aside { grid-column: span 4; padding-bottom: 10px; }
 .ch-hero__aside p {
   font-size: clamp(15px, 1.15vw, 17px);
@@ -345,8 +344,9 @@
   align-items: center;
   gap: clamp(24px, 3vw, 48px);
   padding-right: clamp(24px, 3vw, 48px);
-  font-family: var(--ch-serif-font);
-  font-style: italic;
+  font-family: var(--font-body);
+  font-weight: 500;
+  letter-spacing: -0.02em;
   font-size: clamp(28px, 4vw, 56px);
   line-height: 1;
   white-space: nowrap;
@@ -538,8 +538,8 @@
   font-weight: 600;
   color: var(--ch-bone);
 }
-.ch-reveal__title .ch-serif { color: var(--ch-gold-soft); font-size: 1.08em; }
-.ch-reveal__title--house .ch-serif { display: block; }
+.ch-reveal__title .ch-accent { color: var(--ch-gold-soft); }
+.ch-reveal__title--house .ch-accent { display: block; }
 .ch-reveal__text {
   margin-top: 18px;
   max-width: 400px;
@@ -637,7 +637,7 @@
   .ch-reveal__copy--house .ch-eyebrow { justify-content: flex-start; }
   .ch-reveal__copy--house .ch-reveal__text { margin-left: 0; }
   .ch-reveal__title { font-size: clamp(40px, 11vw, 64px); }
-  .ch-reveal__title--house .ch-serif { display: inline; }
+  .ch-reveal__title--house .ch-accent { display: inline; }
   .ch-reveal__text { font-size: 15px; }
   .ch-reveal__cta { left: var(--ch-pad); right: auto; bottom: 36px; }
 }
@@ -674,7 +674,7 @@
   background: var(--ch-green);
   color: var(--ch-gold-soft);
 }
-.ch-offer__num { font-family: var(--ch-serif-font); font-style: italic; font-size: 30px; color: var(--ch-gold); line-height: 1; }
+.ch-offer__num { font-size: 15px; font-weight: 600; letter-spacing: 0.08em; color: var(--ch-gold); line-height: 1; }
 .ch-offer__card h3 { font-size: 21px; font-weight: 600; letter-spacing: -0.02em; color: var(--ch-green); }
 .ch-offer__card p { margin-top: 10px; font-size: 14.5px; line-height: 1.65; color: var(--ch-muted); }
 .ch-offer__card ul { list-style: none; display: grid; gap: 10px; margin: 22px 0 28px; padding-top: 20px; border-top: 1px dashed var(--ch-line); }
@@ -737,8 +737,8 @@
 }
 .ch-pillars__item.is-lit { opacity: 1; }
 .ch-pillars__num {
-  font-family: var(--ch-serif-font);
-  font-style: italic;
+  font-family: var(--font-body);
+  font-weight: 300;
   font-size: clamp(36px, 4vw, 56px);
   line-height: 0.9;
   color: var(--ch-gold);
@@ -797,8 +797,8 @@
 .ch-journey__num {
   display: block;
   margin-top: 28px;
-  font-family: var(--ch-serif-font);
-  font-style: italic;
+  font-family: var(--font-body);
+  font-weight: 300;
   font-size: clamp(44px, 4.4vw, 64px);
   line-height: 1;
   color: var(--ch-gold-soft);
@@ -835,9 +835,10 @@
 .ch-voices__stars .is-filled { color: var(--ch-gold); fill: var(--ch-gold); }
 .ch-voices__stage blockquote p {
   margin-top: 22px;
-  font-family: var(--ch-serif-font);
-  font-size: clamp(24px, 2.7vw, 40px);
-  line-height: 1.25;
+  font-family: var(--font-body);
+  font-size: clamp(19px, 1.9vw, 28px);
+  font-weight: 500;
+  line-height: 1.5;
   letter-spacing: -0.01em;
   color: var(--ch-green);
 }
@@ -913,7 +914,7 @@
 .ch-closing__orb--b { width: 360px; height: 360px; bottom: -140px; left: -60px; background: rgba(27, 94, 70, 0.7); }
 .ch-closing__grid { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); gap: clamp(36px, 6vw, 96px); align-items: center; }
 .ch-closing__title { margin-top: 18px; font-size: clamp(48px, 7vw, 112px); line-height: 0.95; letter-spacing: -0.045em; font-weight: 600; color: var(--ch-bone); }
-.ch-closing__title .ch-serif { color: var(--ch-gold-soft); font-size: 1.1em; }
+.ch-closing__title .ch-accent { color: var(--ch-gold-soft); }
 .ch-closing__copy > p { margin-top: 24px; max-width: 460px; font-size: 16px; line-height: 1.7; color: rgba(243, 239, 228, 0.76); }
 .ch-closing__contact { list-style: none; display: grid; gap: 14px; margin-top: 36px; padding-top: 28px; border-top: 1px solid rgba(243, 239, 228, 0.16); }
 .ch-closing__contact li { display: flex; align-items: center; gap: 12px; font-size: 15px; color: var(--ch-bone); }

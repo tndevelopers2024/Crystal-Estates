@@ -17,7 +17,7 @@ export default function Journey() {
         <div className="ch-journey__head">
           <Eyebrow className="ch-eyebrow--light">How it works</Eyebrow>
           <h2 id="ch-journey-title" className="ch-h2 ch-h2--light">
-            <WordsPullUpMultiStyle segments={[{ text: 'From first call' }, { br: true }, { text: 'to' }, { text: 'handover.', className: 'ch-serif' }]} />
+            <WordsPullUpMultiStyle segments={[{ text: 'From first call' }, { br: true }, { text: 'to' }, { text: 'handover.', className: 'ch-accent' }]} />
           </h2>
           <p>A transparent, hassle-free path to owning your approved plot or farmland in Chennai.</p>
         </div>

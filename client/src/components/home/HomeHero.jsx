@@ -75,7 +75,7 @@ export default function HomeHero() {
                   { text: 'Creating assets.' },
                   { br: true },
                   { text: 'Building', className: '' },
-                  { text: 'trust.', className: 'ch-serif' },
+                  { text: 'trust.', className: 'ch-accent' },
                 ]}
               />
             </h1>

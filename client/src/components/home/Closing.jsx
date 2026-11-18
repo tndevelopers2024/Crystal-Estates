@@ -35,7 +35,7 @@ export default function Closing() {
           <div className="ch-closing__copy">
             <Eyebrow className="ch-eyebrow--light">Enquire</Eyebrow>
             <h2 id="ch-closing-title" className="ch-closing__title">
-              <WordsPullUpMultiStyle segments={[{ text: 'Your plot is' }, { br: true }, { text: 'waiting.', className: 'ch-serif' }]} />
+              <WordsPullUpMultiStyle segments={[{ text: 'Your plot is' }, { br: true }, { text: 'waiting.', className: 'ch-accent' }]} />
             </h2>
             <p>
               Talk to our land advisors about clear-title documentation, weekend site visits and

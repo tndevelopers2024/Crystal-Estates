@@ -18,7 +18,7 @@ export default function Journal() {
           <div>
             <Eyebrow>Latest property updates</Eyebrow>
             <h2 id="ch-journal-title" className="ch-h2">
-              <WordsPullUpMultiStyle segments={[{ text: 'Notes from the' }, { text: 'ground.', className: 'ch-serif' }]} />
+              <WordsPullUpMultiStyle segments={[{ text: 'Notes from the' }, { text: 'ground.', className: 'ch-accent' }]} />
             </h2>
           </div>
           <Link href="/news" className="ch-textlink">

@@ -48,7 +48,7 @@ export default function Pillars() {
           <div className="ch-pillars__sticky">
             <Eyebrow>Why Crystal Estates</Eyebrow>
             <h2 id="ch-pillars-title" className="ch-h2">
-              <WordsPullUpMultiStyle segments={[{ text: 'Six promises,' }, { br: true }, { text: 'kept on', className: '' }, { text: 'every plot.', className: 'ch-serif' }]} />
+              <WordsPullUpMultiStyle segments={[{ text: 'Six promises,' }, { br: true }, { text: 'kept on', className: '' }, { text: 'every plot.', className: 'ch-accent' }]} />
             </h2>
             <div className="ch-pillars__image">
               <motion.div className="ch-pillars__image-inner" style={reduce ? undefined : { y: imgY }}>

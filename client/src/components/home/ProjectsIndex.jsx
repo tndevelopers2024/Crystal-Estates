@@ -62,7 +62,7 @@ export default function ProjectsIndex({ projects = [] }) {
             <Eyebrow>Featured projects</Eyebrow>
             <h2 id="ch-projects-title" className="ch-h2">
               <WordsPullUpMultiStyle
-                segments={[{ text: 'Land worth' }, { text: 'owning.', className: 'ch-serif' }]}
+                segments={[{ text: 'Land worth' }, { text: 'owning.', className: 'ch-accent' }]}
               />
             </h2>
           </div>
