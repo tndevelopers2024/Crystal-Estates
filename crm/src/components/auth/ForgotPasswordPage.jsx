@@ -138,7 +138,7 @@ export default function ForgotPasswordPage() {
                     type="email"
                     required
                     autoFocus
-                    placeholder="admin@crystalestates.in"
+                    placeholder="you@company.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs placeholder:text-slate-400 focus:outline-none focus:border-[#0F3D2E] focus:bg-white transition"

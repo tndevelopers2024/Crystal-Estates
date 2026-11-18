@@ -7,7 +7,6 @@ import {
   EyeOff,
   ShieldCheck,
   Building2,
-  Sparkles,
   ArrowRight,
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
@@ -52,13 +51,6 @@ export default function LoginPage() {
     }
   }
 
-  // Pre-fill demo admin credentials
-  const fillDemoCredentials = () => {
-    setEmail('admin@crystalestates.in')
-    setPassword('admin123')
-    setError(null)
-  }
-
   return (
     <div className="min-h-screen bg-[#F4F6F9] flex flex-col justify-center items-center p-4 sm:p-6 select-none font-sans">
       <div className="w-full max-w-md">
@@ -97,7 +89,7 @@ export default function LoginPage() {
                   type="text"
                   required
                   autoFocus
-                  placeholder="admin@crystalestates.in"
+                  placeholder="you@company.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs placeholder:text-slate-400 focus:outline-none focus:border-[#0F3D2E] focus:bg-white transition"
@@ -169,21 +161,6 @@ export default function LoginPage() {
               {!loading && <ArrowRight className="w-4 h-4" />}
             </button>
           </form>
-
-          {/* Quick Demo Credentials Pill */}
-          <div className="mt-6 pt-5 border-t border-slate-100 text-center">
-            <p className="text-[11px] text-slate-400 mb-2 font-medium">
-              Default Administrator Credentials:
-            </p>
-            <button
-              type="button"
-              onClick={fillDemoCredentials}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#E2EDE8] hover:bg-[#d1e4dc] text-[#0F3D2E] border border-[#C8DED5] rounded-xl text-xs font-semibold transition"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Fill Admin: admin@crystalestates.in</span>
-            </button>
-          </div>
         </div>
 
         {/* Security Tagline */}

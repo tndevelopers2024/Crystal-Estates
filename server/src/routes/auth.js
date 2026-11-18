@@ -1,43 +1,21 @@
 import { Router } from 'express'
 import crypto from 'crypto'
 import { getDb } from '../config/db.js'
+import { hashPassword, verifyPassword, needsRehash, escapeRegex } from '../lib/password.js'
 
 const router = Router()
 
 /**
- * Hash password using sha256 (or plain match fallback)
+ * Case-insensitive exact email match (input is escaped so it can't act as a regex)
  */
-function hashPassword(password) {
-  return crypto.createHash('sha256').update(String(password).trim()).digest('hex')
-}
-
-/**
- * Initial Default Administrator
- */
-const defaultAdmin = {
-  id: 'usr-admin-01',
-  name: 'Crystal Admin',
-  email: 'admin@crystalestates.in',
-  passwordHash: hashPassword('admin123'),
-  role: 'Super Admin',
-  initials: 'CA',
-  color: '#0B57D0',
-  createdAt: new Date(),
-  updatedAt: new Date(),
-}
-
-/**
- * Seed default admin into users collection if empty
- */
-async function ensureAdminUser(db) {
-  const count = await db.collection('users').countDocuments()
-  if (count === 0) {
-    await db.collection('users').insertOne(defaultAdmin)
-  }
+function emailQuery(cleanEmail) {
+  return { email: { $regex: new RegExp(`^${escapeRegex(cleanEmail)}$`, 'i') } }
 }
 
 /**
  * POST /api/auth/login
+ * Succeeds only for a user in the `users` collection whose stored passwordHash matches.
+ * There is no built-in account; create the first admin with `npm run seed:admin`.
  */
 router.post('/login', async (req, res) => {
   try {
@@ -50,43 +28,23 @@ router.post('/login', async (req, res) => {
     const cleanPass = String(password).trim()
 
     const db = await getDb()
-    await ensureAdminUser(db)
+    const user = await db.collection('users').findOne(emailQuery(cleanEmail))
 
-    // Find user by email
-    let user = await db.collection('users').findOne({
-      email: { $regex: new RegExp(`^${cleanEmail}$`, 'i') },
-    })
-
-    // If user not found, but trying default credentials, allow creation
-    if (!user && (cleanEmail === 'admin@crystalestates.in' || cleanEmail === 'admin')) {
-      user = defaultAdmin
-      await db.collection('users').insertOne(defaultAdmin)
-    }
-
-    if (!user) {
-      return res.status(401).json({ success: false, error: 'Invalid email or password' })
-    }
-
-    // Verify password (check hash or plain fallback for admin convenience)
-    const passHash = hashPassword(cleanPass)
-    const isMatch =
-      user.passwordHash === passHash ||
-      user.password === cleanPass ||
-      (cleanEmail === 'admin@crystalestates.in' && (cleanPass === 'admin123' || cleanPass === 'admin'))
-
-    if (!isMatch) {
+    if (!user || !verifyPassword(cleanPass, user.passwordHash)) {
       return res.status(401).json({ success: false, error: 'Invalid email or password' })
     }
 
     // Generate session token
     const token = `token-${crypto.randomBytes(24).toString('hex')}`
 
+    const update = { lastLogin: new Date(), sessionToken: token }
+    // Upgrade legacy unsalted sha256 hashes to scrypt on successful login
+    if (needsRehash(user.passwordHash)) {
+      update.passwordHash = hashPassword(cleanPass)
+    }
+
     try {
-      // Update last login
-      await db.collection('users').updateOne(
-        { email: user.email },
-        { $set: { lastLogin: new Date(), sessionToken: token } }
-      )
+      await db.collection('users').updateOne({ _id: user._id }, { $set: update })
     } catch (_) {}
 
     return res.json({
@@ -103,32 +61,8 @@ router.post('/login', async (req, res) => {
       },
     })
   } catch (err) {
-    console.error('Login error, using resilient fallback:', err.message)
-    const { email, password } = req.body
-    const cleanEmail = String(email || '').trim().toLowerCase()
-    const cleanPass = String(password || '').trim()
-
-    if (
-      (cleanEmail === 'admin@crystalestates.in' || cleanEmail === 'admin') &&
-      (cleanPass === 'admin123' || cleanPass === 'admin')
-    ) {
-      const token = `token-${crypto.randomBytes(24).toString('hex')}`
-      return res.json({
-        success: true,
-        message: 'Login successful (resilient mode)',
-        token,
-        user: {
-          id: 'usr-admin-01',
-          name: 'Crystal Admin',
-          email: 'admin@crystalestates.in',
-          role: 'Super Admin',
-          initials: 'CA',
-          color: '#0B57D0',
-        },
-      })
-    }
-
-    return res.status(401).json({ success: false, error: 'Invalid email or password' })
+    console.error('Login error:', err.message)
+    return res.status(503).json({ success: false, error: 'Login is temporarily unavailable. Please try again.' })
   }
 })
 
@@ -145,11 +79,8 @@ router.post('/forgot-password', async (req, res) => {
 
     const cleanEmail = String(email).trim().toLowerCase()
     const db = await getDb()
-    await ensureAdminUser(db)
 
-    const user = await db.collection('users').findOne({
-      email: { $regex: new RegExp(`^${cleanEmail}$`, 'i') },
-    })
+    const user = await db.collection('users').findOne(emailQuery(cleanEmail))
 
     if (!user) {
       return res.status(404).json({
@@ -205,9 +136,7 @@ router.post('/reset-password', async (req, res) => {
     const cleanEmail = String(email).trim().toLowerCase()
     const db = await getDb()
 
-    const user = await db.collection('users').findOne({
-      email: { $regex: new RegExp(`^${cleanEmail}$`, 'i') },
-    })
+    const user = await db.collection('users').findOne(emailQuery(cleanEmail))
 
     if (!user) {
       return res.status(404).json({ success: false, error: 'User not found' })
@@ -229,10 +158,10 @@ router.post('/reset-password', async (req, res) => {
       {
         $set: {
           passwordHash,
-          password: String(newPassword),
           updatedAt: new Date(),
         },
         $unset: {
+          password: '',
           resetToken: '',
           resetOtp: '',
           resetExpiresAt: '',

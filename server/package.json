@@ -7,7 +7,9 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "seed": "node scripts/seed_mongodb.mjs"
+    "seed": "node scripts/seed_mongodb.mjs",
+    "seed:admin": "node scripts/seed_admin.mjs",
+    "migrate:passwords": "node scripts/migrate_plaintext_passwords.mjs"
   },
   "dependencies": {
     "compression": "^1.8.2",
