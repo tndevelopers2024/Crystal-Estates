@@ -728,8 +728,8 @@
 .ch-pillars__list { list-style: none; border-top: 1px solid var(--ch-line); }
 .ch-pillars__item {
   display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
-  gap: 16px;
+  grid-template-columns: clamp(68px, 6vw, 88px) minmax(0, 1fr);
+  gap: clamp(16px, 2vw, 24px);
   padding: clamp(26px, 3vw, 40px) 0;
   border-bottom: 1px solid var(--ch-line);
   opacity: 0.42;
@@ -742,6 +742,8 @@
   font-size: clamp(36px, 4vw, 56px);
   line-height: 0.9;
   color: var(--ch-gold);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 .ch-pillars__row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
 .ch-pillars__row h3 { font-size: clamp(22px, 2.2vw, 30px); font-weight: 600; letter-spacing: -0.025em; color: var(--ch-green); }
@@ -802,6 +804,8 @@
   font-size: clamp(44px, 4.4vw, 64px);
   line-height: 1;
   color: var(--ch-gold-soft);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 .ch-journey__steps h3 { margin-top: 14px; font-size: 20px; font-weight: 600; color: var(--ch-bone); }
 .ch-journey__steps p { margin-top: 8px; font-size: 14.5px; line-height: 1.65; color: rgba(243, 239, 228, 0.68); }
