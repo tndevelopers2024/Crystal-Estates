@@ -1,0 +1,521 @@
+/* ─────────────────────────────────────────────────────────────
+   Crystal Estates — Services Page Styling
+   Inherits design language, tokens, and typography from .ch-home.
+   ───────────────────────────────────────────────────────────── */
+
+.ch-services-page {
+  width: 100%;
+  background: var(--ch-paper);
+  color: var(--ch-text);
+  overflow-x: clip;
+}
+
+/* ── 1. Hero / Header ─────────────────────────────────────── */
+.ch-services-hero {
+  position: relative;
+  padding: clamp(48px, 6vw, 84px) 0 clamp(40px, 5vw, 68px);
+  background: var(--ch-paper);
+  border-bottom: 1px solid var(--ch-line);
+}
+
+.ch-services-breadcrumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ch-muted);
+  margin-bottom: 24px;
+}
+.ch-services-breadcrumb a {
+  color: var(--ch-muted);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+.ch-services-breadcrumb a:hover {
+  color: var(--ch-green);
+}
+.ch-services-breadcrumb__sep {
+  opacity: 0.4;
+  font-size: 11px;
+}
+.ch-services-breadcrumb__current {
+  color: var(--ch-ink);
+  font-weight: 600;
+}
+
+.ch-services-hero__head {
+  max-width: 960px;
+}
+.ch-services-hero__title {
+  font-size: clamp(38px, 5.6vw, 82px);
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+  font-weight: 700;
+  color: var(--ch-ink);
+  margin: 18px 0 20px 0;
+}
+.ch-services-hero__title .ch-accent {
+  color: var(--ch-gold);
+  font-weight: 500;
+  font-style: italic;
+}
+.ch-services-hero__lead {
+  font-size: clamp(15.5px, 1.4vw, 18.5px);
+  line-height: 1.7;
+  color: var(--ch-muted);
+  max-width: 740px;
+  margin-bottom: 30px;
+}
+.ch-services-hero__ctas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: clamp(40px, 6vw, 64px);
+}
+
+/* Panoramic Banner */
+.ch-services-hero__banner {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 21 / 9;
+  min-height: 320px;
+  max-height: 520px;
+  border-radius: var(--ch-radius);
+  overflow: hidden;
+  box-shadow: 0 30px 70px -20px rgba(10, 38, 29, 0.16);
+}
+.ch-services-hero__banner-img {
+  position: absolute;
+  inset: 0;
+}
+.ch-services-hero__banner-img img {
+  object-fit: cover;
+  transition: transform 1.2s var(--ch-ease);
+}
+.ch-services-hero__banner:hover .ch-services-hero__banner-img img {
+  transform: scale(1.02);
+}
+.ch-services-hero__banner-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(6, 22, 16, 0.08) 0%, rgba(6, 22, 16, 0.45) 100%);
+  pointer-events: none;
+}
+.ch-services-hero__chip {
+  position: absolute;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  background: rgba(10, 38, 29, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(243, 239, 228, 0.2);
+  color: var(--ch-bone);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.ch-services-hero__chip--left {
+  bottom: 24px;
+  left: 24px;
+}
+.ch-services-hero__chip--right {
+  bottom: 24px;
+  right: 24px;
+}
+.ch-services-hero__chip-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #25d366;
+  box-shadow: 0 0 0 4px rgba(37, 211, 102, 0.25);
+}
+.ch-services-hero__chip-star {
+  color: var(--ch-gold);
+}
+
+/* ── 2. Quick Overview Cards ──────────────────────────────── */
+.ch-services-overview {
+  padding: clamp(60px, 8vw, 110px) 0;
+  background: var(--ch-bone);
+  border-bottom: 1px solid var(--ch-line);
+}
+.ch-services-overview__head {
+  text-align: center;
+  max-width: 680px;
+  margin: 0 auto clamp(36px, 5vw, 56px);
+}
+.ch-services-overview__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(20px, 2.5vw, 36px);
+}
+.ch-services-ov-card {
+  background: #ffffff;
+  border-radius: var(--ch-radius);
+  border: 1px solid rgba(184, 150, 78, 0.28);
+  padding: clamp(28px, 3.8vw, 44px);
+  box-shadow: 0 16px 40px -15px rgba(10, 38, 29, 0.06);
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.35s var(--ch-ease), border-color 0.3s ease, box-shadow 0.35s ease;
+}
+.ch-services-ov-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--ch-gold);
+  box-shadow: 0 24px 50px -15px rgba(10, 38, 29, 0.12);
+}
+.ch-services-ov-card__icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 16px;
+  background: var(--ch-green);
+  color: var(--ch-gold);
+  display: grid;
+  place-items: center;
+  margin-bottom: 22px;
+}
+.ch-services-ov-card__num {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--ch-gold);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.ch-services-ov-card h3 {
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ch-ink);
+  margin-bottom: 10px;
+}
+.ch-services-ov-card p {
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--ch-muted);
+  margin-bottom: 22px;
+}
+.ch-services-ov-card__link {
+  margin-top: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ch-green);
+  transition: gap 0.2s ease;
+}
+.ch-services-ov-card:hover .ch-services-ov-card__link {
+  gap: 12px;
+  color: var(--ch-gold);
+}
+
+/* ── 3. Detailed Service Showcase ─────────────────────────── */
+.ch-service-showcase {
+  padding: clamp(80px, 10vw, 140px) 0;
+  position: relative;
+  border-bottom: 1px solid var(--ch-line);
+}
+.ch-service-showcase--paper {
+  background: var(--ch-paper);
+}
+.ch-service-showcase--bone {
+  background: var(--ch-bone);
+}
+.ch-service-showcase__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: clamp(40px, 6vw, 96px);
+  align-items: start;
+}
+.ch-service-showcase--flipped .ch-service-showcase__grid {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+}
+
+.ch-service-showcase__badge-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.ch-service-showcase__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: rgba(184, 150, 78, 0.12);
+  border: 1px solid rgba(184, 150, 78, 0.28);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8c6d2d;
+}
+.ch-service-showcase__num {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--ch-green);
+  text-transform: uppercase;
+}
+
+.ch-service-showcase__title {
+  font-size: clamp(34px, 4.4vw, 56px);
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+  font-weight: 700;
+  color: var(--ch-ink);
+  margin-bottom: 12px;
+}
+.ch-service-showcase__subtitle {
+  font-size: clamp(16.5px, 1.6vw, 19px);
+  font-weight: 600;
+  color: var(--ch-green);
+  margin-bottom: 18px;
+  line-height: 1.45;
+}
+.ch-service-showcase__desc {
+  font-size: 15.5px;
+  line-height: 1.75;
+  color: var(--ch-muted);
+  margin-bottom: 30px;
+}
+
+/* Showcase Photo Card */
+.ch-service-showcase__photo-card {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9.5;
+  border-radius: var(--ch-radius);
+  overflow: hidden;
+  box-shadow: 0 24px 50px -15px rgba(10, 38, 29, 0.12);
+  margin-bottom: 32px;
+}
+.ch-service-showcase__photo-card img {
+  object-fit: cover;
+  transition: transform 0.8s var(--ch-ease);
+}
+.ch-service-showcase__photo-card:hover img {
+  transform: scale(1.03);
+}
+.ch-service-showcase__photo-tag {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(10, 38, 29, 0.82);
+  backdrop-filter: blur(8px);
+  color: var(--ch-bone);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Benefits Grid */
+.ch-service-benefits {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(15, 61, 46, 0.1);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 10px 24px -10px rgba(10, 38, 29, 0.05);
+}
+.ch-service-benefits h4 {
+  font-size: 14.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ch-ink);
+  margin-bottom: 16px;
+}
+.ch-service-benefits__list {
+  display: grid;
+  gap: 12px;
+}
+.ch-service-benefit-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ch-text);
+}
+.ch-service-benefit-item svg {
+  color: var(--ch-green);
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+
+/* How It Works 4-Step Pathway Card */
+.ch-service-steps-card {
+  position: relative;
+  background: #ffffff;
+  border: 1px solid rgba(184, 150, 78, 0.3);
+  border-radius: var(--ch-radius);
+  padding: clamp(28px, 4vw, 44px);
+  box-shadow: 0 24px 60px -20px rgba(10, 38, 29, 0.1);
+}
+.ch-service-steps-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--ch-line);
+}
+.ch-service-steps-card__head h3 {
+  font-size: 21px;
+  font-weight: 700;
+  color: var(--ch-ink);
+  letter-spacing: -0.02em;
+}
+.ch-service-steps-card__badge {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ch-gold);
+}
+.ch-service-steps-grid {
+  display: grid;
+  gap: 20px;
+}
+.ch-service-step-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  padding: 16px;
+  border-radius: 16px;
+  background: #fbfaf7;
+  border: 1px solid rgba(15, 61, 46, 0.08);
+  transition: all 0.25s ease;
+}
+.ch-service-step-item:hover {
+  background: #ffffff;
+  border-color: var(--ch-gold);
+  transform: translateX(4px);
+  box-shadow: 0 8px 20px -8px rgba(10, 38, 29, 0.08);
+}
+.ch-service-step-item__num {
+  font-size: 24px;
+  font-weight: 300;
+  color: var(--ch-gold);
+  line-height: 1;
+  flex-shrink: 0;
+  min-width: 32px;
+}
+.ch-service-step-item__content h4 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ch-ink);
+  margin-bottom: 4px;
+}
+.ch-service-step-item__content p {
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--ch-muted);
+  margin: 0;
+}
+
+/* ── 4. Proven Milestones in Numbers ──────────────────────── */
+.ch-services-stats {
+  padding: clamp(70px, 9vw, 120px) 0;
+  background: var(--ch-green);
+  color: var(--ch-bone);
+  position: relative;
+  overflow: hidden;
+}
+.ch-services-stats::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(243, 239, 228, 0.08) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none;
+}
+.ch-services-stats__head {
+  max-width: 720px;
+  margin-bottom: clamp(40px, 5vw, 64px);
+}
+.ch-services-stats__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(20px, 3vw, 36px);
+}
+.ch-services-stat-card {
+  padding: clamp(24px, 3vw, 36px);
+  border-radius: 20px;
+  background: rgba(243, 239, 228, 0.05);
+  border: 1px solid rgba(243, 239, 228, 0.12);
+  backdrop-filter: blur(10px);
+  transition: transform 0.3s var(--ch-ease), background 0.3s ease;
+}
+.ch-services-stat-card:hover {
+  transform: translateY(-3px);
+  background: rgba(243, 239, 228, 0.08);
+  border-color: rgba(184, 150, 78, 0.4);
+}
+.ch-services-stat-card__num {
+  font-size: clamp(38px, 4.4vw, 60px);
+  line-height: 1;
+  font-weight: 300;
+  color: var(--ch-gold-soft);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 12px;
+}
+.ch-services-stat-card__label {
+  font-size: 16.5px;
+  font-weight: 600;
+  color: var(--ch-bone);
+  margin-bottom: 6px;
+}
+.ch-services-stat-card__desc {
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: rgba(243, 239, 228, 0.68);
+  margin: 0;
+}
+
+/* ── Responsive Rules ─────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .ch-services-overview__grid {
+    grid-template-columns: 1fr;
+  }
+  .ch-service-showcase__grid,
+  .ch-service-showcase--flipped .ch-service-showcase__grid {
+    grid-template-columns: 1fr;
+    gap: 48px;
+  }
+  .ch-services-stats__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .ch-services-hero__banner {
+    aspect-ratio: 16 / 10;
+    min-height: 220px;
+  }
+  .ch-services-hero__chip {
+    font-size: 11px;
+    padding: 6px 12px;
+  }
+  .ch-services-hero__chip--right {
+    display: none;
+  }
+  .ch-services-stats__grid {
+    grid-template-columns: 1fr;
+  }
+}

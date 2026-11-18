@@ -1,6 +1,5 @@
 import React from 'react'
-import GalleryClientView from '../../components/gallery/GalleryClientView'
-import TestimonialsSection from '../../components/TestimonialsSection'
+import GalleryClient from './GalleryClient'
 import { fetchPlots } from '../../lib/api'
 
 export const dynamic = 'force-dynamic'
@@ -28,20 +27,5 @@ export const metadata = {
 
 export default async function GalleryPage() {
   const plots = await fetchPlots()
-
-  return (
-    <main style={{ backgroundColor: 'var(--bg)', minHeight: '100vh' }}>
-      <GalleryClientView
-        initialPlots={plots}
-        title="Photo Gallery"
-        badge="Our Gallery"
-        subtitle="Captured moments from our on-ground sites, aerial drone panoramas, approved layouts, and guided walkthrough tours across Chennai."
-      />
-
-      <TestimonialsSection
-        title="Verified Landowner Confidence"
-        subtitle="Every plot in our gallery is supported by clear titles, DTCP/CMDA approvals, and satisfied buyers."
-      />
-    </main>
-  )
+  return <GalleryClient initialPlots={plots || []} />
 }

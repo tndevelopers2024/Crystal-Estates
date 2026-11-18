@@ -1,60 +1,48 @@
 'use client'
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import Link from 'next/link'
-import Image from 'next/image'
 import {
   MapPin,
-  ArrowLeft,
   Layers,
   X,
   ChevronLeft,
   ChevronRight,
   Maximize2,
-  Camera,
-  Download,
   CheckCircle2,
   Video,
   ArrowUpRight,
   Compass,
   FileCheck2,
   ShieldCheck,
-  Building2,
-  Lock,
-  Eye,
-  PhoneCall,
-  Sparkles,
 } from 'lucide-react'
-import { Button } from '../ui'
 import EnquiryForm from '../forms/EnquiryForm'
 import { ProjectCard } from './ProjectCard'
 import PlotViewer from '../plot-viewer/PlotViewer'
 import { resolveMapEmbedUrl, resolveMapDirectUrl } from '../../lib/api'
 import { parseViewBox } from '../../lib/svgUtils'
 import { business } from '../../data/site'
+import { Eyebrow, PillLink, openSiteVisit } from '../home/motion'
 
 export default function PropertyDetailClient({ initialProject, staticAllProjects = [] }) {
   const [project, setProject] = useState(initialProject)
   const [allProjects, setAllProjects] = useState(staticAllProjects)
   const [lightboxIndex, setLightboxIndex] = useState(null)
   const [isFullScreenOpen, setIsFullScreenOpen] = useState(false)
+  const [selectedPlot, setSelectedPlot] = useState(null)
 
-  // Lock body scroll and listen for Escape when fullscreen plot modal is open
+  // Lock body scroll while the full-view plot modal is open. Escape is handled
+  // by the PlotViewer itself: first press clears a selected plot, next closes.
   useEffect(() => {
     if (!isFullScreenOpen) return
     const originalOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        setIsFullScreenOpen(false)
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
+    // Pause smooth scrolling so wheel/touch go to the layout, not the page behind
+    const lenis = window.__lenis
+    lenis?.stop()
 
     return () => {
       document.body.style.overflow = originalOverflow
-      window.removeEventListener('keydown', handleKeyDown)
+      lenis?.start()
     }
   }, [isFullScreenOpen])
 
@@ -74,7 +62,14 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
               p.projectId === initialProject?.id ||
               p._id === initialProject?.id
           )
-          if (found) setProject(found)
+          // Merge so fields the server already normalized (e.g. `area`) are
+          // not blanked when the raw API record lacks them
+          if (found) {
+            const fresh = Object.fromEntries(
+              Object.entries(found).filter(([, v]) => v !== null && v !== undefined && v !== ''),
+            )
+            setProject((prev) => ({ ...prev, ...fresh }))
+          }
         }
       })
       .catch(() => { })
@@ -150,32 +145,22 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
   }, [rawPhases, project, fallbackLayoutUrl])
 
   const [activePhaseIndex, setActivePhaseIndex] = useState(0)
-  const [previewImgError, setPreviewImgError] = useState(false)
   const currentPhase = layoutPhases[activePhaseIndex] || layoutPhases[0]
   const currentPhaseLayoutUrl = currentPhase?.layoutUrl || fallbackLayoutUrl
-  const currentPhasePlots = currentPhase?.plots || []
+  const currentPhasePlots = useMemo(() => {
+    return currentPhase?.plots || []
+  }, [currentPhase])
 
-  useEffect(() => {
-    setPreviewImgError(false)
-  }, [currentPhaseLayoutUrl])
+  const handlePhaseChange = (idx) => {
+    setActivePhaseIndex(idx)
+    setSelectedPlot(null)
+  }
 
   const hasLayout = Boolean(
     project.hasLayoutMap ||
     fallbackLayoutUrl ||
     layoutPhases.some((p) => p.layoutUrl || (p.plots && p.plots.length > 0))
   )
-  const isSvgLayout = Boolean(currentPhaseLayoutUrl && /\.svg($|\?)/i.test(currentPhaseLayoutUrl))
-  const isPdfLayout = Boolean(currentPhaseLayoutUrl && /\.pdf($|\?)/i.test(currentPhaseLayoutUrl))
-  const isImageLayout = Boolean(
-    currentPhaseLayoutUrl && /\.(png|jpe?g|webp|gif)($|\?)/i.test(currentPhaseLayoutUrl)
-  )
-
-  // Layout stats
-  const totalPhasePlots = currentPhasePlots.length || project.totalPlots || 0
-  const availablePhasePlots = currentPhasePlots.filter(
-    (p) => String(p.status).toLowerCase() === 'available'
-  ).length || project.availablePlots || 0
-  const bookedPhasePlots = totalPhasePlots - availablePhasePlots
 
   // ─────────────────────────────────────────────────────────────
   // 2. DYNAMIC SECTION: PROJECT IMAGES & VIDEOS
@@ -253,14 +238,15 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
   )
 
   // Lazy load map iframe when scrolled near viewport
+  // Starts false on both server and client so hydration markup matches
   const [isMapInView, setIsMapInView] = useState(false)
   const mapRef = useRef(null)
 
   useEffect(() => {
     if (!mapRef.current) return
     if (typeof IntersectionObserver === 'undefined') {
-      setIsMapInView(true)
-      return
+      const t = setTimeout(() => setIsMapInView(true), 0)
+      return () => clearTimeout(t)
     }
     const observer = new IntersectionObserver(
       (entries) => {
@@ -308,6 +294,16 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
       ? `₹ ${(Number(project.price) / 100000).toFixed(1)} Lakhs`
       : 'Price on Request')
 
+  // Live availability across every phase, from the plots themselves
+  const inventory = (() => {
+    const all = layoutPhases.flatMap((p) => (Array.isArray(p.plots) ? p.plots : []))
+    const list = all.length > 0 ? all : Array.isArray(project.plots) ? project.plots : []
+    return {
+      total: list.length,
+      available: list.filter((p) => String(p.status || 'Available').toLowerCase() === 'available').length,
+    }
+  })()
+
   const isSoldOut =
     project.status === 'Sold Out' ||
     project.status === 'Sold' ||
@@ -315,275 +311,61 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
       project.availablePlots === 0 &&
       project.totalPlots > 0)
 
-  // Primary image
-  const primaryHeroImage =
-    project.image ||
-    (projectImages.length > 0 ? projectImages[0] : null) ||
-    '/images/hero-estate.jpg'
-
   return (
     <>
       {/* ────────────────────────────────────────────────────────── */}
-      {/* 1. PROJECT NAME SECTION (PROMINENTLY AT TOP)               */}
+      {/* 1. INTERACTIVE PLOT SELECTION (FIRST ON THE PAGE)          */}
       {/* ────────────────────────────────────────────────────────── */}
-      <section className="project-hero-section">
-        <div className="project-hero-container">
-          {/* Breadcrumb Navigation */}
-          <nav aria-label="Breadcrumb" className="project-hero__breadcrumb">
-            <Link href="/">Home</Link>
-            <span className="project-hero__breadcrumb-sep">/</span>
-            <Link href="/projects">Projects</Link>
-            <span className="project-hero__breadcrumb-sep">/</span>
-            <span className="project-hero__breadcrumb-current">{project.name}</span>
-          </nav>
-
-          {/* Heading & Badges Header */}
-          <div className="project-hero__header">
-            <div className="project-hero__badge-row">
-              <span className="project-hero__badge">
-                ASSETS CREATOR • {project.type ? project.type.toUpperCase() : 'PROJECT'}
-              </span>
-              {project.approval && (
-                <span className="project-hero__badge project-hero__badge--gold">
-                  {project.approval}
-                </span>
-              )}
-              <span
-                className={`project-hero__badge ${isSoldOut
-                  ? 'project-hero__badge--sold'
-                  : 'project-hero__badge--status'
-                  }`}
-              >
-                {isSoldOut ? 'Sold Out' : project.status || 'Available'}
-              </span>
-            </div>
-
-            <h1 className="project-hero__title">
-              {project.name}
-            </h1>
-
-            <p className="project-hero__subtitle">
-              {project.description ||
-                `Verified ${project.type || 'property'} located in ${project.location || 'Chennai'}. 100% legally clear title patta with complete revenue document verification.`}
-            </p>
-
-            {/* Project Quick Meta & Action Bar */}
-            <div className="project-hero__meta-bar">
-              <div className="project-hero__meta-left">
-                {project.location && (
-                  <div className="project-hero__meta-item">
-                    <MapPin size={15} className="project-hero__meta-icon" />
-                    <span>{project.location}</span>
-                  </div>
-                )}
-
-                {(project.area || project.plotSizes) && (
-                  <div className="project-hero__meta-item">
-                    <Compass size={15} className="project-hero__meta-icon" />
-                    <span>{project.area || project.plotSizes}</span>
-                  </div>
-                )}
-
-                {project.facing && (
-                  <div className="project-hero__meta-item">
-                    <Compass size={15} className="project-hero__meta-icon" />
-                    <span>Facing: {project.facing}</span>
-                  </div>
-                )}
-
-                <div className="project-hero__meta-item project-hero__meta-price">
-                  <span>{formattedPrice}</span>
-                </div>
-              </div>
-
-              {/* <Link href="/projects" className="project-hero__back-btn">
-                <ArrowLeft size={15} />
-                <span>Back to Projects Directory</span>
-              </Link> */}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ────────────────────────────────────────────────────────── */}
-      {/* 2. PLOT SECTION (SVG LAYOUT PREVIEW WITH BOOK A PLOT BUTTON) */}
-      {/* ────────────────────────────────────────────────────────── */}
-      <section className="project-plot-section" id="plot-section">
+      <section
+        className="project-plot-section project-plot-section--full"
+        id="plot-section"
+        aria-labelledby="plot-section-title"
+      >
         <div className="project-plot-container">
+          {/* Visual header hidden; heading kept for screen readers */}
+          <h2 id="plot-section-title" className="ch-sr">
+            {project.name} interactive plot layout
+          </h2>
+
           {hasLayout ? (
-            <div className="project-plot-card">
-              {/* Top Header / Meta Bar above SVG Layout */}
-              <div className="project-plot-card__header">
-                <div className="project-plot-card__header-left">
-                  <span className="project-live-indicator" />
-                  <h3 className="project-plot-card__heading">
-                    {project.name} Sanctioned Plot Layout
-                  </h3>
-                  <span className="project-plot-card__phase-badge">
-                    {currentPhase.name}
-                  </span>
-                </div>
-
-                <div className="project-plot-card__header-right">
-                  {/* Phase Switcher Tabs (if multi-phase) */}
-                  {layoutPhases.length > 1 && (
-                    <div className="project-plot-phases">
-                      {layoutPhases.map((phase, idx) => {
-                        const isSelected = idx === activePhaseIndex
-                        const plotCount = (phase.plots || []).length
-                        return (
-                          <button
-                            key={phase.id || idx}
-                            type="button"
-                            onClick={() => setActivePhaseIndex(idx)}
-                            className={`project-plot-phase-tab ${isSelected ? 'is-active' : ''}`}
-                            title={`Switch to ${phase.name}`}
-                          >
-                            <span>{phase.name}</span>
-                            <span className="project-plot-phase-badge">
-                              {plotCount} Plots
-                            </span>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  )}
-
-                  <div className="project-plot-card__stats-plain">
-                    {totalPhasePlots > 0 && (
-                      <span className="project-plot-stat-plain">
-                        <span className="project-plot-stat-plain__label">Total:</span>{' '}
-                        <strong className="project-plot-stat-plain__count">{totalPhasePlots}</strong>
-                      </span>
-                    )}
-                    {availablePhasePlots > 0 && (
-                      <span className="project-plot-stat-plain project-plot-stat-plain--avail">
-                        <span className="project-plot-stat-plain__label">Available:</span>{' '}
-                        <strong className="project-plot-stat-plain__count">{availablePhasePlots}</strong>
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Non-Interactive SVG Plot Layout Preview */}
-              <div
-                className="project-svg-preview-stage"
-                onClick={() => setIsFullScreenOpen(true)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault()
-                    setIsFullScreenOpen(true)
-                  }
+            <div
+              className="project-embedded-viewer-card"
+              style={{
+                // Layout proportions let small screens size the map box to the plan
+                '--layout-ratio': (() => {
+                  const vb = parseViewBox(currentPhase?.viewBox || project.viewBox, 1056, 816)
+                  return `${vb.width} / ${vb.height}`
+                })(),
+              }}
+            >
+              <PlotViewer
+                key={`top-viewer-${project.id || project.slug}-${currentPhase?.id || activePhaseIndex}-${currentPhaseLayoutUrl}`}
+                initialPlots={currentPhasePlots}
+                phases={layoutPhases}
+                activePhase={activePhaseIndex}
+                onPhaseChange={handlePhaseChange}
+                onPlotSelect={(p) => setSelectedPlot(p)}
+                fetchUrl={null}
+                backgroundUrl={currentPhaseLayoutUrl}
+                metadata={{
+                  title: project.name,
+                  name: project.name,
+                  sNo: project.surveyNumber || '',
+                  village: project.village || project.location || '',
+                  taluk: project.taluk || '',
+                  layoutBackgroundUrl: currentPhaseLayoutUrl,
+                  layoutUrl: currentPhaseLayoutUrl,
+                  viewBox: parseViewBox(currentPhase?.viewBox || project.viewBox, 1056, 816).viewBoxStr,
+                  layouts: layoutPhases,
+                  phases: layoutPhases,
                 }}
-                title="Click to explore interactive plot layout in full screen"
-                aria-label="Click to open interactive plot layout in full-screen view"
-              >
-                <div className="project-svg-preview-viewport">
-                  {currentPhaseLayoutUrl && !previewImgError ? (
-                    <div className="project-svg-preview-layers" style={{ pointerEvents: 'none' }}>
-                      <img
-                        src={currentPhaseLayoutUrl}
-                        alt={`${project.name} ${currentPhase.name} Layout SVG`}
-                        className="project-svg-preview-bg"
-                        draggable={false}
-                        onError={() => setPreviewImgError(true)}
-                      />
-                      {currentPhasePlots.some((p) => p.svgPath) && (
-                        <svg
-                          viewBox={parseViewBox(currentPhase.viewBox || project.viewBox, 1056, 816).viewBoxStr}
-                          className="project-svg-preview-svg"
-                        >
-                          {currentPhasePlots.filter((p) => p.svgPath).map((plot) => (
-                            <g
-                              key={plot.id || plot.plotNo}
-                              className={`pv-plot pv-plot--${plot.status}`}
-                            >
-                              <path
-                                d={plot.svgPath}
-                                className="pv-plot__boundary"
-                              />
-                            </g>
-                          ))}
-                        </svg>
-                      )}
-                    </div>
-                  ) : currentPhaseLayoutUrl && previewImgError ? (
-                    <div className="project-svg-preview-layers" style={{ pointerEvents: 'none' }}>
-                      <div className="pv-blueprint-grid" style={{ position: 'absolute', inset: 0, opacity: 0.15 }} />
-                      {currentPhasePlots.some((p) => p.svgPath) && (
-                        <svg
-                          viewBox={parseViewBox(currentPhase.viewBox || project.viewBox, 1056, 816).viewBoxStr}
-                          className="project-svg-preview-svg"
-                        >
-                          {currentPhasePlots.filter((p) => p.svgPath).map((plot) => (
-                            <g
-                              key={plot.id || plot.plotNo}
-                              className={`pv-plot pv-plot--${plot.status}`}
-                            >
-                              <path
-                                d={plot.svgPath}
-                                className="pv-plot__boundary"
-                              />
-                            </g>
-                          ))}
-                        </svg>
-                      )}
-                    </div>
-                  ) : isPdfLayout ? (
-                    <div className="project-pdf-frame" style={{ pointerEvents: 'none', height: '400px' }}>
-                      <iframe
-                        src={currentPhaseLayoutUrl}
-                        title={`${project.name} ${currentPhase.name} Blueprint PDF`}
-                      />
-                    </div>
-                  ) : (
-                    <div className="project-svg-preview-empty">
-                      <p>Layout map is being prepared for this phase.</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Prompt Pill to Open Fullscreen */}
-                <div className="project-svg-preview-overlay-prompt">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setIsFullScreenOpen(true)
-                    }}
-                    className="project-svg-preview-prompt-pill"
-                    title="Open interactive master plan in full-screen"
-                    aria-label="Open full-screen interactive plot layout"
-                  >
-                    <Maximize2 size={13} />
-                    <span>Click to open full-screen</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Action Area Below SVG Layout with "Book a Plot" Button */}
-              <div className="project-plot-book-action-bar">
-                <button
-                  type="button"
-                  onClick={() => setIsFullScreenOpen(true)}
-                  className="project-book-plot-btn"
-                  id="book-a-plot-btn"
-                  aria-label="Book a Plot - Open full-screen interactive plot layout"
-                >
-                  <Layers size={18} />
-                  <span>Book a Plot</span>
-                  <span className="project-book-plot-btn__arrow" aria-hidden="true">
-                    <ArrowUpRight size={17} />
-                  </span>
-                </button>
-
-                <p className="project-plot-book-hint">
-                  Click &ldquo;Book a Plot&rdquo; or &ldquo;Click to open full-screen&rdquo; to open the full-screen view and easily interact with plot details, measurements, and live booking.
-                </p>
-              </div>
+                viewBox={parseViewBox(currentPhase?.viewBox || project.viewBox, 1056, 816).viewBoxStr}
+                whatsappNumber={business?.whatsapp || '919444000000'}
+                className="project-embedded-plot-viewer"
+                isModal={false}
+                onToggleFullscreen={() => setIsFullScreenOpen(true)}
+                fitWholeLayout
+              />
             </div>
           ) : (
             /* Fallback if no layout blueprint is uploaded yet */
@@ -612,7 +394,114 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
       </section>
 
       {/* ────────────────────────────────────────────────────────── */}
-      {/* 3. PLOT DETAILS SECTION (DEDICATED SECTION BELOW PLOT)     */}
+      {/* 2. PROJECT OVERVIEW (name, badges, key facts, CTAs)        */}
+      {/* ────────────────────────────────────────────────────────── */}
+      <section className="project-overview" aria-labelledby="project-overview-title">
+        <div className="project-overview__inner">
+          <div className="project-overview__intro">
+            <Eyebrow className="ch-eyebrow--light">
+              Assets Creator · {project.type || 'Project'}
+            </Eyebrow>
+
+            <h1 id="project-overview-title" className="project-overview__title">
+              {project.name}
+            </h1>
+
+            <div className="project-overview__badges">
+              {project.approval && (
+                <span className="project-overview__badge project-overview__badge--gold">
+                  <ShieldCheck size={14} aria-hidden="true" />
+                  {project.approval}
+                </span>
+              )}
+              <span
+                className={`project-overview__badge ${
+                  isSoldOut ? 'project-overview__badge--sold' : 'project-overview__badge--live'
+                }`}
+              >
+                <span className="project-overview__dot" aria-hidden="true" />
+                {isSoldOut ? 'Sold Out' : project.status || 'Available'}
+              </span>
+            </div>
+
+            <p className="project-overview__desc">
+              {project.description ||
+                `Verified ${project.type || 'property'} located in ${project.location || 'Chennai'}. 100% legally clear title patta with complete revenue document verification.`}
+            </p>
+
+            <div className="project-overview__actions">
+              <PillLink variant="cream" onClick={openSiteVisit}>
+                Book a site visit
+              </PillLink>
+              <a
+                href={`https://wa.me/${business?.whatsapp || '919444000000'}?text=${encodeURIComponent(
+                  `Hi, I'm interested in ${project.name}. Please share plot availability and pricing.`,
+                )}`}
+                target="_blank"
+                rel="noreferrer"
+                className="ch-textlink ch-textlink--light"
+              >
+                Enquire on WhatsApp
+                <ArrowUpRight size={16} aria-hidden="true" />
+              </a>
+            </div>
+          </div>
+
+          <aside className="project-overview__card" aria-label={`${project.name} key facts`}>
+            <dl className="project-overview__facts">
+              <div className="project-overview__fact">
+                <dt>
+                  <MapPin size={15} aria-hidden="true" />
+                  Location
+                </dt>
+                <dd>{project.location || 'Chennai, Tamil Nadu'}</dd>
+              </div>
+              <div className="project-overview__fact">
+                <dt>
+                  <Layers size={15} aria-hidden="true" />
+                  Plot sizes
+                </dt>
+                <dd>{project.area || project.plotSizes || 'On request'}</dd>
+              </div>
+              <div className="project-overview__fact">
+                <dt>
+                  <Compass size={15} aria-hidden="true" />
+                  Facing
+                </dt>
+                <dd>{project.facing || 'Multiple'}</dd>
+              </div>
+              <div className="project-overview__fact project-overview__fact--price">
+                <dt>Price</dt>
+                <dd>{formattedPrice}</dd>
+              </div>
+            </dl>
+
+            {inventory.total > 0 && (
+              <div className="project-overview__stock">
+                <div className="project-overview__stock-head">
+                  <span>
+                    <strong>{inventory.available}</strong> of {inventory.total} plots available
+                  </span>
+                  <span>{Math.round((inventory.available / inventory.total) * 100)}%</span>
+                </div>
+                <div
+                  className="project-overview__stock-bar"
+                  role="progressbar"
+                  aria-label="Plots available"
+                  aria-valuemin={0}
+                  aria-valuemax={inventory.total}
+                  aria-valuenow={inventory.available}
+                >
+                  <span style={{ width: `${(inventory.available / inventory.total) * 100}%` }} />
+                </div>
+              </div>
+            )}
+          </aside>
+        </div>
+      </section>
+
+      {/* ────────────────────────────────────────────────────────── */}
+      {/* 3. TECHNICAL SPECIFICATIONS & BUYER ASSURANCE STRIP        */}
       {/* ────────────────────────────────────────────────────────── */}
       <section className="project-detail-section project-detail-section--white" id="plot-details">
         <div className="project-detail-container">
@@ -628,7 +517,7 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
             </p>
           </div>
 
-          {/* Metric Strips (Inspired by Reference Image Horizontal Stat Rows) */}
+          {/* Metric Strips */}
           <div className="project-metric-rows">
             <div className="project-metric-row">
               <div className="project-metric-row__info">
@@ -965,9 +854,9 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
             {/* Right: Direct Enquiry Form Card */}
             <div className="project-enquiry-col">
               <EnquiryForm
-                selectedPlot={project}
-                prefillInterest={project.name}
-                title={`Contact Us for ${project.name}`}
+                selectedPlot={selectedPlot ? `${project.name} - Plot ${selectedPlot.plotNo}` : project}
+                prefillInterest={selectedPlot ? `${project.name} - Plot ${selectedPlot.plotNo}` : project.name}
+                title={`Contact Us for ${selectedPlot ? `${project.name} (Plot ${selectedPlot.plotNo})` : project.name}`}
                 subtitle="Connect directly with our land advisory desk for verified documentation, pricing breakdown, or guided weekend site visit."
               />
             </div>
@@ -1064,37 +953,42 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
       )}
 
       {/* ────────────────────────────────────────────────────────── */}
-      {/* COMPLETE PLOT LAYOUT FULL-SCREEN VIEW (TRIGGERED BY BOOK A PLOT) */}
+      {/* COMPLETE PLOT LAYOUT FULL-SCREEN VIEW (TRIGGERED BY BUTTON)*/}
       {/* ────────────────────────────────────────────────────────── */}
       {isFullScreenOpen && (
         <div
           className="project-fullscreen-modal"
+          data-lenis-prevent
           role="dialog"
           aria-modal="true"
           aria-label={`${project.name} Fullscreen Plot Layout`}
         >
-          {/* Fullscreen Interactive Plot Viewer with Unified Minimal Header */}
           <div className="project-fullscreen-body">
             <PlotViewer
-              key={`fs-${project.id || project.slug}-${currentPhase.id || activePhaseIndex}-${currentPhaseLayoutUrl}`}
+              key={`fs-${project.id || project.slug}-${currentPhase?.id || activePhaseIndex}-${currentPhaseLayoutUrl}`}
               initialPlots={currentPhasePlots}
               phases={layoutPhases}
               activePhase={activePhaseIndex}
-              onPhaseChange={(idx) => setActivePhaseIndex(idx)}
+              onPhaseChange={(idx) => handlePhaseChange(idx)}
+              onPlotSelect={(p) => setSelectedPlot(p)}
               fetchUrl={null}
               backgroundUrl={currentPhaseLayoutUrl}
               metadata={{
                 title: project.name,
+                name: project.name,
                 sNo: project.surveyNumber || '',
                 village: project.village || project.location || '',
                 taluk: project.taluk || '',
                 layoutBackgroundUrl: currentPhaseLayoutUrl,
-                viewBox: parseViewBox(currentPhase.viewBox || project.viewBox, 1056, 816).viewBoxStr,
+                layoutUrl: currentPhaseLayoutUrl,
+                viewBox: parseViewBox(currentPhase?.viewBox || project.viewBox, 1056, 816).viewBoxStr,
                 layouts: layoutPhases,
                 phases: layoutPhases,
               }}
-              whatsappNumber={business.whatsapp}
+              viewBox={parseViewBox(currentPhase?.viewBox || project.viewBox, 1056, 816).viewBoxStr}
+              whatsappNumber={business?.whatsapp || '919444000000'}
               onClose={() => setIsFullScreenOpen(false)}
+              fitWholeLayout
               isModal={true}
             />
           </div>

@@ -1,7 +1,6 @@
 import React from 'react'
 import { notFound } from 'next/navigation'
-import PropertyDetailClient from '../../../components/projects/PropertyDetailClient'
-import TestimonialsSection from '../../../components/TestimonialsSection'
+import ProjectDetailViewClient from './ProjectDetailViewClient'
 import { fetchPlotBySlugOrId, fetchPlots } from '../../../lib/api'
 
 export const dynamic = 'force-dynamic'
@@ -53,13 +52,9 @@ export default async function PropertyDetailPage({ params }) {
   }
 
   return (
-    <main className="project-detail-page-wrapper">
-      <PropertyDetailClient initialProject={project} staticAllProjects={allProjects || []} />
-
-      <TestimonialsSection
-        title="Landowner Experiences"
-        subtitle="Trusted by over 500+ landowners across Chennai, Kanchipuram, and surrounding growth corridors."
-      />
-    </main>
+    <ProjectDetailViewClient
+      initialProject={project}
+      staticAllProjects={allProjects || []}
+    />
   )
 }

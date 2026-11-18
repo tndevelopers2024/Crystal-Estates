@@ -1,7 +1,8 @@
 import React from 'react'
-import NewsClientView from '../../components/news/NewsClientView'
-import TestimonialsSection from '../../components/TestimonialsSection'
+import NewsClient from './NewsClient'
 import { newsArticles } from '../../data/news'
+
+export const dynamic = 'force-dynamic'
 
 export const metadata = {
   title: 'News & Updates | Land Investment Insights | Crystal Estates',
@@ -25,16 +26,5 @@ export const metadata = {
 }
 
 export default function NewsPage() {
-  return (
-    <main className="modern-news-page">
-      <NewsClientView articles={newsArticles} />
-
-      <div style={{ marginTop: 'clamp(48px, 6vw, 84px)' }}>
-        <TestimonialsSection
-          title="Trusted Land Advice"
-          subtitle="Transparent insights and authentic buyer satisfaction have made Crystal Estates Chennai’s premier land asset creator."
-        />
-      </div>
-    </main>
-  )
+  return <NewsClient initialArticles={newsArticles || []} />
 }

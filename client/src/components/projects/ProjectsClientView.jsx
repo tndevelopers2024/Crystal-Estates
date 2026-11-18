@@ -158,10 +158,10 @@ export default function ProjectsClientView({ initialProjects = null }) {
     Boolean(filters.searchQuery.trim())
 
   return (
-    <section className="modern-projects-section" aria-label="Projects Catalog">
-      <div className="modern-projects-container">
-        {/* Category Tabs (News-Style Filter Pills) */}
-        {/* <div className="modern-projects-tabs" role="tablist" aria-label="Land Categories">
+    <section className="ch-projects-catalog modern-projects-section" aria-label="Projects Catalog">
+      <div className="ch-wrap modern-projects-container">
+        {/* Category Tabs (Filter Pills) */}
+        <div className="ch-projects-tabs modern-projects-tabs" role="tablist" aria-label="Land Categories">
           {categoryTabs.map((tab) => {
             const isActive = filters.type === tab.value
             return (
@@ -171,44 +171,44 @@ export default function ProjectsClientView({ initialProjects = null }) {
                 role="tab"
                 aria-selected={isActive}
                 onClick={() => handleCategorySelect(tab.value)}
-                className={`modern-projects-tab ${isActive ? 'is-active' : ''}`}
+                className={`ch-projects-tab modern-projects-tab ${isActive ? 'is-active' : ''}`}
               >
-                <span className="modern-projects-tab__dot" />
+                <span className="ch-projects-tab__dot modern-projects-tab__dot" />
                 <span>{tab.label}</span>
               </button>
             )
           })}
-        </div> */}
+        </div>
 
         {/* Filter Control Console */}
-        <div className="modern-projects-filter-box">
-          <div className="modern-projects-filter-grid">
+        <div className="ch-projects-filter-box modern-projects-filter-box">
+          <div className="ch-projects-filter-grid modern-projects-filter-grid">
             {/* Search Input */}
-            <div className="modern-filter-field modern-filter-field--search">
+            <div className="ch-filter-field modern-filter-field modern-filter-field--search">
               <label htmlFor="filter-search">Search Projects</label>
-              <div className="modern-filter-input-wrap">
-                <Search size={16} className="modern-filter-icon" />
+              <div className="ch-filter-input-wrap modern-filter-input-wrap">
+                <Search size={16} className="ch-filter-icon modern-filter-icon" />
                 <input
                   id="filter-search"
                   type="text"
-                  placeholder="Search by project name or area..."
+                  placeholder="Search by project name, corridor, or area..."
                   value={filters.searchQuery}
                   onChange={handleFilterChange('searchQuery')}
-                  className="modern-filter-input"
+                  className="ch-filter-input modern-filter-input"
                 />
               </div>
             </div>
 
             {/* Location Corridor */}
-            <div className="modern-filter-field">
+            <div className="ch-filter-field modern-filter-field">
               <label htmlFor="filter-location">Location Corridor</label>
-              <div className="modern-filter-select-wrap">
-                <MapPin size={15} className="modern-filter-icon" />
+              <div className="ch-filter-select-wrap modern-filter-select-wrap">
+                <MapPin size={15} className="ch-filter-icon modern-filter-icon" />
                 <select
                   id="filter-location"
                   value={filters.location}
                   onChange={handleFilterChange('location')}
-                  className="modern-filter-select"
+                  className="ch-filter-select modern-filter-select"
                 >
                   <option value="">All Chennai Corridors</option>
                   {locationOptions.map((loc) => (
@@ -221,15 +221,15 @@ export default function ProjectsClientView({ initialProjects = null }) {
             </div>
 
             {/* Budget Range */}
-            <div className="modern-filter-field">
+            <div className="ch-filter-field modern-filter-field">
               <label htmlFor="filter-price">Budget Range</label>
-              <div className="modern-filter-select-wrap">
-                <IndianRupee size={15} className="modern-filter-icon" />
+              <div className="ch-filter-select-wrap modern-filter-select-wrap">
+                <IndianRupee size={15} className="ch-filter-icon modern-filter-icon" />
                 <select
                   id="filter-price"
                   value={filters.priceRange}
                   onChange={handleFilterChange('priceRange')}
-                  className="modern-filter-select"
+                  className="ch-filter-select modern-filter-select"
                 >
                   <option value="all">Any Price</option>
                   <option value="under-50l">Under ₹ 50 Lakhs</option>
@@ -240,15 +240,15 @@ export default function ProjectsClientView({ initialProjects = null }) {
             </div>
 
             {/* Availability Status */}
-            <div className="modern-filter-field">
+            <div className="ch-filter-field modern-filter-field">
               <label htmlFor="filter-availability">Availability</label>
-              <div className="modern-filter-select-wrap">
-                <Tag size={15} className="modern-filter-icon" />
+              <div className="ch-filter-select-wrap modern-filter-select-wrap">
+                <Tag size={15} className="ch-filter-icon modern-filter-icon" />
                 <select
                   id="filter-availability"
                   value={filters.availability}
                   onChange={handleFilterChange('availability')}
-                  className="modern-filter-select"
+                  className="ch-filter-select modern-filter-select"
                 >
                   <option value="all">All Statuses</option>
                   <option value="Available">Available</option>
@@ -262,11 +262,11 @@ export default function ProjectsClientView({ initialProjects = null }) {
           </div>
 
           {/* Active Status Bar */}
-          <div className="modern-projects-filter-bar-footer">
-            <div className="modern-projects-count">
+          <div className="ch-projects-filter-footer modern-projects-filter-bar-footer">
+            <div className="ch-projects-count-pill modern-projects-count">
               <CheckCircle2 size={16} className="modern-projects-count-icon" />
               <span>
-                Showing <strong>{filteredProjects.length}</strong> verified land projects
+                Showing <strong>{filteredProjects.length}</strong> verified land projects in Chennai &amp; Kanchipuram
               </span>
             </div>
 
@@ -274,7 +274,7 @@ export default function ProjectsClientView({ initialProjects = null }) {
               <button
                 type="button"
                 onClick={handleResetFilters}
-                className="modern-projects-reset-btn"
+                className="ch-projects-reset-btn modern-projects-reset-btn"
                 aria-label="Reset all filters"
               >
                 <RotateCcw size={13} />

@@ -241,6 +241,7 @@ export default function GalleryClientView({
   title = 'Photo Gallery',
   subtitle = 'Captured moments from our on-ground sites, aerial drone panoramas, approved layouts, and guided walkthrough tours across Chennai.',
   badge = 'Our Gallery',
+  hideHero = false,
 }) {
   const [activeTab, setActiveTab] = useState('All')
   const [lightboxIndex, setLightboxIndex] = useState(null)
@@ -344,47 +345,49 @@ export default function GalleryClientView({
   return (
     <>
       {/* Hero */}
-      <section className="gx-hero" aria-labelledby="gallery-title">
-        <PlotPattern />
+      {!hideHero && (
+        <section className="gx-hero" aria-labelledby="gallery-title">
+          <PlotPattern />
 
-        <div className="gx-hero__floats" aria-hidden="true">
-          <span className="gx-float gx-float--one">
-            <MapPin size={14} /> {counts['Site Photos'] || 0} site photos
-          </span>
-          <span className="gx-float gx-float--two">
-            <Layers size={14} /> {counts.Layouts || 0} approved layouts
-          </span>
-          <span className="gx-float gx-float--three">
-            <ShieldCheck size={14} /> DTCP &amp; CMDA approved
-          </span>
-        </div>
+          <div className="gx-hero__floats" aria-hidden="true">
+            <span className="gx-float gx-float--one">
+              <MapPin size={14} /> {counts['Site Photos'] || 0} site photos
+            </span>
+            <span className="gx-float gx-float--two">
+              <Layers size={14} /> {counts.Layouts || 0} approved layouts
+            </span>
+            <span className="gx-float gx-float--three">
+              <ShieldCheck size={14} /> DTCP &amp; CMDA approved
+            </span>
+          </div>
 
-        <div className="gx-hero__inner">
-          <nav aria-label="Breadcrumb" className="gx-hero__crumbs">
-            <Link href="/">Home</Link>
-            <Crumb size={13} aria-hidden="true" />
-            <span aria-current="page">Gallery</span>
-          </nav>
-          <span className="featured-showcase-sidebar__badge">{badge}</span>
-          <h1 id="gallery-title" className="gx-hero__title">{title}</h1>
-          {subtitle && <p className="gx-hero__subtitle">{subtitle}</p>}
+          <div className="gx-hero__inner">
+            <nav aria-label="Breadcrumb" className="gx-hero__crumbs">
+              <Link href="/">Home</Link>
+              <Crumb size={13} aria-hidden="true" />
+              <span aria-current="page">Gallery</span>
+            </nav>
+            <span className="featured-showcase-sidebar__badge">{badge}</span>
+            <h1 id="gallery-title" className="gx-hero__title">{title}</h1>
+            {subtitle && <p className="gx-hero__subtitle">{subtitle}</p>}
 
-          <dl className="gx-hero__stats">
-            <div>
-              <dt>Media</dt>
-              <dd>{counts.All}</dd>
-            </div>
-            <div>
-              <dt>Projects</dt>
-              <dd>{projectCount}</dd>
-            </div>
-            <div>
-              <dt>Layouts</dt>
-              <dd>{counts.Layouts || 0}</dd>
-            </div>
-          </dl>
-        </div>
-      </section>
+            <dl className="gx-hero__stats">
+              <div>
+                <dt>Media</dt>
+                <dd>{counts.All}</dd>
+              </div>
+              <div>
+                <dt>Projects</dt>
+                <dd>{projectCount}</dd>
+              </div>
+              <div>
+                <dt>Layouts</dt>
+                <dd>{counts.Layouts || 0}</dd>
+              </div>
+            </dl>
+          </div>
+        </section>
+      )}
 
       {/* Gallery */}
       <section className="gx-section" aria-label="Gallery">

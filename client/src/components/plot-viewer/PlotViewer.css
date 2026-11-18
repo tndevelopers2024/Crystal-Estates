@@ -1267,3 +1267,50 @@
     padding: 5px 24px 5px 8px;
   }
 }
+
+/* ── "Full View" button in the viewer header ─────────────── */
+.pv-fullview-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid #0f3d2e;
+  background: #0f3d2e;
+  color: #ffffff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.pv-fullview-btn:hover {
+  background: #1b5e46;
+  transform: translateY(-1px);
+}
+
+.pv-fullview-btn:focus-visible {
+  outline: 2px solid #b8964e;
+  outline-offset: 2px;
+}
+
+@media (max-width: 480px) {
+  .pv-fullview-btn {
+    width: 32px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .pv-fullview-btn__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}

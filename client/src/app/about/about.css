@@ -1,0 +1,492 @@
+/* ─────────────────────────────────────────────────────────────
+   Crystal Estates — About Us Page Styling
+   Inherits design language, tokens, and font styles from .ch-home.
+   ───────────────────────────────────────────────────────────── */
+
+.ch-about {
+  width: 100%;
+  background: var(--ch-paper);
+  color: var(--ch-text);
+  overflow-x: clip;
+}
+
+/* ── 1. Hero Section ─────────────────────────────────────── */
+.ch-about-hero {
+  position: relative;
+  padding: clamp(48px, 6vw, 88px) 0 clamp(40px, 5vw, 68px);
+  background: var(--ch-paper);
+  border-bottom: 1px solid var(--ch-line);
+}
+
+.ch-about-breadcrumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ch-muted);
+  margin-bottom: 24px;
+}
+.ch-about-breadcrumb a {
+  color: var(--ch-muted);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+.ch-about-breadcrumb a:hover {
+  color: var(--ch-green);
+}
+.ch-about-breadcrumb__sep {
+  opacity: 0.4;
+  font-size: 11px;
+}
+.ch-about-breadcrumb__current {
+  color: var(--ch-ink);
+  font-weight: 600;
+}
+
+.ch-about-hero__head {
+  max-width: 980px;
+}
+.ch-about-hero__title {
+  font-size: clamp(38px, 5.6vw, 82px);
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+  font-weight: 700;
+  color: var(--ch-ink);
+  margin: 18px 0 22px 0;
+}
+.ch-about-hero__title .ch-accent {
+  color: var(--ch-gold);
+  font-weight: 500;
+  font-style: italic;
+}
+.ch-about-hero__lead {
+  font-size: clamp(15.5px, 1.4vw, 18.5px);
+  line-height: 1.7;
+  color: var(--ch-muted);
+  max-width: 720px;
+  margin-bottom: 32px;
+}
+.ch-about-hero__ctas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: clamp(40px, 6vw, 64px);
+}
+
+/* Panoramic Hero Banner */
+.ch-about-hero__banner {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 21 / 9;
+  min-height: 320px;
+  max-height: 520px;
+  border-radius: var(--ch-radius);
+  overflow: hidden;
+  box-shadow: 0 30px 70px -20px rgba(10, 38, 29, 0.16);
+}
+.ch-about-hero__banner-img {
+  position: absolute;
+  inset: 0;
+}
+.ch-about-hero__banner-img img {
+  object-fit: cover;
+  transition: transform 1.2s var(--ch-ease);
+}
+.ch-about-hero__banner:hover .ch-about-hero__banner-img img {
+  transform: scale(1.02);
+}
+.ch-about-hero__banner-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(6, 22, 16, 0.08) 0%, rgba(6, 22, 16, 0.45) 100%);
+  pointer-events: none;
+}
+.ch-about-hero__chip {
+  position: absolute;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  background: rgba(10, 38, 29, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(243, 239, 228, 0.2);
+  color: var(--ch-bone);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.ch-about-hero__chip--left {
+  bottom: 24px;
+  left: 24px;
+}
+.ch-about-hero__chip--right {
+  bottom: 24px;
+  right: 24px;
+}
+.ch-about-hero__chip-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #25d366;
+  box-shadow: 0 0 0 4px rgba(37, 211, 102, 0.25);
+}
+.ch-about-hero__chip-star {
+  color: var(--ch-gold);
+}
+
+/* ── 2. The Story / Manifesto ────────────────────────────── */
+.ch-about-story {
+  padding: clamp(80px, 10vw, 140px) 0;
+  background: var(--ch-paper);
+}
+.ch-about-story__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: clamp(40px, 6vw, 96px);
+  align-items: start;
+}
+.ch-about-story__title {
+  margin-top: 18px;
+  font-size: clamp(34px, 4.2vw, 54px);
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+  font-weight: 700;
+  color: var(--ch-green);
+  margin-bottom: 24px;
+}
+.ch-about-story__lead {
+  font-size: 17.5px;
+  line-height: 1.65;
+  color: var(--ch-ink);
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+.ch-about-story__text {
+  font-size: 15.5px;
+  line-height: 1.75;
+  color: var(--ch-muted);
+  margin-bottom: 18px;
+}
+.ch-about-story__image-card {
+  position: relative;
+  margin-top: 36px;
+  aspect-ratio: 16 / 10;
+  border-radius: var(--ch-radius);
+  overflow: hidden;
+  box-shadow: 0 24px 50px -15px rgba(10, 38, 29, 0.12);
+}
+.ch-about-story__image-card img {
+  object-fit: cover;
+  transition: transform 0.8s var(--ch-ease);
+}
+.ch-about-story__image-card:hover img {
+  transform: scale(1.03);
+}
+.ch-about-story__image-tag {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(10, 38, 29, 0.82);
+  backdrop-filter: blur(8px);
+  color: var(--ch-bone);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Story Right Column: Cards */
+.ch-about-pillars-stack {
+  display: grid;
+  gap: 16px;
+}
+.ch-about-pillar-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  padding: 22px 24px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 61, 46, 0.1);
+  border-radius: 20px;
+  box-shadow: 0 10px 30px -10px rgba(10, 38, 29, 0.05);
+  transition: transform 0.35s var(--ch-ease), border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.ch-about-pillar-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(184, 150, 78, 0.45);
+  box-shadow: 0 16px 36px -10px rgba(10, 38, 29, 0.1);
+}
+.ch-about-pillar-card__icon {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: var(--ch-green);
+  color: var(--ch-gold);
+  display: grid;
+  place-items: center;
+}
+.ch-about-pillar-card__content h3 {
+  font-size: 16.5px;
+  font-weight: 600;
+  color: var(--ch-ink);
+  margin-bottom: 5px;
+  letter-spacing: -0.015em;
+}
+.ch-about-pillar-card__content p {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--ch-muted);
+  margin: 0;
+}
+
+/* ── 3. Vision & Mission ──────────────────────────────────── */
+.ch-about-vm {
+  padding: clamp(80px, 10vw, 130px) 0;
+  background: var(--ch-bone);
+  border-top: 1px solid var(--ch-line);
+  border-bottom: 1px solid var(--ch-line);
+}
+.ch-about-vm__head {
+  text-align: center;
+  max-width: 680px;
+  margin: 0 auto clamp(40px, 6vw, 64px);
+}
+.ch-about-vm__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(24px, 3.5vw, 44px);
+}
+.ch-about-vm-card {
+  position: relative;
+  background: #ffffff;
+  border: 1px solid rgba(184, 150, 78, 0.3);
+  border-radius: var(--ch-radius);
+  padding: clamp(32px, 4.5vw, 52px);
+  box-shadow: 0 20px 50px -15px rgba(10, 38, 29, 0.08);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.ch-about-vm-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.ch-about-vm-card__icon-box {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: var(--ch-ink);
+  color: var(--ch-gold);
+  display: grid;
+  place-items: center;
+}
+.ch-about-vm-card__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: rgba(184, 150, 78, 0.12);
+  border: 1px solid rgba(184, 150, 78, 0.28);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #8c6d2d;
+}
+.ch-about-vm-card h3 {
+  font-size: clamp(22px, 2.4vw, 30px);
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--ch-ink);
+  letter-spacing: -0.025em;
+  margin-bottom: 16px;
+}
+.ch-about-vm-card p {
+  font-size: 15.5px;
+  line-height: 1.7;
+  color: var(--ch-muted);
+  margin-top: auto;
+}
+
+/* ── 4. Proven Milestones in Numbers ──────────────────────── */
+.ch-about-stats {
+  padding: clamp(70px, 9vw, 120px) 0;
+  background: var(--ch-green);
+  color: var(--ch-bone);
+  position: relative;
+  overflow: hidden;
+}
+.ch-about-stats::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(243, 239, 228, 0.08) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none;
+}
+.ch-about-stats__head {
+  max-width: 720px;
+  margin-bottom: clamp(40px, 5vw, 64px);
+}
+.ch-about-stats__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(20px, 3vw, 36px);
+}
+.ch-about-stat-card {
+  padding: clamp(24px, 3vw, 36px);
+  border-radius: 20px;
+  background: rgba(243, 239, 228, 0.05);
+  border: 1px solid rgba(243, 239, 228, 0.12);
+  backdrop-filter: blur(10px);
+  transition: transform 0.3s var(--ch-ease), background 0.3s ease;
+}
+.ch-about-stat-card:hover {
+  transform: translateY(-3px);
+  background: rgba(243, 239, 228, 0.08);
+  border-color: rgba(184, 150, 78, 0.4);
+}
+.ch-about-stat-card__num {
+  font-size: clamp(38px, 4.4vw, 60px);
+  line-height: 1;
+  font-weight: 300;
+  color: var(--ch-gold-soft);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 12px;
+}
+.ch-about-stat-card__label {
+  font-size: 16.5px;
+  font-weight: 600;
+  color: var(--ch-bone);
+  margin-bottom: 6px;
+}
+.ch-about-stat-card__desc {
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: rgba(243, 239, 228, 0.68);
+  margin: 0;
+}
+
+/* ── 6. Leadership & Corporate Governance ─────────────────── */
+.ch-about-lead {
+  padding: clamp(70px, 8vw, 120px) 0;
+  background: var(--ch-bone);
+  border-top: 1px solid var(--ch-line);
+}
+.ch-about-lead__card {
+  display: grid;
+  grid-template-columns: minmax(0, 4.5fr) minmax(0, 6.5fr);
+  gap: clamp(32px, 5vw, 64px);
+  background: #ffffff;
+  border: 1px solid rgba(184, 150, 78, 0.32);
+  border-radius: var(--ch-radius);
+  overflow: hidden;
+  box-shadow: 0 30px 60px -20px rgba(10, 38, 29, 0.1);
+  align-items: center;
+}
+.ch-about-lead__photo {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 380px;
+  overflow: hidden;
+}
+.ch-about-lead__photo img {
+  object-fit: cover;
+}
+.ch-about-lead__photo-badge {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(10, 38, 29, 0.88);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(243, 239, 228, 0.2);
+  color: var(--ch-bone);
+  font-size: 12px;
+  font-weight: 600;
+}
+.ch-about-lead__photo-badge svg {
+  color: var(--ch-gold);
+}
+.ch-about-lead__content {
+  padding: clamp(32px, 5vw, 56px);
+}
+.ch-about-lead__quote {
+  font-size: clamp(16.5px, 1.6vw, 19.5px);
+  line-height: 1.65;
+  color: var(--ch-ink);
+  font-weight: 500;
+  font-style: italic;
+  margin: 20px 0 28px 0;
+  border-left: 3px solid var(--ch-gold);
+  padding-left: 20px;
+}
+.ch-about-lead__author {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ch-green);
+  letter-spacing: -0.015em;
+}
+.ch-about-lead__role {
+  font-size: 13.5px;
+  color: var(--ch-muted);
+  margin-top: 4px;
+}
+
+/* ── Responsive Rules ─────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .ch-about-story__grid {
+    grid-template-columns: 1fr;
+    gap: 48px;
+  }
+  .ch-about-vm__grid {
+    grid-template-columns: 1fr;
+  }
+  .ch-about-stats__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .ch-about-lead__card {
+    grid-template-columns: 1fr;
+  }
+  .ch-about-lead__photo {
+    min-height: 280px;
+    max-height: 360px;
+  }
+}
+
+@media (max-width: 720px) {
+  .ch-about-hero__banner {
+    aspect-ratio: 16 / 10;
+    min-height: 220px;
+  }
+  .ch-about-hero__chip {
+    font-size: 11px;
+    padding: 6px 12px;
+  }
+  .ch-about-hero__chip--right {
+    display: none;
+  }
+  .ch-about-stats__grid {
+    grid-template-columns: 1fr;
+  }
+  .ch-about-lead__content {
+    padding: 24px;
+  }
+}

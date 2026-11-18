@@ -1,0 +1,415 @@
+/* ─────────────────────────────────────────────────────────────
+   Crystal Estates — Contact Us Page Styling
+   Inherits design language, tokens, and typography from .ch-home.
+   ───────────────────────────────────────────────────────────── */
+
+.ch-contact-page {
+  width: 100%;
+  background: var(--ch-paper);
+  color: var(--ch-text);
+  overflow-x: clip;
+}
+
+/* ── 1. Hero / Header ─────────────────────────────────────── */
+.ch-contact-hero {
+  position: relative;
+  padding: clamp(48px, 6vw, 84px) 0 clamp(36px, 5vw, 64px);
+  background: var(--ch-paper);
+  border-bottom: 1px solid var(--ch-line);
+}
+
+.ch-contact-breadcrumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ch-muted);
+  margin-bottom: 24px;
+}
+.ch-contact-breadcrumb a {
+  color: var(--ch-muted);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+.ch-contact-breadcrumb a:hover {
+  color: var(--ch-green);
+}
+.ch-contact-breadcrumb__sep {
+  opacity: 0.4;
+  font-size: 11px;
+}
+.ch-contact-breadcrumb__current {
+  color: var(--ch-ink);
+  font-weight: 600;
+}
+
+.ch-contact-hero__head {
+  max-width: 960px;
+}
+.ch-contact-hero__title {
+  font-size: clamp(38px, 5.6vw, 80px);
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+  font-weight: 700;
+  color: var(--ch-ink);
+  margin: 18px 0 20px 0;
+}
+.ch-contact-hero__title .ch-accent {
+  color: var(--ch-gold);
+  font-weight: 500;
+  font-style: italic;
+}
+.ch-contact-hero__lead {
+  font-size: clamp(15.5px, 1.4vw, 18px);
+  line-height: 1.7;
+  color: var(--ch-muted);
+  max-width: 760px;
+  margin-bottom: 30px;
+}
+.ch-contact-hero__ctas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: clamp(36px, 5vw, 52px);
+}
+
+/* Hero Stats Row */
+.ch-contact-stats-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 24px;
+}
+.ch-contact-stat-pill {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 10px 20px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 61, 46, 0.1);
+  box-shadow: 0 4px 14px rgba(10, 38, 29, 0.04);
+}
+.ch-contact-stat-pill strong {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ch-green);
+  font-variant-numeric: tabular-nums;
+}
+.ch-contact-stat-pill span {
+  font-size: 12.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ch-muted);
+}
+
+/* ── 2. Primary Contact & Office Grid ──────────────────────── */
+.ch-contact-main {
+  padding: clamp(52px, 7vw, 100px) 0 clamp(80px, 10vw, 120px);
+  background: var(--ch-paper);
+}
+
+.ch-contact-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.05fr;
+  gap: clamp(32px, 5vw, 64px);
+  align-items: start;
+}
+
+/* Left Column: Office & Hub */
+.ch-contact-info-col {
+  display: flex;
+  flex-direction: column;
+}
+.ch-contact-info-col__head {
+  margin-bottom: 32px;
+}
+.ch-contact-info-col__head h2 {
+  font-size: clamp(28px, 3.2vw, 42px);
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--ch-ink);
+  letter-spacing: -0.025em;
+  margin: 12px 0 16px 0;
+}
+.ch-contact-info-col__head p {
+  font-size: 15.5px;
+  line-height: 1.65;
+  color: var(--ch-muted);
+}
+
+/* Contact Cards Stack */
+.ch-contact-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.ch-contact-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  padding: 22px 24px;
+  background: #ffffff;
+  border-radius: 20px;
+  border: 1px solid rgba(15, 61, 46, 0.1);
+  box-shadow: 0 8px 24px -10px rgba(10, 38, 29, 0.05);
+  transition: all 0.3s var(--ch-ease);
+  text-decoration: none;
+  color: inherit;
+}
+.ch-contact-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(184, 150, 78, 0.45);
+  box-shadow: 0 16px 36px -12px rgba(10, 38, 29, 0.1);
+}
+
+.ch-contact-card__icon-wrap {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: var(--ch-bone);
+  color: var(--ch-green);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid rgba(184, 150, 78, 0.25);
+  transition: background 0.25s ease, color 0.25s ease;
+}
+.ch-contact-card:hover .ch-contact-card__icon-wrap {
+  background: var(--ch-green);
+  color: var(--ch-bone);
+}
+
+.ch-contact-card__body {
+  flex: 1;
+}
+.ch-contact-card__badge-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.ch-contact-card__badge {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ch-gold);
+}
+.ch-contact-card__sub-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--ch-bone);
+  color: var(--ch-green);
+}
+
+.ch-contact-card__title {
+  font-size: 16.5px;
+  font-weight: 700;
+  color: var(--ch-ink);
+  line-height: 1.35;
+  margin-bottom: 4px;
+}
+.ch-contact-card__text {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ch-muted);
+}
+.ch-contact-card__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ch-green);
+  margin-top: 8px;
+  transition: gap 0.2s ease, color 0.2s ease;
+}
+.ch-contact-card:hover .ch-contact-card__link {
+  color: var(--ch-gold);
+  gap: 9px;
+}
+
+/* Right Column: Form Container */
+.ch-contact-form-col {
+  position: sticky;
+  top: 96px;
+}
+
+.ch-contact-form-box {
+  background: #ffffff;
+  border-radius: 28px;
+  border: 1px solid rgba(15, 61, 46, 0.12);
+  padding: clamp(28px, 4vw, 44px);
+  box-shadow: 0 20px 50px -15px rgba(10, 38, 29, 0.08);
+}
+.ch-contact-form-box__header {
+  margin-bottom: 24px;
+}
+.ch-contact-form-box__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ch-gold);
+  margin-bottom: 8px;
+}
+.ch-contact-form-box__title {
+  font-size: clamp(22px, 2.2vw, 28px);
+  font-weight: 700;
+  color: var(--ch-ink);
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+.ch-contact-form-box__desc {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ch-muted);
+}
+
+/* Form inputs styling */
+.ch-contact-form-box .contact-card {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+.ch-contact-form-box .contact-form__header {
+  display: none; /* Already handled by ch-contact-form-box__header */
+}
+.ch-contact-form-box .contact-form input,
+.ch-contact-form-box .contact-form select,
+.ch-contact-form-box .contact-form textarea {
+  border: 1.5px solid rgba(15, 61, 46, 0.14) !important;
+  border-radius: 12px !important;
+  padding: 12px 16px !important;
+  font-family: inherit !important;
+  font-size: 14px !important;
+  color: var(--ch-ink) !important;
+  background: #faf8f2 !important;
+  transition: all 0.25s ease !important;
+}
+.ch-contact-form-box .contact-form input:focus,
+.ch-contact-form-box .contact-form select:focus,
+.ch-contact-form-box .contact-form textarea:focus {
+  background: #ffffff !important;
+  border-color: var(--ch-gold) !important;
+  box-shadow: 0 0 0 4px rgba(184, 150, 78, 0.15) !important;
+  outline: none !important;
+}
+.ch-contact-form-box .contact-form .field label {
+  font-size: 12.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.03em !important;
+  color: var(--ch-ink) !important;
+  text-transform: uppercase !important;
+  margin-bottom: 6px !important;
+}
+
+/* ── 3. Architectural Map Section ──────────────────────────── */
+.ch-contact-map-sec {
+  padding: clamp(48px, 6vw, 90px) 0 clamp(64px, 8vw, 110px);
+  background: var(--ch-paper);
+  border-top: 1px solid var(--ch-line);
+}
+
+.ch-contact-map-head {
+  text-align: center;
+  max-width: 760px;
+  margin: 0 auto clamp(32px, 4.5vw, 48px) auto;
+}
+.ch-contact-map-head h2 {
+  font-size: clamp(28px, 3.4vw, 44px);
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--ch-ink);
+  letter-spacing: -0.025em;
+  margin: 12px 0 16px 0;
+}
+.ch-contact-map-head p {
+  font-size: 15.5px;
+  line-height: 1.65;
+  color: var(--ch-muted);
+}
+
+.ch-contact-map-frame-box {
+  position: relative;
+  width: 100%;
+  height: clamp(380px, 45vw, 540px);
+  border-radius: 28px;
+  overflow: hidden;
+  border: 1px solid rgba(15, 61, 46, 0.12);
+  box-shadow: 0 20px 50px -15px rgba(10, 38, 29, 0.1);
+  background: var(--ch-ink);
+}
+.ch-contact-map-frame-box iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.ch-contact-map-floating-badge {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  border-radius: 999px;
+  background: rgba(10, 38, 29, 0.92);
+  backdrop-filter: blur(10px);
+  color: var(--ch-bone);
+  border: 1px solid rgba(243, 239, 228, 0.2);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+  z-index: 2;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.ch-contact-map-floating-badge__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #25d366;
+  box-shadow: 0 0 10px #25d366;
+}
+
+/* ── 4. Responsive Rules ───────────────────────────────────── */
+@media (max-width: 1024px) {
+  .ch-contact-grid {
+    grid-template-columns: 1fr;
+    gap: 48px;
+  }
+  .ch-contact-form-col {
+    position: static;
+  }
+}
+
+@media (max-width: 640px) {
+  .ch-contact-stats-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .ch-contact-stat-pill {
+    width: 100%;
+  }
+  .ch-contact-map-floating-badge {
+    position: static;
+    margin: 16px;
+    display: flex;
+    justify-content: center;
+  }
+  .ch-contact-form-box {
+    padding: 24px 18px;
+  }
+}

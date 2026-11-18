@@ -43,6 +43,8 @@ export default function PlotViewer({
   onClose = null,
   isModal = false,
   onToggleFullscreen = null,
+  // true = always fit the whole layout in view (no mobile zoom-in on load)
+  fitWholeLayout = false,
 }) {
   // Data state loaded purely from API or passed props
   const [plots, setPlots] = useState(() => (Array.isArray(initialPlots) ? initialPlots : []))
@@ -315,7 +317,7 @@ export default function PlotViewer({
 
     let fitScale
 
-    if (isMobile && isPortrait) {
+    if (isMobile && isPortrait && !fitWholeLayout) {
       // On mobile screens, scale the layout so it fills the available viewport properly
       // without excessive empty space or becoming microscopic dots:
       const scaleByWidth = containerWidth / targetW
@@ -344,7 +346,7 @@ export default function PlotViewer({
     const next = { scale: finalScale, x: initialPanX, y: initialPanY }
     setTransform(next)
     transformRef.current = next
-  }, [activeViewBox])
+  }, [activeViewBox, fitWholeLayout])
 
   useEffect(() => {
     handleResetZoom()
@@ -456,6 +458,10 @@ export default function PlotViewer({
     if (!container) return
 
     const handleWheel = (e) => {
+      // In embedded mode, require Ctrl/Cmd to zoom so page scroll flows smoothly without interference
+      if (!isFullscreen && !isModal && !e.ctrlKey && !e.metaKey) {
+        return
+      }
       e.preventDefault()
 
       const rect = container.getBoundingClientRect()
@@ -484,7 +490,7 @@ export default function PlotViewer({
     return () => {
       container.removeEventListener('wheel', handleWheel)
     }
-  }, [])
+  }, [isFullscreen, isModal])
 
   // Smooth Pointer Drag Handlers (Captures pointer only on actual drag to preserve plot click events)
   const handlePointerDown = (e) => {
@@ -790,6 +796,20 @@ export default function PlotViewer({
                 <ChevronDown size={13} className="pv-status-select-arrow" />
               </div>
             </div>
+          )}
+
+          {/* Opens the layout in a larger full-view dialog (page supplies the handler) */}
+          {onToggleFullscreen && !isModal && (
+            <button
+              type="button"
+              onClick={onToggleFullscreen}
+              className="pv-fullview-btn"
+              title="Open the layout in full view"
+              aria-label="Open the layout in full view"
+            >
+              <Maximize2 size={15} aria-hidden="true" />
+              <span className="pv-fullview-btn__label">Full View</span>
+            </button>
           )}
 
           {(onClose || backHref) && (
