@@ -220,7 +220,7 @@ export default function LeadsPipelineView({
       </div>
 
       {/* ── Main Kanban Columns (Horizontally Scrollable) ── */}
-      <div className="flex-1 overflow-x-auto pb-6">
+      <div className="flex-1 overflow-x-auto pb-6 no-scrollbar">
         <div className="flex items-start gap-3.5 min-w-max pb-2">
           {PIPELINE_STAGES.map((stage) => {
             const stageLeads = leads.filter(

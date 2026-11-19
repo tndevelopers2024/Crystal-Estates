@@ -339,7 +339,8 @@ router.put(['/layout/:slug/plots', '/layout/:slug/batch'], async (req, res) => {
     // areaSqFt, …) is preserved — stripping them used to wipe phase tags and
     // unique ids from featured_plots on every save.
     const formattedPlots = plots.map((p, idx) => {
-      const { _id, ...rest } = p || {}
+      // booking (buyer PII) is stored in plot_bookings only
+      const { _id, booking, ...rest } = p || {}
       let { textX, textY } = rest
       if ((textX == null || textY == null) && rest.svgPath) {
         const c = computePathCentroid(rest.svgPath) || {}

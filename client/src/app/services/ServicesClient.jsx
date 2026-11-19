@@ -14,12 +14,11 @@ import {
   Receipt,
   FileCheck2,
 } from 'lucide-react'
+import PageHeroHeader from '../../components/common/PageHeroHeader'
 import {
-  WordsPullUpMultiStyle,
   Eyebrow,
   Reveal,
   PillLink,
-  openSiteVisit,
 } from '../../components/home/motion'
 import { LocationsMarquee } from '../../components/home/Manifesto'
 import Voices from '../../components/home/Voices'
@@ -139,65 +138,48 @@ const STATS = [
 export default function ServicesClient() {
   return (
     <div className="ch-home ch-services-page">
-      {/* ── 1. Hero Section ───────────────────────────────────── */}
-      <section className="ch-services-hero" aria-labelledby="ch-services-hero-title">
-        <div className="ch-wrap">
-          {/* Breadcrumb */}
-          <nav aria-label="Breadcrumb" className="ch-services-breadcrumb">
-            <Link href="/">Home</Link>
-            <span className="ch-services-breadcrumb__sep">/</span>
-            <span className="ch-services-breadcrumb__current">Services</span>
-          </nav>
-
-          <div className="ch-services-hero__head">
-            <Eyebrow>Comprehensive Land Solutions · Assets Creator</Eyebrow>
-            <h1 id="ch-services-hero-title" className="ch-services-hero__title">
-              <WordsPullUpMultiStyle
-                segments={[
-                  { text: 'Specialized land expertise,' },
-                  { br: true },
-                  { text: 'unbroken transparency.', className: 'ch-accent' },
-                ]}
-              />
-            </h1>
-            <p className="ch-services-hero__lead">
-              From approved residential plotted layouts and managed sandalwood agro-forestry to strategic land resale
-              and Sub-Registrar liaison, Crystal Estates delivers friction-free land solutions backed by thirty years of title scrutiny.
-            </p>
-
-            <div className="ch-services-hero__ctas">
-              <PillLink href="#consultation" variant="cream" onClick={openSiteVisit}>
-                Book a Site Visit &amp; Consultation
-              </PillLink>
-              <PillLink href="/contact" variant="dark">
-                Talk to a Land Advisor
-              </PillLink>
-            </div>
-          </div>
-
-          {/* Panoramic Showcase Banner */}
-          <Reveal className="ch-services-hero__banner" y={30}>
-            <div className="ch-services-hero__banner-img">
-              <Image
-                src="/images/hero-estate.jpg"
-                alt="Crystal Estates comprehensive land services"
-                fill
-                priority
-                sizes="(max-width: 900px) 100vw, 1360px"
-              />
-            </div>
-            <div className="ch-services-hero__banner-shade" aria-hidden="true" />
-            <div className="ch-services-hero__chip ch-services-hero__chip--left">
-              <span className="ch-services-hero__chip-dot" aria-hidden="true" />
-              <span>100% Clear-Title Scrutiny · Direct Developer Transactions</span>
-            </div>
-            <div className="ch-services-hero__chip ch-services-hero__chip--right">
-              <span className="ch-services-hero__chip-star" aria-hidden="true">★</span>
-              <span>Full Sub-Registrar &amp; Patta Transfer Representation</span>
-            </div>
-          </Reveal>
-        </div>
-      </section>
+      {/* ── 1. Hero Section (Unified About-Us Header Style) ────── */}
+      <PageHeroHeader
+        id="ch-services-hero-title"
+        breadcrumbs={[
+          { label: 'Home', href: '/' },
+          { label: 'Services' },
+        ]}
+        eyebrow="Comprehensive Land Solutions · Assets Creator"
+        titleSegments={[
+          { text: 'Specialized land expertise,' },
+          { br: true },
+          { text: 'unbroken transparency.', className: 'ch-accent' },
+        ]}
+        lead="From approved plotted layouts and managed agro-forestry to strategic land resale and Sub-Registrar liaison, Crystal Estates delivers friction-free land solutions."
+        primaryCta={{
+          label: 'Explore Land Solutions',
+          href: '#direct-sales',
+          variant: 'dark',
+        }}
+        secondaryCta={{
+          label: 'Talk to a land advisor',
+          href: '/contact',
+        }}
+        stats={[
+          { value: 3, suffix: '', label: 'Specialized Desks' },
+          { value: 1200, suffix: '+', label: 'Landowners Advised' },
+          { value: 0, suffix: '%', label: 'Hidden Brokerage' },
+        ]}
+        mainImage={{
+          src: '/images/somamangalam.jpg',
+          alt: 'Direct land sales and development advisory in Chennai',
+        }}
+        subImage={{
+          src: '/images/vedanthangal.jpg',
+          alt: 'Physical boundary demarcation and survey verification',
+        }}
+        chip={{
+          icon: Scale,
+          text: '30-Yr Legal Scrutiny',
+        }}
+        sealText="ASSETS CREATOR · SINCE 2014 · CHENNAI ·"
+      />
 
       {/* ── 2. Corridors Marquee ──────────────────────────────── */}
       <LocationsMarquee />

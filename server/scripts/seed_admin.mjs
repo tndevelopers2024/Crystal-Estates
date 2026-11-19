@@ -26,8 +26,8 @@ if (!email || !email.includes('@')) {
   console.error('ADMIN_EMAIL must be set to a valid email address.')
   process.exit(1)
 }
-if (password.length < 12) {
-  console.error('ADMIN_PASSWORD must be set and at least 12 characters long.')
+if (password.length < 6) {
+  console.error('ADMIN_PASSWORD must be set and at least 6 characters long.')
   process.exit(1)
 }
 

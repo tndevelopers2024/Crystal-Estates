@@ -192,6 +192,27 @@ router.post('/document', upload.single('document'), async (req, res) => {
 
     saveToDirs([clientDocumentsDir, crmDocumentsDir, serverUploadsDocumentsDir], filename, buffer)
 
+    // Also keep the file in MongoDB so it survives redeploys of servers with
+    // temporary disks (served by the /documents/:filename database fallback)
+    try {
+      const db = await getDb()
+      const updateFields = {
+        filename,
+        contentType: req.file.mimetype || 'application/octet-stream',
+        size: buffer.length,
+        storedOnDisk: true,
+        updatedAt: new Date(),
+      }
+      if (buffer.length < 15 * 1024 * 1024) updateFields.binaryData = buffer
+      await db.collection('uploaded_files').updateOne(
+        { filename },
+        { $set: updateFields, $setOnInsert: { createdAt: new Date() } },
+        { upsert: true }
+      )
+    } catch (dbErr) {
+      console.warn('MongoDB document persistence warning:', dbErr.message)
+    }
+
     const publicUrl = `/documents/${filename}`
 
     return res.json({

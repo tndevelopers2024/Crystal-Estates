@@ -14,8 +14,8 @@ import {
   Car,
   CheckCircle2,
 } from 'lucide-react'
+import PageHeroHeader from '../../components/common/PageHeroHeader'
 import {
-  WordsPullUpMultiStyle,
   Eyebrow,
   Reveal,
   PillLink,
@@ -62,71 +62,56 @@ export default function ContactClient() {
 
   return (
     <div className="ch-home ch-contact-page">
-      {/* ── 1. Hero Section ───────────────────────────────────── */}
-      <section className="ch-contact-hero" aria-labelledby="ch-contact-hero-title">
-        <div className="ch-wrap">
-          {/* Breadcrumb */}
-          <nav aria-label="Breadcrumb" className="ch-contact-breadcrumb">
-            <Link href="/">Home</Link>
-            <span className="ch-contact-breadcrumb__sep">/</span>
-            <span className="ch-contact-breadcrumb__current">Contact Us</span>
-          </nav>
-
-          <div className="ch-contact-hero__head">
-            <Eyebrow>Valasaravakkam Headquarters · Assets Creator</Eyebrow>
-            <h1 id="ch-contact-hero-title" className="ch-contact-hero__title">
-              <WordsPullUpMultiStyle
-                segments={[
-                  { text: 'Speak directly with' },
-                  { br: true },
-                  { text: 'our land advisors.', className: 'ch-accent' },
-                ]}
-              />
-            </h1>
-            <p className="ch-contact-hero__lead">
-              Schedule an accompanied weekend site visit with complimentary family pickup, or visit our
-              Valasaravakkam corporate office to review original revenue records, parent title deeds, and
-              sanctioned layout masterplans in person.
-            </p>
-
-            <div className="ch-contact-hero__ctas">
-              <PillLink href="#enquiry-section" variant="cream">
-                Send an Online Enquiry
-              </PillLink>
-              <PillLink
-                href={`https://wa.me/${business.whatsapp}?text=${encodeURIComponent(
-                  'Hi Crystal Estates, I would like to consult on plots and farmland in Chennai.'
-                )}`}
-                variant="dark"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <MessageCircle size={15} aria-hidden="true" />
-                Chat on WhatsApp
-              </PillLink>
-            </div>
-
-            {/* Live Trust Metrics Row */}
-            <div className="ch-contact-stats-row">
-              <div className="ch-contact-stat-pill">
-                <Clock size={16} style={{ color: '#b8964e' }} aria-hidden="true" />
-                <strong>2 Hours</strong>
-                <span>Typical Response Time</span>
-              </div>
-              <div className="ch-contact-stat-pill">
-                <Car size={16} style={{ color: '#0f3d2e' }} aria-hidden="true" />
-                <strong>Doorstep Cab</strong>
-                <span>Weekend Family Pickup</span>
-              </div>
-              <div className="ch-contact-stat-pill">
-                <ShieldCheck size={16} style={{ color: '#25d366' }} aria-hidden="true" />
-                <strong>100%</strong>
-                <span>In-Person Document Scrutiny</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* ── 1. Hero Section (Unified About-Us Header Style) ────── */}
+      <PageHeroHeader
+        id="ch-contact-hero-title"
+        breadcrumbs={[
+          { label: 'Home', href: '/' },
+          { label: 'Contact Us' },
+        ]}
+        eyebrow="Valasaravakkam Headquarters · Assets Creator"
+        titleSegments={[
+          { text: 'Speak directly with' },
+          { br: true },
+          { text: 'our land advisors.', className: 'ch-accent' },
+        ]}
+        lead="Schedule an accompanied weekend site visit with door-step family pickup, or visit our Valasaravakkam corporate office to review original revenue records and masterplans in person."
+        primaryCta={{
+          label: 'Send Online Enquiry',
+          href: '#enquiry-section',
+          variant: 'dark',
+        }}
+        secondaryCta={{
+          label: 'Chat on WhatsApp',
+          href: `https://wa.me/${business.whatsapp}?text=${encodeURIComponent(
+            'Hi Crystal Estates, I would like to consult on plots and farmland in Chennai.'
+          )}`,
+          variant: 'cream',
+          isPill: true,
+          props: {
+            target: '_blank',
+            rel: 'noopener noreferrer',
+          },
+        }}
+        stats={[
+          { value: '2-Hr', suffix: '', label: 'Advisory Turnaround' },
+          { value: '100%', suffix: '', label: 'Title Transparency' },
+          { value: 'Free', suffix: '', label: 'Doorstep Weekend Cab' },
+        ]}
+        mainImage={{
+          src: '/images/hero-estate.jpg',
+          alt: 'Crystal Estates Valasaravakkam corporate headquarters',
+        }}
+        subImage={{
+          src: '/images/brammadesam.jpg',
+          alt: 'Accompanied weekend site visit with family',
+        }}
+        chip={{
+          icon: MapPin,
+          text: 'Valasaravakkam Headquarters',
+        }}
+        sealText="ASSETS CREATOR · SINCE 2014 · CHENNAI ·"
+      />
 
       {/* ── 2. Growth Corridors Marquee ───────────────────────── */}
       <LocationsMarquee />

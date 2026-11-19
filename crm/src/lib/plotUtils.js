@@ -111,3 +111,33 @@ export function plotsForPhase(property, phase, phaseIndex, phaseCount) {
 
   return Array.isArray(phase.plots) ? phase.plots : []
 }
+
+/**
+ * Parse Indian price text into rupees: 4200000, "42,00,000", "₹ 42.00 Lakhs", "1.2 Cr".
+ * Returns null when no number is present.
+ */
+export function parseRupees(value) {
+  if (value === null || value === undefined || value === '') return null
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null
+  const s = String(value).toLowerCase().replace(/,/g, '')
+  const m = s.match(/(\d+(?:\.\d+)?)/)
+  if (!m) return null
+  let n = parseFloat(m[1])
+  if (/\bcr|crore/.test(s)) n *= 10000000
+  else if (/lakh|lac|\bl\b/.test(s)) n *= 100000
+  return Math.round(n)
+}
+
+export function formatRupees(n) {
+  if (n === null || n === undefined || !Number.isFinite(Number(n))) return '—'
+  return `₹${Math.round(Number(n)).toLocaleString('en-IN')}`
+}
+
+/** Same as summarizePlotStatuses but returns the plot's display group. */
+export function statusGroup(status) {
+  const s = String(status || 'Available').trim().toLowerCase()
+  if (s === 'booked' || s === 'reserved') return 'Booked'
+  if (s === 'sold' || s === 'registered') return 'Sold'
+  if (s === 'blocked') return 'Blocked'
+  return 'Available'
+}

@@ -489,3 +489,139 @@ export async function deleteSiteVisit(id) {
 }
 
 
+
+/**
+ * Plot activity log (bookings, payments, every plot change)
+ */
+export async function fetchPlotActivity({ propertyId, plotUid, plotNo, phase, limit } = {}) {
+  const params = new URLSearchParams()
+  if (propertyId) params.set('propertyId', propertyId)
+  if (plotUid) params.set('plotUid', plotUid)
+  if (plotNo) params.set('plotNo', plotNo)
+  if (phase) params.set('phase', phase)
+  if (limit) params.set('limit', String(limit))
+  const res = await fetch(getApiUrl(`/api/plot-activity?${params.toString()}`))
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error || `Failed to load plot history: HTTP ${res.status}`)
+  }
+  return await res.json()
+}
+
+export async function addPlotActivity(entry) {
+  const res = await fetch(getApiUrl('/api/plot-activity'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(entry),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error || `Failed to save entry: HTTP ${res.status}`)
+  }
+  return await res.json()
+}
+
+export async function fetchPlotBookings(propertyId) {
+  const res = await fetch(getApiUrl(`/api/plot-activity/bookings?propertyId=${encodeURIComponent(propertyId)}`))
+  if (!res.ok) throw new Error(`Failed to load bookings: HTTP ${res.status}`)
+  return await res.json()
+}
+
+export async function savePlotBooking(entry) {
+  const res = await fetch(getApiUrl('/api/plot-activity/booking'), {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(entry),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error || `Failed to save booking: HTTP ${res.status}`)
+  }
+  return await res.json()
+}
+
+/**
+ * Editable dropdown option lists (payment types, modes, document types)
+ */
+export async function fetchOptions(list) {
+  const res = await fetch(getApiUrl(`/api/crm-options/${encodeURIComponent(list)}`))
+  if (!res.ok) throw new Error(`Failed to load options: HTTP ${res.status}`)
+  return await res.json()
+}
+
+export async function addOption(list, value) {
+  const res = await fetch(getApiUrl(`/api/crm-options/${encodeURIComponent(list)}`), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ value }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.error || `Failed to add option: HTTP ${res.status}`)
+  return data
+}
+
+export async function deleteOption(list, value) {
+  const res = await fetch(getApiUrl(`/api/crm-options/${encodeURIComponent(list)}`), {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ value }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.error || `Failed to delete option: HTTP ${res.status}`)
+  return data
+}
+
+/**
+ * Payments (beyond recordLeadPayment / fetchAllPayments)
+ */
+export async function deletePayment(paymentId) {
+  const res = await fetch(getApiUrl(`/api/leads/payments/${encodeURIComponent(paymentId)}`), { method: 'DELETE' })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.error || `Failed to delete payment: HTTP ${res.status}`)
+  return data
+}
+
+/**
+ * Customer documents (receipts, booking confirmations, statements, uploads)
+ */
+export async function fetchDocuments(filters = {}) {
+  const params = new URLSearchParams()
+  Object.entries(filters).forEach(([k, v]) => v && params.set(k, v))
+  const res = await fetch(getApiUrl(`/api/documents?${params.toString()}`))
+  if (!res.ok) throw new Error(`Failed to load documents: HTTP ${res.status}`)
+  return await res.json()
+}
+
+export async function renderDocumentPreview(draft) {
+  const res = await fetch(getApiUrl('/api/documents/render'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(draft),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.error || `Preview failed: HTTP ${res.status}`)
+  return data
+}
+
+export async function createDocument(draft) {
+  const res = await fetch(getApiUrl('/api/documents'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(draft),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.error || `Could not create document: HTTP ${res.status}`)
+  return data
+}
+
+export async function deleteDocument(id) {
+  const res = await fetch(getApiUrl(`/api/documents/${encodeURIComponent(id)}`), { method: 'DELETE' })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.error || `Failed to delete document: HTTP ${res.status}`)
+  return data
+}
+
+/** Customer-facing link for a saved document */
+export function getDocumentShareUrl(doc) {
+  return getApiUrl(`/api/documents/${encodeURIComponent(doc.id)}/view?t=${encodeURIComponent(doc.token)}`)
+}

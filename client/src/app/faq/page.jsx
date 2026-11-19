@@ -1,7 +1,5 @@
 import React from 'react'
-import { PageHero } from '../../components/ui'
-import FaqClientAccordion from '../../components/faq/FaqClientAccordion'
-import TestimonialsSection from '../../components/TestimonialsSection'
+import FaqClient from './FaqClient'
 
 export const metadata = {
   title: 'Frequently Asked Questions (FAQ) | Crystal Estates Chennai',
@@ -25,23 +23,5 @@ export const metadata = {
 }
 
 export default function FaqPage() {
-  return (
-    <main>
-      <PageHero
-        title="Frequently Asked Questions"
-        subtitle="Transparent answers regarding land title verification, DTCP/CMDA approvals, sub-registrar registration, and guided site visits in Chennai."
-        breadcrumb={[
-          { label: 'Home', href: '/' },
-          { label: 'FAQ' },
-        ]}
-      />
-
-      <FaqClientAccordion />
-
-      <TestimonialsSection
-        title="Landowner Confidence"
-        subtitle="Trusted by over 500+ landowners across Chennai, Kanchipuram, and surrounding growth corridors."
-      />
-    </main>
-  )
+  return <FaqClient />
 }

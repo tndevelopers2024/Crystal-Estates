@@ -10,6 +10,9 @@ import {
 import MainLayout from './components/layout/MainLayout'
 import PropertyGrid from './components/properties/PropertyGrid'
 import AddEditPropertyPage from './components/properties/AddEditPropertyPage'
+import PlotsPage from './components/properties/PlotsPage'
+import PaymentsPage from './components/payments/PaymentsPage'
+import DocumentsPage from './components/documents/DocumentsPage'
 import DashboardView from './components/dashboard/DashboardView'
 import LeadsPipelineView from './components/leads/LeadsPipelineView'
 import PlaceholderView from './components/views/PlaceholderView'
@@ -20,6 +23,7 @@ import LoginPage from './components/auth/LoginPage'
 import ForgotPasswordPage from './components/auth/ForgotPasswordPage'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 import Toast from './components/common/Toast'
+import { useDialog } from './context/DialogContext'
 import { useProperties } from './hooks/useProperties'
 import { useLeads } from './hooks/useLeads'
 import { useSiteVisits } from './hooks/useSiteVisits'
@@ -29,7 +33,28 @@ import { useSiteVisits } from './hooks/useSiteVisits'
  */
 function EditPropertyRouteWrapper({ properties, loading, onSave, onCancel }) {
   const { id } = useParams()
-  const property = properties.find((p) => p.id === id || p.projectId === id)
+  const rawId = id || ''
+  const decodedId = decodeURIComponent(rawId)
+
+  const property = properties.find((p) => {
+    if (!p) return false
+    const pid = String(p.id || '')
+    const projId = String(p.projectId || '')
+    const slug = String(p.slug || '')
+    const name = String(p.name || '').toLowerCase()
+    const target = decodedId.toLowerCase()
+    return (
+      pid === rawId ||
+      pid === decodedId ||
+      projId === rawId ||
+      projId === decodedId ||
+      slug === rawId ||
+      slug === decodedId ||
+      name === target ||
+      name.replace(/\s+/g, '-') === target ||
+      name.replace(/[^a-z0-9]/g, '') === target.replace(/[^a-z0-9]/g, '')
+    )
+  })
 
   if (loading && !property) {
     return (
@@ -40,14 +65,62 @@ function EditPropertyRouteWrapper({ properties, loading, onSave, onCancel }) {
     )
   }
 
+  if (!loading && !property) {
+    return (
+      <div className="bg-white rounded-2xl border border-slate-200/80 p-12 text-center max-w-md mx-auto my-12 shadow-xs">
+        <h3 className="text-base font-bold text-slate-800">Project Not Found</h3>
+        <p className="text-xs text-slate-500 mt-1">
+          Could not find details for project &ldquo;{decodedId}&rdquo;.
+        </p>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="mt-4 px-4 py-2 bg-[#0F3D2E] text-white text-xs font-semibold rounded-xl hover:bg-[#16533D] transition cursor-pointer"
+        >
+          Back to Properties
+        </button>
+      </div>
+    )
+  }
+
   return (
     <AddEditPropertyPage
-      key={property?.id || id}
+      key={property.id || id}
       initialData={property}
       onSave={onSave}
       onCancel={onCancel}
     />
   )
+}
+
+/**
+ * Wrapper to resolve the property for /properties/:id/plots
+ */
+function PlotsRouteWrapper({ properties, loading, onPropertyUpdated, onShowToast, onBack }) {
+  const { id } = useParams()
+  const property = properties.find((p) => p.id === id || p.projectId === id)
+
+  if (!property) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 p-16 text-slate-500 text-sm font-semibold">
+        {loading ? (
+          <>
+            <div className="animate-spin w-5 h-5 border-2 border-[#0F3D2E] border-t-transparent rounded-full" />
+            Loading plots...
+          </>
+        ) : (
+          <>
+            <span>Property not found.</span>
+            <button type="button" onClick={onBack} className="px-4 py-2 bg-[#0F3D2E] text-white text-xs font-bold rounded-xl">
+              Back to properties
+            </button>
+          </>
+        )}
+      </div>
+    )
+  }
+
+  return <PlotsPage property={property} onPropertyUpdated={onPropertyUpdated} onShowToast={onShowToast} onBack={onBack} />
 }
 
 /**
@@ -61,6 +134,7 @@ function SectionPlaceholderRouteWrapper({ onBack }) {
 export default function App() {
   const location = useLocation()
   const navigate = useNavigate()
+  const { confirm } = useDialog()
 
   const [toast, setToast] = useState(null)
   const [isAddLeadModalOpen, setIsAddLeadModalOpen] = useState(false)
@@ -129,7 +203,16 @@ export default function App() {
   }
 
   const handleDelete = async (id, name) => {
-    const success = await deleteProperty(id, name)
+    const ok = await confirm({
+      title: 'Delete Property',
+      message: `Are you sure you want to permanently delete "${name}"? This action cannot be undone. All layout phases, plot allotments, and documents will be removed.`,
+      confirmText: 'Delete Property',
+      cancelText: 'Keep Property',
+      type: 'danger',
+    })
+    if (!ok) return
+
+    const success = await deleteProperty(id, name, true)
     if (success) {
       showToast(`Property "${name}" deleted from database.`)
     }
@@ -328,12 +411,24 @@ export default function App() {
             element={
               <PropertyGrid
                 properties={properties}
-                onEdit={(prop) => navigate(`/properties/edit/${prop.id}`)}
+                onEdit={(prop) => navigate(`/properties/edit/${encodeURIComponent(prop.id)}`)}
                 onDelete={handleDelete}
-                onPropertyUpdated={updatePlotState}
-                onShowToast={showToast}
                 searchTerm={searchTerm}
                 onClearSearch={() => setSearchTerm('')}
+              />
+            }
+          />
+
+          {/* Full plot management page (map, list, booking, payments, history) */}
+          <Route
+            path="/properties/:id/plots"
+            element={
+              <PlotsRouteWrapper
+                properties={properties}
+                loading={propertiesLoading}
+                onPropertyUpdated={updatePlotState}
+                onShowToast={showToast}
+                onBack={() => navigate('/properties')}
               />
             }
           />
@@ -416,6 +511,21 @@ export default function App() {
           />
 
           {/* Standalone Modules (Visits, Payments, etc.) */}
+          <Route
+            path="/payments"
+            element={
+              <PaymentsPage
+                leads={leadsState.allLeads || []}
+                properties={properties}
+                onShowToast={showToast}
+                onLeadsChanged={leadsState.refreshLeads}
+              />
+            }
+          />
+          <Route
+            path="/documents"
+            element={<DocumentsPage leads={leadsState.allLeads || []} properties={properties} onShowToast={showToast} />}
+          />
           <Route
             path="/:sectionId"
             element={<SectionPlaceholderRouteWrapper onBack={() => navigate('/properties')} />}

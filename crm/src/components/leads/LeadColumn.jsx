@@ -94,7 +94,7 @@ export default function LeadColumn({
       </div>
 
       {/* Cards Area */}
-      <div className="p-2.5 flex-1 space-y-2.5 overflow-y-auto min-h-[460px] max-h-[calc(100vh-270px)]">
+      <div className="p-2.5 flex-1 space-y-2.5 overflow-y-auto no-scrollbar min-h-[460px] max-h-[calc(100vh-270px)]">
         {leads.map((lead) => (
           <LeadCard key={lead.id} lead={lead} onClick={onLeadClick} />
         ))}

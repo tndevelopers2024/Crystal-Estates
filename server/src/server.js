@@ -5,6 +5,9 @@ import dotenv from 'dotenv'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import plotsRouter from './routes/plots.js'
+import plotActivityRouter from './routes/plotActivity.js'
+import documentsRouter from './routes/documents.js'
+import optionsRouter from './routes/options.js'
 import kolapakkamRouter from './routes/kolapakkam.js'
 import uploadRouter from './routes/upload.js'
 import layoutRouter from './routes/layout.js'
@@ -193,6 +196,9 @@ app.get('/api/health', async (req, res) => {
 
 // Mount API routes
 app.use('/api/upload', uploadRouter)
+app.use('/api/plot-activity', plotActivityRouter)
+app.use('/api/documents', documentsRouter)
+app.use('/api/crm-options', optionsRouter)
 app.use('/api/plots', layoutRouter)
 app.use('/api/plots/kolapakkam', kolapakkamRouter)
 app.use('/api/plots', plotsRouter)

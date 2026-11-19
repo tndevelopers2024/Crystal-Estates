@@ -105,8 +105,19 @@ export function useProperties() {
     )
   }, [allProperties, searchTerm])
 
-  const handleDelete = useCallback(async (id, name) => {
-    if (!window.confirm(`Are you sure you want to delete "${name}"?`)) return false
+  const handleDelete = useCallback(async (id, name, skipConfirm = false) => {
+    if (!skipConfirm) {
+      if (typeof window !== 'undefined' && window.crmConfirm) {
+        const ok = await window.crmConfirm({
+          title: 'Delete Property',
+          message: `Are you sure you want to permanently delete "${name}"? All associated plots and files will be removed.`,
+          confirmText: 'Delete Property',
+          cancelText: 'Cancel',
+          type: 'danger',
+        })
+        if (!ok) return false
+      }
+    }
     try {
       await deletePlot(id)
       setDbPlots((prev) => prev.filter((p) => p.id !== id && p.projectId !== id))

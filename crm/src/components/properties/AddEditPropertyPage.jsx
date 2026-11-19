@@ -35,6 +35,8 @@ import {
 } from '../../lib/api'
 import PlotManagementSection from './PlotManagementSection'
 import { canonicalLayoutSlug, ensurePlotUids, plotsForPhase, summarizePlotStatuses } from '../../lib/plotUtils'
+import { useAuth } from '../../context/AuthContext'
+import { useDialog } from '../../context/DialogContext'
 
 /**
  * Editable phase list for a property. Plots come from the property-level
@@ -82,6 +84,8 @@ function generateProjectId() {
 
 export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
   const isEdit = Boolean(initialData && initialData.id)
+  const { user } = useAuth()
+  const { confirm } = useDialog()
 
   // Step Tabs: 'basic' | 'measurements' | 'pricing' | 'media'
   const [activeTab, setActiveTab] = useState('basic')
@@ -239,8 +243,17 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
     setNewImagePreviews((prev) => [...prev, ...previews])
   }
 
-  const handleRemoveExistingImage = (idx) => {
-    setExistingImages((prev) => prev.filter((_, i) => i !== idx))
+  const handleRemoveExistingImage = async (idx) => {
+    const ok = await confirm({
+      title: 'Remove Photograph',
+      message: 'Are you sure you want to remove this photograph from the property gallery?',
+      confirmText: 'Remove',
+      cancelText: 'Keep',
+      type: 'danger',
+    })
+    if (ok) {
+      setExistingImages((prev) => prev.filter((_, i) => i !== idx))
+    }
   }
 
   const handleRemoveNewImage = (idx) => {
@@ -262,8 +275,17 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
     setNewDocList((prev) => [...prev, ...docs])
   }
 
-  const handleRemoveExistingDoc = (idx) => {
-    setExistingDocs((prev) => prev.filter((_, i) => i !== idx))
+  const handleRemoveExistingDoc = async (idx) => {
+    const ok = await confirm({
+      title: 'Remove Document',
+      message: 'Are you sure you want to remove this document from the project files?',
+      confirmText: 'Remove',
+      cancelText: 'Keep',
+      type: 'danger',
+    })
+    if (ok) {
+      setExistingDocs((prev) => prev.filter((_, i) => i !== idx))
+    }
   }
 
   const handleRemoveNewDoc = (idx) => {
@@ -317,14 +339,41 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
     setActivePhaseIndex(phases.length)
   }
 
-  const handleRemovePhase = (indexToRemove) => {
+  const handleRemovePhase = async (indexToRemove) => {
     if (phases.length <= 1) return
     const target = phases[indexToRemove]
     const pName = target?.name || `Phase ${indexToRemove + 1}`
-    if (window.confirm(`Are you sure you want to remove ${pName}? Any plots and layout file for this phase will be removed.`)) {
+    const ok = await confirm({
+      title: `Remove ${pName}`,
+      message: `Are you sure you want to remove ${pName}? Any plots and layout map for this phase will be removed.`,
+      tag: pName,
+      confirmText: 'Remove Phase',
+      cancelText: 'Keep Phase',
+      type: 'danger',
+    })
+    if (ok) {
       setPhases((prev) => prev.filter((_, idx) => idx !== indexToRemove))
       setActivePhaseIndex((prev) => (prev >= indexToRemove ? Math.max(0, prev - 1) : prev))
     }
+  }
+
+  const handleCancelWithConfirm = async () => {
+    const hasData =
+      Boolean(formData.name && formData.name.trim()) ||
+      Boolean(formData.location && formData.location.trim()) ||
+      phases.some((p) => (p.plots && p.plots.length > 0) || p.layoutFile)
+
+    if (hasData) {
+      const ok = await confirm({
+        title: 'Discard Changes?',
+        message: 'You have entered property details that have not been published yet. Are you sure you want to discard your changes and exit?',
+        confirmText: 'Discard & Exit',
+        cancelText: 'Continue Editing',
+        type: 'warning',
+      })
+      if (!ok) return
+    }
+    if (onCancel) onCancel()
   }
 
   const handleUpdatePhaseName = (name) => {
@@ -567,7 +616,11 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
 
       let savedResult
       if (isEdit) {
-        await updatePlot(initialData.id, payload)
+        // _actor lets the server record who changed each plot (activity log)
+        await updatePlot(initialData.id, {
+          ...payload,
+          _actor: { name: user?.name || user?.email || 'CRM user', email: user?.email || '' },
+        })
         savedResult = { ...initialData, ...payload }
         setSuccessMessage(`Project "${formData.name}" updated successfully!`)
       } else {
@@ -603,7 +656,7 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={onCancel}
+            onClick={handleCancelWithConfirm}
             className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-[#0F3D2E] hover:border-[#0F3D2E] transition shadow-2xs"
             title="Back to Properties"
           >
@@ -627,7 +680,7 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={onCancel}
+            onClick={handleCancelWithConfirm}
             disabled={isSubmitting}
             className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800 bg-white border border-slate-200 rounded-xl transition shadow-2xs"
           >

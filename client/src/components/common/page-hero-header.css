@@ -1,0 +1,119 @@
+/* ─────────────────────────────────────────────────────────────
+   Compact inner-page header (replaces full hero banners).
+   Uses .ch-home tokens; classes are prefixed ph- so they never
+   collide with the About page hero (ab-).
+   ───────────────────────────────────────────────────────────── */
+
+.ph {
+  background: var(--ch-paper);
+  padding: clamp(24px, 3.4vw, 44px) 0 clamp(28px, 3.6vw, 48px);
+  border-bottom: 1px solid var(--ch-line);
+}
+
+.ph__crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ch-muted);
+  margin-bottom: clamp(16px, 2.4vw, 28px);
+}
+
+.ph__crumbs a {
+  color: var(--ch-muted);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.ph__crumbs a:hover {
+  color: var(--ch-green);
+}
+
+.ph__crumbs [aria-current] {
+  color: var(--ch-ink);
+  font-weight: 600;
+}
+
+.ph__row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px 40px;
+  flex-wrap: wrap;
+}
+
+.ph__text {
+  max-width: 760px;
+  min-width: 0;
+}
+
+.ph__title {
+  font-size: clamp(32px, 4vw, 56px);
+  line-height: 1.06;
+  letter-spacing: -0.035em;
+  font-weight: 600;
+  color: var(--ch-green);
+  margin: 14px 0 0;
+  overflow-wrap: normal;
+  word-break: keep-all;
+}
+
+.ph__title .ch-accent {
+  color: var(--ch-gold);
+}
+
+/* Titles split across two lines in the page configs read better on one line here */
+.ph__title br {
+  display: none;
+}
+
+.ph__lead {
+  font-size: clamp(15px, 1.2vw, 16.5px);
+  line-height: 1.65;
+  color: var(--ch-muted);
+  max-width: 620px;
+  margin: 14px 0 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ph__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 24px;
+  flex-shrink: 0;
+}
+
+.ph--center .ph__row {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.ph--center .ph__crumbs {
+  justify-content: center;
+}
+
+.ph--center .ph__text {
+  margin: 0 auto;
+}
+
+@media (max-width: 640px) {
+  .ph__lead {
+    -webkit-line-clamp: 3;
+  }
+
+  .ph__actions {
+    width: 100%;
+  }
+
+  .ph__actions .ch-pill {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

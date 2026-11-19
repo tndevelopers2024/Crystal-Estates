@@ -50,13 +50,15 @@ export default function RecordPaymentModal({
   const [sendEmail, setSendEmail] = useState(true)
   const [moveLeadToWon, setMoveLeadToWon] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
 
   if (!isOpen || !lead) return null
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setErrorMessage('')
     if (!amount || isNaN(amount) || Number(amount) <= 0) {
-      alert('Please enter a valid payment amount')
+      setErrorMessage('Please enter a valid payment amount greater than zero.')
       return
     }
 
@@ -79,7 +81,7 @@ export default function RecordPaymentModal({
       onClose()
     } catch (err) {
       console.error('Failed to record payment:', err)
-      alert(err.message || 'Error recording payment')
+      setErrorMessage(err.message || 'Error recording payment. Please verify the details and try again.')
     } finally {
       setSubmitting(false)
     }
@@ -109,6 +111,19 @@ export default function RecordPaymentModal({
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {errorMessage && (
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center justify-between text-xs text-rose-700 font-medium">
+              <span>{errorMessage}</span>
+              <button
+                type="button"
+                onClick={() => setErrorMessage('')}
+                className="text-rose-400 hover:text-rose-600 transition"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
           {/* Customer */}
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1.5">

@@ -1,18 +1,16 @@
-import React, { useState } from 'react'
+import React from 'react'
+import { useNavigate } from 'react-router-dom'
 import PropertyCard from './PropertyCard'
-import PropertyPlotModal from './PropertyPlotModal'
-import { Building2, SearchX } from 'lucide-react'
+import { SearchX } from 'lucide-react'
 
 export default function PropertyGrid({
   properties = [],
   onEdit,
   onDelete,
-  onPropertyUpdated,
-  onShowToast,
   searchTerm,
   onClearSearch,
 }) {
-  const [plotModalProperty, setPlotModalProperty] = useState(null)
+  const navigate = useNavigate()
 
   if (properties.length === 0) {
     return (
@@ -46,23 +44,10 @@ export default function PropertyGrid({
             property={property}
             onEdit={onEdit}
             onDelete={onDelete}
-            onAddPlot={(prop) => setPlotModalProperty(prop)}
+            onAddPlot={(prop) => navigate(`/properties/${encodeURIComponent(prop.id)}/plots`)}
           />
         ))}
       </div>
-
-      {plotModalProperty && (
-        <PropertyPlotModal
-          isOpen={Boolean(plotModalProperty)}
-          property={plotModalProperty}
-          onClose={() => setPlotModalProperty(null)}
-          onPropertyUpdated={(updated) => {
-            if (onPropertyUpdated) onPropertyUpdated(updated)
-            setPlotModalProperty(updated)
-          }}
-          onShowToast={onShowToast}
-        />
-      )}
     </>
   )
 }

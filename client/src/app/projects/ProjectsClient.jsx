@@ -1,21 +1,10 @@
 'use client'
 
 import React from 'react'
-import Link from 'next/link'
-import {
-  ShieldCheck,
-  BadgeCheck,
-  Car,
-  CheckCircle2,
-} from 'lucide-react'
+import { BadgeCheck } from 'lucide-react'
 import ProjectsClientView from '../../components/projects/ProjectsClientView'
-import {
-  WordsPullUpMultiStyle,
-  Eyebrow,
-  Reveal,
-  PillLink,
-  openSiteVisit,
-} from '../../components/home/motion'
+import PageHeroHeader from '../../components/common/PageHeroHeader'
+import { Reveal, openSiteVisit } from '../../components/home/motion'
 import { LocationsMarquee } from '../../components/home/Manifesto'
 import Voices from '../../components/home/Voices'
 import Closing from '../../components/home/Closing'
@@ -48,78 +37,63 @@ const GUARANTEES = [
 export default function ProjectsClient({ initialProjects = [] }) {
   return (
     <div className="ch-home ch-projects-page">
-      {/* ── 1. Hero Section ───────────────────────────────────── */}
-      <section className="ch-projects-hero" aria-labelledby="ch-projects-hero-title">
-        <div className="ch-wrap">
-          {/* Breadcrumb */}
-          <nav aria-label="Breadcrumb" className="ch-projects-breadcrumb">
-            <Link href="/">Home</Link>
-            <span className="ch-projects-breadcrumb__sep">/</span>
-            <span className="ch-projects-breadcrumb__current">Projects</span>
-          </nav>
-
-          <div className="ch-projects-hero__head">
-            <Eyebrow>Verified Land &amp; Plot Portfolio · Assets Creator</Eyebrow>
-            <h1 id="ch-projects-hero-title" className="ch-projects-hero__title">
-              <WordsPullUpMultiStyle
-                segments={[
-                  { text: 'Curated plots in' },
-                  { br: true },
-                  { text: 'proven corridors.', className: 'ch-accent' },
-                ]}
-              />
-            </h1>
-            <p className="ch-projects-hero__lead">
-              CMDA &amp; DTCP approved residential layouts, managed sandalwood farmland, and high-growth
-              investment parcels across prime Chennai and Kanchipuram corridors. Every parcel is 100% legally vetted
-              with direct developer pricing.
-            </p>
-
-            <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', marginBottom: '28px' }}>
-              <PillLink href="#enquire" variant="cream" onClick={openSiteVisit}>
-                Book a Guided Site Visit
-              </PillLink>
-              <PillLink href="/contact" variant="dark">
-                Contact Land Advisor
-              </PillLink>
-            </div>
-
-            {/* Quick Trust Pills */}
-            <div className="ch-projects-trust-row">
-              <div className="ch-projects-trust-item">
-                <ShieldCheck size={16} aria-hidden="true" />
-                <span>100% Clear Title &amp; Patta Assured</span>
-              </div>
-              <div className="ch-projects-trust-item">
-                <BadgeCheck size={16} aria-hidden="true" />
-                <span>CMDA &amp; DTCP Approved Layouts</span>
-              </div>
-              <div className="ch-projects-trust-item">
-                <Car size={16} aria-hidden="true" />
-                <span>Accompanied Weekend Cab Pick-up</span>
-              </div>
-              <div className="ch-projects-trust-item">
-                <CheckCircle2 size={16} aria-hidden="true" />
-                <span>Zero Brokerage or Hidden Surcharges</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* ── 1. Hero Section (Unified About-Us Header Style) ────── */}
+      <PageHeroHeader
+        id="ch-projects-hero-title"
+        breadcrumbs={[
+          { label: 'Home', href: '/' },
+          { label: 'Projects' },
+        ]}
+        eyebrow="Verified Land &amp; Plot Portfolio · Assets Creator"
+        titleSegments={[
+          { text: 'Curated plots in' },
+          { br: true },
+          { text: 'proven corridors.', className: 'ch-accent' },
+        ]}
+        lead="CMDA &amp; DTCP approved residential layouts, managed sandalwood farmland, and prime investment parcels across Chennai. 100% legally vetted with direct developer pricing."
+        primaryCta={{
+          label: 'Explore Verified Projects',
+          href: '#catalog',
+          variant: 'dark',
+        }}
+        secondaryCta={{
+          label: 'Book a guided site visit',
+          onClick: openSiteVisit,
+        }}
+        stats={[
+          { value: 450, suffix: '+', label: 'Acres Delivered' },
+          { value: 100, suffix: '%', label: 'Approval Compliant' },
+          { value: 30, suffix: '+', label: 'Years Legal Audit' },
+        ]}
+        mainImage={{
+          src: '/images/hero-estate.jpg',
+          alt: 'Crystal Estates CMDA & DTCP plotted development layout',
+        }}
+        subImage={{
+          src: '/images/kolapakkam.jpg',
+          alt: 'Demarcated boundary stones at Kolapakkam project',
+        }}
+        chip={{
+          icon: BadgeCheck,
+          text: 'CMDA & DTCP Approved',
+        }}
+        sealText="ASSETS CREATOR · SINCE 2014 · CHENNAI ·"
+      />
 
       {/* ── 2. Corridors Marquee ──────────────────────────────── */}
       <LocationsMarquee />
 
       {/* ── 3. Interactive Catalog & Filter Console ───────────── */}
-      <ProjectsClientView initialProjects={initialProjects} />
+      <div id="catalog">
+        <ProjectsClientView initialProjects={initialProjects} />
+      </div>
 
-      {/* ── 4. The 4 Guarantees Strip ─────────────────────────── */}
-      <section className="ch-about-shield" aria-labelledby="ch-guarantees-title">
+      {/* ── 4. Buyer Assurance Strip ──────────────────── */}
+      <section className="ch-about-shield" aria-labelledby="ch-projects-standards-title">
         <div className="ch-wrap">
           <div className="ch-about-shield__head">
-            <Eyebrow>The Crystal Estates Guarantee</Eyebrow>
-            <h2 id="ch-guarantees-title" className="ch-h2">
-              Four promises, kept on <span className="ch-accent">every plot.</span>
+            <h2 id="ch-projects-standards-title" className="ch-h2">
+              Four promises kept on <span className="ch-accent">every parcel.</span>
             </h2>
           </div>
 
@@ -135,10 +109,10 @@ export default function ProjectsClient({ initialProjects = [] }) {
         </div>
       </section>
 
-      {/* ── 5. Verified Landowner Stories ─────────────────────── */}
+      {/* ── 5. Landowner Testimonials ─────────────────────────── */}
       <Voices />
 
-      {/* ── 6. Closing Consultation Suite ─────────────────────── */}
+      {/* ── 6. Closing CTA Section ────────────────────────────── */}
       <Closing />
     </div>
   )

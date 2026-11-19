@@ -73,7 +73,19 @@ export default function PropertyCard({ property, onEdit, onDelete, onAddPlot }) 
   )
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/90 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col group">
+    <div
+      onClick={() => onEdit && onEdit(property)}
+      className="bg-white rounded-2xl border border-slate-200/90 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-xl hover:border-[#0F3D2E]/40 transition-all duration-300 overflow-hidden flex flex-col group cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#0F3D2E]/20"
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          if (onEdit) onEdit(property)
+        }
+      }}
+      title={`Click to edit ${property.name}`}
+    >
       {/* ── 1. Top Photo Banner ── */}
       <div className="relative h-48 w-full bg-slate-900 overflow-hidden flex items-end justify-center">
         {!imgError && imgSrc ? (
@@ -113,6 +125,7 @@ export default function PropertyCard({ property, onEdit, onDelete, onAddPlot }) 
               href={targetLayoutLink}
               target="_blank"
               rel="noreferrer"
+              onClick={(e) => e.stopPropagation()}
               className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#0F3D2E]/90 hover:bg-[#0F3D2E] text-white text-[10px] font-bold shadow-md backdrop-blur-md transition"
               title="Open Layout Blueprint"
             >
@@ -145,7 +158,10 @@ export default function PropertyCard({ property, onEdit, onDelete, onAddPlot }) 
           {onEdit && (
             <button
               type="button"
-              onClick={() => onEdit(property)}
+              onClick={(e) => {
+                e.stopPropagation()
+                onEdit(property)
+              }}
               className="py-1 px-2.5 rounded-lg bg-white/95 text-[#0F3D2E] hover:bg-white text-xs shadow-md font-bold flex items-center gap-1 transition"
               title="Edit Property"
             >
@@ -157,7 +173,10 @@ export default function PropertyCard({ property, onEdit, onDelete, onAddPlot }) 
           {onDelete && (
             <button
               type="button"
-              onClick={() => onDelete(property.id, property.name)}
+              onClick={(e) => {
+                e.stopPropagation()
+                onDelete(property.id, property.name)
+              }}
               className="p-1.5 rounded-lg bg-white/95 text-rose-600 hover:bg-white hover:text-rose-700 text-xs shadow-md transition"
               title="Delete Property"
             >
@@ -266,7 +285,11 @@ export default function PropertyCard({ property, onEdit, onDelete, onAddPlot }) 
           <div className="flex items-center gap-2.5 shrink-0">
             <button
               type="button"
-              onClick={() => (onAddPlot ? onAddPlot(property) : onEdit && onEdit(property))}
+              onClick={(e) => {
+                e.stopPropagation()
+                if (onAddPlot) onAddPlot(property)
+                else if (onEdit) onEdit(property)
+              }}
               className="inline-flex items-center gap-1 text-[11px] font-bold text-[#0F3D2E] hover:text-[#0b2e22] bg-[#E2EDE8] hover:bg-[#d1e4dc] px-2 py-0.5 rounded-md transition cursor-pointer"
               title="Add & Manage Plot Details"
             >
@@ -283,6 +306,7 @@ export default function PropertyCard({ property, onEdit, onDelete, onAddPlot }) 
                 href={targetLayoutLink}
                 target="_blank"
                 rel="noreferrer"
+                onClick={(e) => e.stopPropagation()}
                 className="inline-flex items-center gap-1 text-[11px] font-bold text-[#0F3D2E] hover:text-[#B8964E] hover:underline"
                 title="Open Layout Plan"
               >

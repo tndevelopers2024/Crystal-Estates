@@ -18,8 +18,8 @@ import {
   Newspaper,
   CheckCircle2,
 } from 'lucide-react'
+import PageHeroHeader from '../../components/common/PageHeroHeader'
 import {
-  WordsPullUpMultiStyle,
   Eyebrow,
   Reveal,
   PillLink,
@@ -106,63 +106,48 @@ export default function NewsClient({ initialArticles = [] }) {
 
   return (
     <div className="ch-home ch-news-page">
-      {/* ── 1. Hero Section ───────────────────────────────────── */}
-      <section className="ch-news-hero" aria-labelledby="ch-news-hero-title">
-        <div className="ch-wrap">
-          {/* Breadcrumb */}
-          <nav aria-label="Breadcrumb" className="ch-news-breadcrumb">
-            <Link href="/">Home</Link>
-            <span className="ch-news-breadcrumb__sep">/</span>
-            <span className="ch-news-breadcrumb__current">News &amp; Insights</span>
-          </nav>
-
-          <div className="ch-news-hero__head">
-            <Eyebrow>Land Intelligence &amp; Market Research · Assets Creator</Eyebrow>
-            <h1 id="ch-news-hero-title" className="ch-news-hero__title">
-              <WordsPullUpMultiStyle
-                segments={[
-                  { text: 'Market intelligence &' },
-                  { br: true },
-                  { text: 'regulatory clarity.', className: 'ch-accent' },
-                ]}
-              />
-            </h1>
-            <p className="ch-news-hero__lead">
-              Stay informed with verified Chennai real estate regulations, CMDA and DTCP layout approvals,
-              revenue patta &amp; chitta guidelines, and managed sandalwood farmland insights curated directly
-              by the Crystal Estates research desk.
-            </p>
-
-            <div className="ch-news-hero__ctas">
-              <PillLink href="#articles" variant="cream">
-                Read Latest Insights
-              </PillLink>
-              <PillLink href="#enquire" variant="dark" onClick={openSiteVisit}>
-                Consult a Land Specialist
-              </PillLink>
-            </div>
-
-            {/* Live Trust Metrics Row */}
-            <div className="ch-news-stats-row">
-              <div className="ch-news-stat-pill">
-                <Newspaper size={16} style={{ color: '#b8964e' }} aria-hidden="true" />
-                <strong>{initialArticles.length}</strong>
-                <span>Research Reports</span>
-              </div>
-              <div className="ch-news-stat-pill">
-                <Scale size={16} style={{ color: '#0f3d2e' }} aria-hidden="true" />
-                <strong>100%</strong>
-                <span>DTCP &amp; CMDA Legal Guides</span>
-              </div>
-              <div className="ch-news-stat-pill">
-                <ShieldCheck size={16} style={{ color: '#25d366' }} aria-hidden="true" />
-                <strong>30-Yr</strong>
-                <span>Revenue Patta Due Diligence</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* ── 1. Hero Section (Unified About-Us Header Style) ────── */}
+      <PageHeroHeader
+        id="ch-news-hero-title"
+        breadcrumbs={[
+          { label: 'Home', href: '/' },
+          { label: 'News & Insights' },
+        ]}
+        eyebrow="Land Intelligence &amp; Market Research · Assets Creator"
+        titleSegments={[
+          { text: 'Market intelligence &' },
+          { br: true },
+          { text: 'regulatory clarity.', className: 'ch-accent' },
+        ]}
+        lead="Stay informed with verified Chennai real estate regulations, CMDA &amp; DTCP layout approvals, revenue patta guidelines, and corridor appreciation insights."
+        primaryCta={{
+          label: 'Read Latest Insights',
+          href: '#articles',
+          variant: 'dark',
+        }}
+        secondaryCta={{
+          label: 'Consult a land specialist',
+          onClick: openSiteVisit,
+        }}
+        stats={[
+          { value: initialArticles.length || 4, suffix: '', label: 'Research Reports' },
+          { value: 100, suffix: '%', label: 'Regulatory Verified' },
+          { value: 30, suffix: '-Yr', label: 'Title Audit Guides' },
+        ]}
+        mainImage={{
+          src: '/images/hero-estate.jpg',
+          alt: 'Chennai real estate and corridor growth intelligence',
+        }}
+        subImage={{
+          src: '/images/somamangalam.jpg',
+          alt: 'Sanctioned layout approvals and title due diligence',
+        }}
+        chip={{
+          icon: Newspaper,
+          text: 'Verified Legal Research',
+        }}
+        sealText="ASSETS CREATOR · SINCE 2014 · CHENNAI ·"
+      />
 
       {/* ── 2. Growth Corridors Marquee ───────────────────────── */}
       <LocationsMarquee />

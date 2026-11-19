@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { getDb } from '../config/db.js'
+import { logPlotChanges } from './plotActivity.js'
 
 const router = Router()
 
@@ -308,12 +309,24 @@ const handlePatchPlot = async (req, res) => {
 
     const updates = { ...req.body, updatedAt: new Date() }
     delete updates._id
+    // Who made the change (for the plot activity log); never stored on the property
+    const actor = updates._actor
+    delete updates._actor
 
     if (updates.price) {
       updates.priceFormatted = formatPrice(updates.price)
     }
 
     if (Array.isArray(updates.plots)) {
+      // Buyer details belong in plot_bookings (CRM only) — never on public plot data
+      updates.plots = updates.plots.map(({ booking, ...p }) => p)
+      if (Array.isArray(updates.layouts)) {
+        updates.layouts = updates.layouts.map((l) => ({
+          ...l,
+          plots: Array.isArray(l.plots) ? l.plots.map(({ booking, ...p }) => p) : l.plots,
+        }))
+        updates.phases = updates.layouts
+      }
       // Inventory counters are always derived from the plots themselves so
       // cards never show stale numbers (e.g. "18 available" vs 52 real).
       Object.assign(updates, summarizeStatuses(updates.plots))
@@ -322,6 +335,12 @@ const handlePatchPlot = async (req, res) => {
     }
 
     const db = await getDb()
+
+    // Snapshot plots before the update so each change can be logged per plot
+    const beforeDoc = Array.isArray(updates.plots)
+      ? await db.collection('featured_plots').findOne({ $or: [{ id }, { projectId: id }] }, { projection: { _id: 0 } })
+      : null
+
     const result = await db.collection('featured_plots').updateOne(
       { $or: [{ id }, { projectId: id }] },
       { $set: updates },
@@ -330,6 +349,10 @@ const handlePatchPlot = async (req, res) => {
 
     if (result.matchedCount === 0 && result.upsertedCount === 0) {
       return res.status(404).json({ success: false, error: 'Property not found' })
+    }
+
+    if (beforeDoc && Array.isArray(updates.plots)) {
+      await logPlotChanges(db, beforeDoc, Array.isArray(beforeDoc.plots) ? beforeDoc.plots : [], updates.plots, actor)
     }
 
     // If plots are updated, sync to layout collection and layout_metadata

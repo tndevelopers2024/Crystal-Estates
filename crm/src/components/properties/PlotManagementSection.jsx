@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react'
 import { Plus, Edit2, Trash2, Layers } from 'lucide-react'
 import AddPlotModal from './AddPlotModal'
 import { ensurePlotUids, newPlotUid, summarizePlotStatuses } from '../../lib/plotUtils'
+import { useDialog } from '../../context/DialogContext'
 
 const STATUS_BADGES = {
   Available: 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -14,6 +15,7 @@ const STATUS_GROUP = { Reserved: 'Booked', Registered: 'Sold' }
 const statusGroup = (s) => STATUS_GROUP[s] || s || 'Available'
 
 export default function PlotManagementSection({ plots: rawPlots = [], onChange, phaseName }) {
+  const { confirm } = useDialog()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingPlot, setEditingPlot] = useState(null)
   const [filter, setFilter] = useState('All')
@@ -34,8 +36,16 @@ export default function PlotManagementSection({ plots: rawPlots = [], onChange, 
     setIsModalOpen(true)
   }
 
-  const handleDelete = (plot) => {
-    if (window.confirm(`Are you sure you want to delete Plot ${plot.plotNo}?`)) {
+  const handleDelete = async (plot) => {
+    const ok = await confirm({
+      title: `Delete Plot ${plot.plotNo}`,
+      message: `Are you sure you want to delete Plot ${plot.plotNo}? This plot dimensions, facing, and status will be removed from this phase.`,
+      tag: `Plot ${plot.plotNo} · ${plot.status || 'Available'}`,
+      confirmText: 'Delete Plot',
+      cancelText: 'Cancel',
+      type: 'danger',
+    })
+    if (ok) {
       onChange(plots.filter((p) => p.uid !== plot.uid))
     }
   }

@@ -13,9 +13,11 @@ import {
   MessageCircle,
   Clock,
   Sparkles,
+  Trash2,
 } from 'lucide-react'
 import ScheduleFollowUpModal from './ScheduleFollowUpModal'
 import RecordPaymentModal from './RecordPaymentModal'
+import { useDialog } from '../../context/DialogContext'
 
 const STAGE_OPTIONS = [
   { id: 'new', label: 'New leads' },
@@ -63,6 +65,8 @@ export default function LeadDrawer({
   onAddNote,
 }) {
   if (!lead) return null
+
+  const { confirm, alert } = useDialog()
 
   const dynamicAgents = meta?.agents && meta.agents.length > 0 ? meta.agents : []
   const dynamicStages = meta?.stages && meta.stages.length > 0 ? meta.stages : STAGE_OPTIONS
@@ -366,6 +370,42 @@ export default function LeadDrawer({
     `Hello ${lead.name}, regarding your enquiry${lead.property ? ` for ${lead.property}` : ''} with Crystal Estates...`
   )}`
 
+  // Custom Dialog Actions (Replacing browser alerts/confirms)
+  const handleSendDocument = async () => {
+    const contact = lead.email || lead.phone || lead.name
+    await alert({
+      title: 'Document Sharing',
+      message: `Document packet (sanctioned layout sketch, brochure & legal summary) initiated for ${contact}. A direct link has been generated.`,
+      confirmText: 'Done',
+      type: 'info',
+    })
+  }
+
+  const handleSendBrochure = async () => {
+    const contact = lead.name || lead.email || 'customer'
+    await alert({
+      title: 'Send Brochure',
+      message: `Digital property brochure link ready to share with ${contact}.`,
+      confirmText: 'Done',
+      type: 'info',
+    })
+  }
+
+  const handleDeleteLead = async () => {
+    if (!onDelete) return
+    const ok = await confirm({
+      title: 'Delete Lead',
+      message: `Are you sure you want to permanently remove "${lead.name}" from the pipeline? All activity logs, scheduled follow-ups, and recorded payments will be deleted.`,
+      tag: `${lead.name} · ${lead.property || 'General Enquiry'}`,
+      confirmText: 'Delete Lead',
+      cancelText: 'Cancel',
+      type: 'danger',
+    })
+    if (ok) {
+      await onDelete(lead.id)
+    }
+  }
+
   const sourceBadge = getSourceBadge(lead.source)
   const leadInitials = getInitials(lead.name)
 
@@ -412,15 +452,28 @@ export default function LeadDrawer({
               </div>
             </div>
 
-            {/* Close X button */}
-            <button
-              type="button"
-              onClick={onClose}
-              className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition"
-              aria-label="Close"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            {/* Actions: Delete (if provided) & Close */}
+            <div className="flex items-center gap-1">
+              {onDelete && (
+                <button
+                  type="button"
+                  onClick={handleDeleteLead}
+                  className="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition"
+                  title="Delete Lead"
+                  aria-label="Delete Lead"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={onClose}
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition"
+                aria-label="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
           {/* ── 2. STAGE & ASSIGNED DROPDOWNS ── */}
@@ -517,9 +570,7 @@ export default function LeadDrawer({
             {/* Send Document */}
             <button
               type="button"
-              onClick={() => {
-                alert(`Document sharing initiated for ${lead.email || lead.phone}`)
-              }}
+              onClick={handleSendDocument}
               className="py-2.5 px-2 bg-white hover:bg-slate-50 border border-slate-200/90 rounded-2xl flex flex-col items-center justify-center gap-1.5 text-slate-700 transition shadow-2xs group"
             >
               <Upload className="w-4 h-4 text-slate-600 group-hover:text-[#0F3D2E] transition" />
@@ -538,7 +589,7 @@ export default function LeadDrawer({
           </div>
 
           {/* ── 4. SCROLLABLE DETAILS BODY ── */}
-          <div className="flex-1 overflow-y-auto p-5 space-y-6">
+          <div className="flex-1 overflow-y-auto no-scrollbar p-5 space-y-6">
             {/* ── DETAILS SECTION ── */}
             <div>
               <div className="text-[11px] font-bold tracking-wider text-slate-400 uppercase mb-3">
@@ -641,7 +692,7 @@ export default function LeadDrawer({
                 </span>
                 <button
                   type="button"
-                  onClick={() => alert(`Share brochure with ${lead.email || lead.name}`)}
+                  onClick={handleSendBrochure}
                   className="text-xs font-bold text-[#0F3D2E] hover:text-[#16533D] transition"
                 >
                   + Send
@@ -766,6 +817,24 @@ export default function LeadDrawer({
                 ))}
               </div>
             </div>
+
+            {/* Danger Zone: Delete Lead */}
+            {onDelete && (
+              <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-semibold text-slate-800">Delete this lead</h4>
+                  <p className="text-[11px] text-slate-400">Permanently removes lead and its records</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleDeleteLead}
+                  className="px-3 py-1.5 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 text-xs font-semibold transition inline-flex items-center gap-1.5"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Delete
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import React from 'react'
 import { Search, Bell, Plus, Sparkles, LogOut, User as UserIcon, Menu } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
+import { useConfirm } from '../../context/DialogContext'
 
 export default function Header({
   activeNav = 'properties',
@@ -20,6 +21,21 @@ export default function Header({
   onToggleMobileMenu,
 }) {
   const { user, logout } = useAuth()
+  const confirm = useConfirm()
+
+  const handleLogout = async () => {
+    const ok = await confirm({
+      title: 'Sign Out of CRM',
+      message: 'Are you sure you want to end your Crystal Estates administrator session? You will need your credentials to log in again.',
+      tag: user?.email ? `${user.name} (${user.email})` : 'Active Session',
+      confirmText: 'Sign Out',
+      cancelText: 'Stay Signed In',
+      type: 'danger',
+    })
+    if (ok) {
+      logout()
+    }
+  }
 
   return (
     <header className="h-18 shrink-0 bg-white border-b border-slate-200/80 px-4 md:px-8 flex items-center justify-between sticky top-0 z-20">
@@ -150,7 +166,7 @@ export default function Header({
 
             <button
               type="button"
-              onClick={logout}
+              onClick={handleLogout}
               className="p-1.5 ml-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition flex items-center gap-1.5"
               title="Sign Out of CRM"
               aria-label="Logout"

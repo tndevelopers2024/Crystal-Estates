@@ -252,6 +252,41 @@ router.get('/payments/all', async (req, res) => {
 })
 
 /**
+ * DELETE /api/leads/payments/:paymentId
+ * Remove a payment (and its plot-history copy) recorded by mistake.
+ */
+router.delete('/payments/:paymentId', async (req, res) => {
+  try {
+    const { paymentId } = req.params
+    const db = await getDb()
+    const payment = await db.collection('payments').findOne({ id: paymentId })
+    if (!payment) return res.status(404).json({ success: false, error: 'Payment not found' })
+
+    await db.collection('payments').deleteOne({ id: paymentId })
+    await db.collection('plot_activity').deleteMany({ paymentId })
+    if (payment.leadId) {
+      await db.collection('leads').updateOne(
+        { id: payment.leadId },
+        {
+          $pull: { payments: { id: paymentId } },
+          $push: {
+            activity: {
+              $each: [{ id: `act-${Date.now()}`, text: `Payment ${payment.amountFormatted || payment.amount} (${payment.paymentFor}) removed`, time: 'Just now', createdAt: new Date() }],
+              $position: 0,
+            },
+          },
+          $set: { updatedAt: new Date() },
+        }
+      )
+    }
+    return res.json({ success: true })
+  } catch (err) {
+    console.error('Error deleting payment:', err.message)
+    return res.status(500).json({ success: false, error: err.message })
+  }
+})
+
+/**
  * POST /api/leads
  * Dynamic lead creation
  */
@@ -397,6 +432,14 @@ router.post('/:id/payments', async (req, res) => {
       sendWhatsApp = true,
       sendEmail = true,
       moveLeadToWon = true,
+      // Optional plot link (Payments page): ties the payment to one plot's history
+      propertyId = '',
+      plotUid = '',
+      plotNo = '',
+      phase = '',
+      paidOn = '',
+      note = '',
+      actor = null,
     } = req.body
 
     const numAmount = Number(amount)
@@ -426,12 +469,57 @@ router.post('/:id/payments', async (req, res) => {
       unitAllotted: (unitAllotted || lead.unit || 'Not allotted').trim(),
       receiptSentWhatsApp: Boolean(sendWhatsApp),
       receiptSentEmail: Boolean(sendEmail),
-      date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+      date: new Date(paidOn || Date.now()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+      paidOn: String(paidOn || '').trim() || new Date().toISOString().slice(0, 10),
+      note: String(note || '').trim().slice(0, 500),
       createdAt: new Date(),
+    }
+
+    // Plot link: stored on the payment and mirrored into that plot's activity log
+    const linkedPlot = String(plotNo || '').trim()
+    if (propertyId && linkedPlot) {
+      const prop = await db.collection('featured_plots').findOne(
+        { $or: [{ id: propertyId }, { projectId: propertyId }] },
+        { projection: { _id: 0, id: 1, name: 1 } }
+      )
+      if (prop) {
+        Object.assign(paymentRecord, {
+          propertyId: prop.id,
+          property: prop.name || paymentRecord.property,
+          plotUid: String(plotUid || '').trim() || null,
+          plotNo: linkedPlot,
+          phase: String(phase || '').trim() || null,
+          plotLinked: true,
+        })
+        if (!unitAllotted) paymentRecord.unitAllotted = `Plot ${linkedPlot}`
+      }
     }
 
     // 1. Save to dedicated payments collection for CRM accounts
     await db.collection('payments').insertOne(paymentRecord)
+
+    if (paymentRecord.plotLinked) {
+      await db.collection('plot_activity').insertOne({
+        id: `pa-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        propertyId: paymentRecord.propertyId,
+        propertyName: paymentRecord.property,
+        phase: paymentRecord.phase,
+        plotUid: paymentRecord.plotUid,
+        plotNo: paymentRecord.plotNo,
+        type: 'payment',
+        title: `${paymentFor} of ${formatted} from ${lead.name}`,
+        amount: numAmount,
+        mode,
+        referenceNo: paymentRecord.referenceNo,
+        paidOn: paymentRecord.paidOn,
+        note: paymentFor,
+        paymentId,
+        leadId: id,
+        changes: [],
+        actor: actor && actor.name ? { name: String(actor.name).slice(0, 120), email: String(actor.email || '').slice(0, 160) } : { name: 'CRM user', email: '' },
+        createdAt: new Date(),
+      })
+    }
 
     // 2. Build activity log
     const actEntry = {

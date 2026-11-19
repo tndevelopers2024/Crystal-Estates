@@ -1,12 +1,8 @@
 import HomeHero from '../components/home/HomeHero'
-import Manifesto, { LocationsMarquee } from '../components/home/Manifesto'
-import ProjectsIndex from '../components/home/ProjectsIndex'
-import DreamReveal from '../components/home/DreamReveal'
-import Offerings from '../components/home/Offerings'
+import ProjectShowcase from '../components/home/ProjectShowcase'
 import Pillars from '../components/home/Pillars'
 import Journey from '../components/home/Journey'
 import Voices from '../components/home/Voices'
-import Journal from '../components/home/Journal'
 import Closing from '../components/home/Closing'
 import { fetchPlots } from '../lib/api'
 import '../components/home/home.css'
@@ -40,16 +36,12 @@ export default async function HomePage() {
 
   return (
     <div className="ch-home">
+      {/* Kept deliberately short: hero, projects to explore, then trust & contact */}
       <HomeHero />
-      <Manifesto />
-      <LocationsMarquee />
-      <ProjectsIndex projects={featured} />
-      <DreamReveal />
-      <Offerings />
+      <ProjectShowcase projects={featured} />
       <Pillars />
       <Journey />
       <Voices />
-      <Journal />
       <Closing />
     </div>
   )
