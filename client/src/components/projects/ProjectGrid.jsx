@@ -5,7 +5,7 @@ import { FolderSearch, RotateCcw, ArrowDown } from 'lucide-react'
 import ProjectCard from './ProjectCard'
 
 /**
- * Reusable ProjectGrid Component with Modern Skeletons, Empty State, and Pagination/Load More
+ * Reusable ProjectGrid Component with Skeletons, Empty State, and Pagination/Load More
  */
 export function ProjectGrid({
   projects = [],
@@ -20,17 +20,10 @@ export function ProjectGrid({
 
   if (loading) {
     return (
-      <div className={`modern-projects-grid ${className}`.trim()} aria-busy="true">
+      <div className={`ce-projects-grid ${className}`.trim()} aria-busy="true">
         {[1, 2, 3, 4, 5, 6].map((n) => (
-          <div key={n} className="news-project-card news-project-card--skeleton">
-            <div className="news-project-card__skeleton-media" />
-            <div className="news-project-card__content" style={{ padding: '20px 0 0 0' }}>
-              <div className="news-project-card__skeleton-line" style={{ width: '45%', height: '14px', marginBottom: '14px' }} />
-              <div className="news-project-card__skeleton-line" style={{ width: '80%', height: '22px', marginBottom: '14px' }} />
-              <div className="news-project-card__skeleton-line" style={{ width: '95%', height: '14px', marginBottom: '8px' }} />
-              <div className="news-project-card__skeleton-line" style={{ width: '60%', height: '14px', marginBottom: '24px' }} />
-              <div className="news-project-card__skeleton-line" style={{ width: '100%', height: '48px', borderRadius: '16px' }} />
-            </div>
+          <div key={n} className="ce-pcard ce-pcard--skeleton">
+            <div className="ce-pcard__media ce-pcard__media--skeleton" />
           </div>
         ))}
       </div>
@@ -68,7 +61,7 @@ export function ProjectGrid({
 
   return (
     <div className="modern-projects-grid-wrapper">
-      <div className={`modern-projects-grid ${className}`.trim()}>
+      <div className={`ce-projects-grid ${className}`.trim()}>
         {visibleProjects.map((proj) => (
           <ProjectCard key={proj.id || proj._id} project={proj} />
         ))}
@@ -81,7 +74,7 @@ export function ProjectGrid({
             onClick={handleLoadMore}
             className="modern-projects-load-more-btn"
           >
-            <span>Load More Land Projects ({projects.length - visibleCount} remaining)</span>
+            <span>Load More Projects ({projects.length - visibleCount} remaining)</span>
             <ArrowDown size={16} />
           </button>
         </div>

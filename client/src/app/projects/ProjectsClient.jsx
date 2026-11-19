@@ -1,11 +1,8 @@
 'use client'
 
 import React from 'react'
-import { BadgeCheck } from 'lucide-react'
 import ProjectsClientView from '../../components/projects/ProjectsClientView'
-import PageHeroHeader from '../../components/common/PageHeroHeader'
-import { Reveal, openSiteVisit } from '../../components/home/motion'
-import { LocationsMarquee } from '../../components/home/Manifesto'
+import { Reveal } from '../../components/home/motion'
 import Voices from '../../components/home/Voices'
 import Closing from '../../components/home/Closing'
 import '../../components/home/home.css'
@@ -37,58 +34,34 @@ const GUARANTEES = [
 export default function ProjectsClient({ initialProjects = [] }) {
   return (
     <div className="ch-home ch-projects-page">
-      {/* ── 1. Hero Section (Unified About-Us Header Style) ────── */}
-      <PageHeroHeader
-        id="ch-projects-hero-title"
-        breadcrumbs={[
-          { label: 'Home', href: '/' },
-          { label: 'Projects' },
-        ]}
-        eyebrow="Verified Land &amp; Plot Portfolio · Assets Creator"
-        titleSegments={[
-          { text: 'Curated plots in' },
-          { br: true },
-          { text: 'proven corridors.', className: 'ch-accent' },
-        ]}
-        lead="CMDA &amp; DTCP approved residential layouts, managed sandalwood farmland, and prime investment parcels across Chennai. 100% legally vetted with direct developer pricing."
-        primaryCta={{
-          label: 'Explore Verified Projects',
-          href: '#catalog',
-          variant: 'dark',
-        }}
-        secondaryCta={{
-          label: 'Book a guided site visit',
-          onClick: openSiteVisit,
-        }}
-        stats={[
-          { value: 450, suffix: '+', label: 'Acres Delivered' },
-          { value: 100, suffix: '%', label: 'Approval Compliant' },
-          { value: 30, suffix: '+', label: 'Years Legal Audit' },
-        ]}
-        mainImage={{
-          src: '/images/hero-estate.jpg',
-          alt: 'Crystal Estates CMDA & DTCP plotted development layout',
-        }}
-        subImage={{
-          src: '/images/kolapakkam.jpg',
-          alt: 'Demarcated boundary stones at Kolapakkam project',
-        }}
-        chip={{
-          icon: BadgeCheck,
-          text: 'CMDA & DTCP Approved',
-        }}
-        sealText="ASSETS CREATOR · SINCE 2014 · CHENNAI ·"
-      />
+      {/* ── 1. Editorial Minimal Page Header (Matches reference image) ── */}
+      <section className="ce-projects-editorial-header" aria-labelledby="projects-page-title">
+        <div className="ch-wrap">
+          <div className="ce-projects-editorial-header__grid">
+            <div className="ce-projects-editorial-header__left">
+              <div className="ce-projects-editorial-header__bullet-tag">
+                <span className="ce-projects-editorial-header__bullet" />
+                <span>Crystal Estates</span>
+              </div>
+              <h1 id="projects-page-title" className="ce-projects-editorial-header__headline">
+                The Land Behind<br />Your Legacy
+              </h1>
+            </div>
+            <div className="ce-projects-editorial-header__right">
+              <p className="ce-projects-editorial-header__desc">
+                We approach every parcel with intention, balancing CMDA &amp; DTCP approval compliance, 100% legal scrutiny, and high-growth Chennai corridor value.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
 
-      {/* ── 2. Corridors Marquee ──────────────────────────────── */}
-      <LocationsMarquee />
-
-      {/* ── 3. Interactive Catalog & Filter Console ───────────── */}
+      {/* ── 2. Interactive Catalog & Minimal Filter Console ───── */}
       <div id="catalog">
         <ProjectsClientView initialProjects={initialProjects} />
       </div>
 
-      {/* ── 4. Buyer Assurance Strip ──────────────────── */}
+      {/* ── 3. Buyer Assurance Strip ─────────────────────────── */}
       <section className="ch-about-shield" aria-labelledby="ch-projects-standards-title">
         <div className="ch-wrap">
           <div className="ch-about-shield__head">
@@ -109,10 +82,10 @@ export default function ProjectsClient({ initialProjects = [] }) {
         </div>
       </section>
 
-      {/* ── 5. Landowner Testimonials ─────────────────────────── */}
+      {/* ── 4. Landowner Testimonials ─────────────────────────── */}
       <Voices />
 
-      {/* ── 6. Closing CTA Section ────────────────────────────── */}
+      {/* ── 5. Closing CTA Section ────────────────────────────── */}
       <Closing />
     </div>
   )

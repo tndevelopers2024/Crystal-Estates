@@ -4,10 +4,9 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
-import { Menu, X, ArrowUpRight, Phone } from 'lucide-react'
-import { Container, WhatsAppIcon } from '../ui'
-import { business } from '../../data/site'
+import { Menu, X } from 'lucide-react'
 import { mainNav } from '../../config/navigation'
+import './Header.css'
 
 export default function Header() {
   const [scrolled, setScrolled] = useState(false)
@@ -17,7 +16,7 @@ export default function Header() {
 
   const isHome = pathname === '/'
 
-  // Track scroll position: transparent within hero section, solid/scrolled past hero
+  // Track scroll position: within hero section vs scrolled past hero
   useEffect(() => {
     const handleScroll = () => {
       const scrollY = window.scrollY
@@ -27,8 +26,7 @@ export default function Header() {
         const rawHeight = heroEl?.offsetHeight || 0
         const winHeight = typeof window !== 'undefined' ? window.innerHeight : 800
         const heroHeight = rawHeight > 200 ? rawHeight : winHeight
-        const insideHero = scrollY < (heroHeight - 80)
-        // Transparent strictly within hero section
+        const insideHero = scrollY < heroHeight - 80
         setInHero(insideHero)
         setScrolled(!insideHero && scrollY > 20)
       } else {
@@ -48,10 +46,7 @@ export default function Header() {
 
   // Close mobile drawer on route change
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setOpen(false)
-    }, 0)
-    return () => clearTimeout(timer)
+    setOpen(false)
   }, [pathname])
 
   // Close mobile drawer on resize above 1024px
@@ -72,162 +67,125 @@ export default function Header() {
 
   // Check if a nav link is active
   const isItemActive = (href) => {
-    if (href === '/') {
-      return pathname === '/'
-    }
-    if (href === '/projects') {
-      return pathname === '/projects' || pathname?.startsWith('/projects/')
-    }
-    if (href === '/news') {
-      return pathname === '/news' || pathname?.startsWith('/news/')
-    }
+    if (href === '/') return pathname === '/'
+    if (href === '/projects') return pathname === '/projects' || pathname?.startsWith('/projects/')
+    if (href === '/news') return pathname === '/news' || pathname?.startsWith('/news/')
     return pathname === href || pathname?.startsWith(`${href}/`)
   }
 
-  // Determine header classes
-  const headerClasses = [
-    'header',
-    inHero ? 'header--in-hero' : '',
-    scrolled ? 'header--scrolled' : '',
-  ].filter(Boolean).join(' ')
+  const handleGetInTouch = (e) => {
+    e.preventDefault()
+    setOpen(false)
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('open-site-visit'))
+    }
+  }
+
+  // Centered navigation items (includes Home before About Us)
+  const desktopLinks = mainNav
 
   return (
-    <header className={headerClasses}>
-      <Container className="header__container">
-        {/* Brand Logo with "ASSETS CREATOR" below */}
-        <Link href="/" className="header__brand" onClick={() => setOpen(false)} aria-label="Crystal Estates - ASSETS CREATOR">
-          <div className="header__brand-wrap">
-            <Image
-              src="/logo.png"
-              alt="Crystal Estates"
-              width={150}
-              height={51}
-              priority
-              className="header__brand-img header__brand-img--default"
-            />
-            <Image
-              src="/logo-white.png"
-              alt="Crystal Estates"
-              width={150}
-              height={51}
-              priority
-              className="header__brand-img header__brand-img--scrolled"
-            />
-            <span className="header__brand-tagline">ASSETS CREATOR</span>
-          </div>
-        </Link>
-
-        {/* Desktop Navigation Links (>= 1024px) */}
-        <nav className="header__nav" aria-label="Main Navigation">
-          {mainNav.map((item) => {
-            const active = isItemActive(item.href)
-            return (
-              <Link
-                key={item.label}
-                href={item.href}
-                className={`header__nav-link ${active ? 'header__nav-link--active' : ''}`}
-                aria-current={active ? 'page' : undefined}
-              >
-                <span>{item.label}</span>
-              </Link>
-            )
-          })}
-        </nav>
-
-        {/* Right Actions: Enquire Now & Mobile Hamburger */}
-        <div className="header__actions">
+    <>
+      <header
+        className={`header-ref ${inHero ? 'header-ref--in-hero' : ''} ${
+          scrolled ? 'header-ref--scrolled' : ''
+        } ${!isHome ? 'header-ref--inner' : ''}`}
+      >
+      <div className="header-ref__wrapper">
+        <div className="header-ref__bar">
+          {/* Logo on Left */}
           <Link
-            href="/contact"
-            className="header__enquire-btn"
+            href="/"
+            className="header-ref__brand"
             onClick={() => setOpen(false)}
+            aria-label="Crystal Estates - Home"
           >
-            <span>Enquire</span>
-            <ArrowUpRight size={14} />
+            <div className="header-ref__brand-wrap">
+              <Image
+                src="/logo-white.png"
+                alt="Crystal Estates"
+                width={136}
+                height={46}
+                priority
+                className="header-ref__brand-img"
+              />
+              <span className="header-ref__brand-tagline">ASSETS CREATOR</span>
+            </div>
           </Link>
 
-          <button
-            type="button"
-            className="header__burger"
-            onClick={() => setOpen((prev) => !prev)}
-            aria-label={open ? 'Close Navigation Menu' : 'Open Navigation Menu'}
-            aria-expanded={open}
-          >
-            {open ? <X size={24} /> : <Menu size={24} />}
-          </button>
-        </div>
-      </Container>
-
-      {/* Mobile Slide-Down Panel (< 1024px) */}
-      {open && (
-        <div className="header__drawer" role="dialog" aria-modal="true">
-          <div className="header__drawer-brand">
-            <Image
-              src="/logo.png"
-              alt="Crystal Estates"
-              width={132}
-              height={45}
-              className="header__drawer-logo header__drawer-logo--default"
-            />
-            <Image
-              src="/logo-white.png"
-              alt="Crystal Estates"
-              width={132}
-              height={45}
-              className="header__drawer-logo header__drawer-logo--scrolled"
-            />
-            <span className="header__drawer-tagline">ASSETS CREATOR</span>
-          </div>
-
-          <div className="header__drawer-links">
-            {mainNav.map((item) => {
+          {/* Centered Navigation Links (Desktop >= 1024px) */}
+          <nav className="header-ref__nav" aria-label="Main Navigation">
+            {desktopLinks.map((item) => {
               const active = isItemActive(item.href)
               return (
                 <Link
                   key={item.label}
                   href={item.href}
-                  className={`header__drawer-link ${active ? 'header__drawer-link--active' : ''}`}
-                  onClick={() => setOpen(false)}
+                  className={`header-ref__nav-link ${
+                    active ? 'header-ref__nav-link--active' : ''
+                  }`}
+                  aria-current={active ? 'page' : undefined}
                 >
                   <span>{item.label}</span>
-                  {active && <span className="header__drawer-dot" />}
                 </Link>
               )
             })}
-          </div>
+          </nav>
 
-          <div className="header__drawer-cta">
-            <Link
-              href="/contact"
-              className="btn btn--gold btn--block"
-              onClick={() => setOpen(false)}
+          {/* Right Action: Get In Touch Button & Mobile Burger */}
+          <div className="header-ref__actions">
+            <button
+              type="button"
+              onClick={handleGetInTouch}
+              className="header-ref__get-in-touch-btn"
+              aria-label="Get in Touch with Crystal Estates"
             >
-              Enquire Now
-              <ArrowUpRight size={16} />
-            </Link>
-          </div>
+              Get In Touch
+            </button>
 
-          <div className="header__drawer-info">
-            <div className="header__drawer-info-row">
-              <a href={`tel:${business.phone.replace(/\s/g, '')}`} className="header__drawer-contact-item">
-                <Phone size={14} />
-                <span>{business.phone}</span>
-              </a>
-              <a
-                href={`https://wa.me/${business.whatsapp}?text=${encodeURIComponent("Hi Crystal Estates, I'm interested in plots and farm land in Chennai.")}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="header__drawer-contact-item"
-              >
-                <WhatsAppIcon size={14} />
-                <span>WhatsApp</span>
-              </a>
-            </div>
-            <p className="header__drawer-address">
-              {business.address.full}
-            </p>
+            <button
+              type="button"
+              className="header-ref__burger"
+              onClick={() => setOpen((prev) => !prev)}
+              aria-label={open ? 'Close Navigation Menu' : 'Open Navigation Menu'}
+              aria-expanded={open}
+            >
+              {open ? <X size={22} /> : <Menu size={22} />}
+            </button>
           </div>
         </div>
-      )}
+
+        {/* Mobile Slide-Down Drawer (< 1024px) */}
+        {open && (
+          <div className="header-ref__mobile-drawer" role="dialog" aria-modal="true">
+            <div className="header-ref__mobile-links">
+              {mainNav.map((item) => (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  onClick={() => setOpen(false)}
+                  className="header-ref__mobile-link"
+                >
+                  <span>{item.label}</span>
+                </Link>
+              ))}
+            </div>
+            <div className="header-ref__mobile-footer">
+              <button
+                type="button"
+                onClick={handleGetInTouch}
+                className="header-ref__mobile-cta"
+              >
+                Get In Touch
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </header>
+
+    {/* Top spacing / layout offset for non-home pages to prevent fixed header from overlapping page content */}
+    {!isHome && <div className="header-ref-spacer" aria-hidden="true" />}
+  </>
   )
 }

@@ -1,129 +1,418 @@
 'use client'
 
-import Link from 'next/link'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import Image from 'next/image'
-import { motion, useReducedMotion } from 'framer-motion'
-import { ArrowUpRight, MapPin, Layers } from 'lucide-react'
-import { Eyebrow, PillLink, EASE } from './motion'
-import { formatArea } from '../../lib/api'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import {
+  ChevronLeft,
+  ChevronRight,
+  ArrowRight,
+  MapPin,
+  MoveHorizontal,
+  ArrowUpRight,
+  Layers,
+  Sparkles,
+} from 'lucide-react'
+import { normalizePlot, formatArea } from '../../lib/api'
+import './ProjectShowcaseCarousel.css'
 
-// Used only when the plots API is unreachable
-const FALLBACK = [
-  { slug: 'kolapakkam', name: 'Kolapakkam', location: 'Kolapakkam, Chennai', type: 'Residential', approval: 'CMDA Approved', image: '/images/kolapakkam.jpg' },
-  { slug: 'somamangalam', name: 'Somamangalam', location: 'Somamangalam, Kanchipuram', type: 'Residential', approval: 'DTCP Approved', image: '/images/somamangalam.jpg' },
-  { slug: 'brammadesam', name: 'Brammadesam', location: 'Brammadesam, Kanchipuram', type: 'Residential', approval: 'DTCP Approved', image: '/images/brammadesam.jpg' },
+// Safe fallback data if the API is offline
+const FALLBACK_PROJECTS = [
+  {
+    slug: 'somamangalam',
+    name: 'Somamangalam',
+    location: 'Chennai, Tamil Nadu',
+    type: 'Residential Plot',
+    approval: 'CMDA & DTCP Approved',
+    area: '1200 Sq.ft.',
+    totalPlots: 507,
+    status: 'Available',
+    image: '/images/somamangalam.jpg',
+  },
+  {
+    slug: 'kolapakkam',
+    name: 'Kolapakkam',
+    location: 'Chennai, Tamil Nadu',
+    type: 'Residential Plot',
+    approval: 'CMDA Approved',
+    area: '1200 Sq.ft.',
+    totalPlots: 2,
+    status: 'Available',
+    image: '/images/kolapakkam.jpg',
+  },
+  {
+    slug: 'jambodai',
+    name: 'Jambodai',
+    location: 'Chennai, Tamil Nadu',
+    type: 'Residential Villa Plot',
+    approval: 'DTCP Approved',
+    area: '1200 Sq.ft.',
+    totalPlots: 1,
+    status: 'Sold',
+    image: '/images/excellence-villa.jpg',
+  },
+  {
+    slug: 'brammadesam',
+    name: 'Brammadesam',
+    location: 'Chennai, Tamil Nadu',
+    type: 'Residential Plot',
+    approval: 'DTCP Approved',
+    area: '1200 Sq.ft.',
+    totalPlots: 140,
+    status: 'Sold',
+    image: '/images/brammadesam.jpg',
+  },
+  {
+    slug: 'nalmukkal',
+    name: 'nalmukkal',
+    location: 'Chennai, Tamil Nadu',
+    type: 'Farmland & Sandalwood',
+    approval: 'Panchayat Approved',
+    area: 'Managed Farmland',
+    totalPlots: 50,
+    status: 'Sold',
+    image: '/images/vedanthangal.jpg',
+  },
+  {
+    slug: 'ozhalai-panchayath',
+    name: 'ozhalai_panchayath',
+    location: 'Chennai, Tamil Nadu',
+    type: 'Residential Plot',
+    approval: 'DTCP Approved',
+    area: '1200 Sq.ft.',
+    totalPlots: 80,
+    status: 'Sold',
+    image: '/images/ozhalai-panchayath.jpg',
+  },
 ]
 
-const titleCase = (s) =>
-  String(s || '')
-    .replace(/_/g, ' ')
-    .trim()
-    .replace(/\b[a-z]/g, (c) => c.toUpperCase())
+export default function ProjectShowcase({ projects = [] }) {
+  const router = useRouter()
+  const trackRef = useRef(null)
 
-/** Normalise a plot/project record into what a showcase card needs. */
-export function toProjectCard(p) {
-  const plots = Array.isArray(p.plots) ? p.plots : []
-  const available = plots.filter((x) => String(x.status || '').toLowerCase() === 'available').length
-  const image =
-    p.coverImage ||
-    p.image ||
-    (Array.isArray(p.images) && p.images.find((i) => i && !/layout|preview/i.test(i))) ||
-    '/images/hero-estate.jpg'
-  return {
-    key: String(p.id || p.slug || p.name),
-    href: p.href || `/projects/${p.slug || p.id}`,
-    name: titleCase(p.name || p.projectName || 'Crystal Estates Property'),
-    location: String(p.location || 'Chennai').split(',').slice(0, 2).join(','),
-    type: p.type || p.propertyType || 'Residential',
-    approval: p.approval || p.approvalStatus || '',
-    area: formatArea(p),
-    status: p.status || 'Available',
-    total: plots.length,
-    available,
-    image,
+  // 1. Dynamic projects state connected to database
+  const [items, setItems] = useState(() => {
+    if (Array.isArray(projects) && projects.length > 0) {
+      return projects.map(normalizePlot)
+    }
+    return FALLBACK_PROJECTS
+  })
+
+  useEffect(() => {
+    let isMounted = true
+    fetch('/api/plots')
+      .then((res) => res.ok && res.json())
+      .then((data) => {
+        if (isMounted && data && Array.isArray(data.plots) && data.plots.length > 0) {
+          setItems(data.plots.map(normalizePlot))
+        }
+      })
+      .catch(() => {})
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  // 2. Drag & Scroll State
+  const [isMouseDown, setIsMouseDown] = useState(false)
+  const dragStartX = useRef(0)
+  const scrollStartLeft = useRef(0)
+  const hasDragged = useRef(false)
+
+  // 3. Navigation Controls with Smooth Looping
+  const scrollPrev = useCallback(() => {
+    const el = trackRef.current
+    if (!el) return
+    const cardWidth = el.querySelector('.ps-card-item')?.offsetWidth || 340
+    const scrollAmount = cardWidth + 24
+
+    // If at the very beginning, smoothly loop to the end
+    if (el.scrollLeft <= 10) {
+      el.scrollTo({ left: el.scrollWidth - el.clientWidth, behavior: 'smooth' })
+    } else {
+      el.scrollBy({ left: -scrollAmount, behavior: 'smooth' })
+    }
+  }, [])
+
+  const scrollNext = useCallback(() => {
+    const el = trackRef.current
+    if (!el) return
+    const cardWidth = el.querySelector('.ps-card-item')?.offsetWidth || 340
+    const scrollAmount = cardWidth + 24
+
+    // If at the end, smoothly loop back to the start
+    if (el.scrollLeft + el.clientWidth >= el.scrollWidth - 15) {
+      el.scrollTo({ left: 0, behavior: 'smooth' })
+    } else {
+      el.scrollBy({ left: scrollAmount, behavior: 'smooth' })
+    }
+  }, [])
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
+      if (e.key === 'ArrowLeft') scrollPrev()
+      if (e.key === 'ArrowRight') scrollNext()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [scrollPrev, scrollNext])
+
+  // 4. Mouse Drag Handlers
+  const handleMouseDown = (e) => {
+    const el = trackRef.current
+    if (!el) return
+    setIsMouseDown(true)
+    dragStartX.current = e.pageX - el.offsetLeft
+    scrollStartLeft.current = el.scrollLeft
+    hasDragged.current = false
   }
-}
 
-function ProjectTile({ card, index, featured }) {
-  const reduce = useReducedMotion()
-  const sold = String(card.status).toLowerCase().includes('sold')
-  return (
-    <motion.li
-      className={`ps-card ${featured ? 'ps-card--featured' : ''}`}
-      initial={reduce ? false : { opacity: 0, y: 28 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '0px 0px -8% 0px' }}
-      transition={{ duration: 0.7, ease: EASE, delay: (index % 3) * 0.08 }}
-    >
-      <Link href={card.href} className="ps-card__link" aria-label={`View ${card.name} project details`}>
-        <span className="ps-card__media">
-          <Image
-            src={card.image}
-            alt=""
-            fill
-            sizes={featured ? '(max-width: 1023px) 100vw, 66vw' : '(max-width: 640px) 100vw, (max-width: 1023px) 50vw, 33vw'}
-            className="ps-card__img"
-          />
-          <span className="ps-card__shade" aria-hidden="true" />
-          <span className={`ps-card__status ${sold ? 'is-sold' : ''}`}>
-            <span className="ps-card__dot" aria-hidden="true" />
-            {card.status}
-          </span>
-          <span className="ps-card__arrow" aria-hidden="true">
-            <ArrowUpRight size={18} />
-          </span>
-        </span>
+  const handleMouseMove = (e) => {
+    if (!isMouseDown) return
+    const el = trackRef.current
+    if (!el) return
+    e.preventDefault()
+    const x = e.pageX - el.offsetLeft
+    const walk = (x - dragStartX.current) * 1.5
+    if (Math.abs(walk) > 6) {
+      hasDragged.current = true
+    }
+    el.scrollLeft = scrollStartLeft.current - walk
+  }
 
-        <span className="ps-card__body">
-          <span className="ps-card__name">{card.name}</span>
-          <span className="ps-card__loc">
-            <MapPin size={14} aria-hidden="true" />
-            {card.location}
-          </span>
-          <span className="ps-card__tags">
-            <span>{card.type}</span>
-            {card.approval && <span>{card.approval}</span>}
-            {card.total > 0 && (
-              <span className="ps-card__stock">
-                <Layers size={13} aria-hidden="true" />
-                {card.available} of {card.total} plots left
-              </span>
-            )}
-          </span>
-        </span>
-      </Link>
-    </motion.li>
-  )
-}
+  const handleMouseUp = () => {
+    setIsMouseDown(false)
+  }
 
-/**
- * Image-led project grid placed right after the homepage hero so visitors
- * can jump straight into any project.
- */
-export default function ProjectShowcase({ projects = [], limit = 6 }) {
-  const source = projects.length > 0 ? projects : FALLBACK.map((f) => ({ ...f, href: '/projects' }))
-  const cards = source.slice(0, limit).map(toProjectCard)
+  const handleMouseLeave = () => {
+    setIsMouseDown(false)
+  }
+
+  // 5. Card Click Handler (Redirects to Project View Page unless sold out or dragged)
+  const handleCardClick = (project, isSoldOut, e) => {
+    if (hasDragged.current) {
+      e.preventDefault()
+      return
+    }
+    if (isSoldOut) {
+      e.preventDefault()
+      return // Sold out projects do not redirect
+    }
+    const slug = project.slug || project.id || project.projectId
+    router.push(`/projects/${slug}`)
+  }
 
   return (
-    <section className="ps" aria-labelledby="ps-title">
+    <section className="ps-slider-section" aria-label="Available Projects Showcase">
       <div className="ch-wrap">
-        <div className="ps__head">
-          <div>
-            <Eyebrow>Our projects</Eyebrow>
-            <h2 id="ps-title" className="ps__title">
-              Explore approved <span className="ch-accent">plots &amp; farmland.</span>
-            </h2>
+        {/* ── 1. Section Header ── */}
+        <div className="ps-slider__head">
+          <div className="ps-slider__head-left">
+            <h2 className="ps-slider__title-serif">Create your</h2>
+            <div className="ps-slider__title-row">
+              <span className="ps-slider__title-sans">space</span>
+              <span className="ps-slider__title-cursive">
+                with <span>US</span>
+              </span>
+            </div>
           </div>
-          <PillLink href="/projects" variant="dark" className="ps__all">
-            View all projects
-          </PillLink>
+
+          <div className="ps-slider__head-right">
+            <div className="ps-slider__pill-tag">
+              <Sparkles size={14} color="#B8964E" />
+              <span>CMDA &amp; DTCP Approved</span>
+            </div>
+
+            {/* Left & Right Navigation Buttons */}
+            <div className="ps-slider__nav-btns" aria-label="Slider navigation controls">
+              <button
+                type="button"
+                onClick={scrollPrev}
+                className="ps-slider__arrow-btn"
+                aria-label="Previous projects"
+                title="Previous projects"
+              >
+                <ChevronLeft size={22} />
+              </button>
+              <button
+                type="button"
+                onClick={scrollNext}
+                className="ps-slider__arrow-btn"
+                aria-label="Next projects"
+                title="Next projects"
+              >
+                <ChevronRight size={22} />
+              </button>
+            </div>
+          </div>
         </div>
 
-        <ul className="ps__grid">
-          {cards.map((card, i) => (
-            <ProjectTile key={card.key} card={card} index={i} featured={i === 0 && cards.length > 2} />
-          ))}
-        </ul>
+        {/* ── 2. Visible Drag Control Indicator ── */}
+        <div className="ps-slider__subbar">
+          <div className="ps-slider__drag-pill">
+            <MoveHorizontal size={14} />
+            <span>Drag or scroll to explore projects</span>
+          </div>
+          <div className="ps-slider__count-indicator">
+            {items.length} Verified Projects
+          </div>
+        </div>
+      </div>
+
+      {/* ── 3. Horizontal Scroll / Drag Slider Rail ── */}
+      <div className="ps-slider__viewport">
+        <div
+          ref={trackRef}
+          className="ps-slider__track"
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseLeave}
+          tabIndex={0}
+          role="region"
+          aria-label="Projects horizontal carousel"
+        >
+          {items.map((project, idx) => {
+            const rawTitle = project.name || project.projectName || 'Crystal Estates Property'
+            const title = rawTitle.replace(/_/g, ' ').trim()
+            const projectSlug = project.slug || project.id || project.projectId
+
+            // Database Sold Out check
+            const statusStr = String(project.status || '').trim().toLowerCase()
+            const plotsArr = Array.isArray(project.plots) ? project.plots : []
+            const allPlotsSold =
+              plotsArr.length > 0 &&
+              plotsArr.every((p) => String(p.status || '').toLowerCase() === 'sold')
+            const isSoldOut =
+              statusStr === 'sold' ||
+              statusStr === 'sold out' ||
+              statusStr === 'soldout' ||
+              Boolean(project.isSoldOut) ||
+              allPlotsSold ||
+              (typeof project.availablePlots === 'number' &&
+                project.availablePlots === 0 &&
+                (project.totalPlots > 0 || plotsArr.length > 0))
+
+            // Dynamic Image
+            const imgSrc =
+              project.coverImage ||
+              project.image ||
+              (Array.isArray(project.images) && project.images[0]) ||
+              '/images/hero-estate.jpg'
+
+            // Dynamic Specs
+            const propType = project.type || project.propertyType || 'Residential Plot'
+            const area = formatArea(project) || project.area || '1200 Sq.ft.'
+            const totalPlots = project.totalPlots || plotsArr.length || null
+            const approval = project.approval || project.approvalStatus || 'CMDA Approved'
+
+            // Location
+            const location =
+              project.location ||
+              [project.village, project.taluk, project.district].filter(Boolean).join(', ') ||
+              'Chennai, Tamil Nadu'
+
+            return (
+              <article
+                key={`${projectSlug}-${idx}`}
+                onClick={(e) => handleCardClick(project, isSoldOut, e)}
+                className={`ps-card-item ${isSoldOut ? 'ps-card-item--soldout' : ''}`}
+                aria-label={`${title} - ${isSoldOut ? 'Sold Out' : 'Available'}`}
+              >
+                {/* Background Image */}
+                <div className="ps-card-item__media">
+                  <Image
+                    src={imgSrc}
+                    alt={title}
+                    fill
+                    unoptimized
+                    sizes="(max-width: 768px) 290px, 380px"
+                    className="ps-card-item__img"
+                    onError={(e) => {
+                      e.currentTarget.src = '/images/hero-estate.jpg'
+                    }}
+                  />
+                  <div className="ps-card-item__scrim" />
+                </div>
+
+                {/* Top Floating Row: Status pill & Arrow */}
+                <div className="ps-card-item__top-bar">
+                  <div
+                    className={`ps-card-item__status-pill ${
+                      isSoldOut ? 'ps-card-item__status-pill--soldout' : ''
+                    }`}
+                  >
+                    <span className="ps-card-item__dot" />
+                    <span>{isSoldOut ? 'Sold Out' : 'Available'}</span>
+                  </div>
+
+                  {!isSoldOut && (
+                    <div className="ps-card-item__arrow-circle" aria-hidden="true">
+                      <ArrowUpRight size={17} />
+                    </div>
+                  )}
+                </div>
+
+                {/* Bottom Content */}
+                <div className="ps-card-item__content">
+                  <h3 className="ps-card-item__title">{title}</h3>
+
+                  <div className="ps-card-item__location">
+                    <MapPin size={13} />
+                    <span>{location}</span>
+                  </div>
+
+                  <p className="ps-card-item__desc">
+                    {project.shortDescription ||
+                      `Premium ${propType.toLowerCase()} with 100% verified legal scrutiny and ready patta.`}
+                  </p>
+
+                  {/* Spec Pills */}
+                  <div className="ps-card-item__tags">
+                    <span className="ps-card-item__tag">{propType}</span>
+                    {area && <span className="ps-card-item__tag">{area}</span>}
+                    {totalPlots && (
+                      <span className="ps-card-item__tag">{totalPlots} Plots</span>
+                    )}
+                    {approval && (
+                      <span className="ps-card-item__tag">{approval}</span>
+                    )}
+                  </div>
+
+                  {/* Action Button */}
+                  {isSoldOut ? (
+                    <div
+                      className="ps-card-item__cta-btn ps-card-item__cta-btn--soldout"
+                      aria-disabled="true"
+                    >
+                      <span>Sold Out</span>
+                    </div>
+                  ) : (
+                    <div className="ps-card-item__cta-btn">
+                      <span>View Project Details</span>
+                      <ArrowRight size={14} />
+                    </div>
+                  )}
+                </div>
+              </article>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* ── 4. Bottom Social Proof ── */}
+      <div className="ch-wrap">
+        <div className="ps-slider__foot">
+          <div className="ps-slider__social-proof">
+            <p className="ps-slider__social-text">
+              <strong>1500+</strong> families are <em>satisfied</em> with our verified titles
+              and have created their own dream spaces <em>with us</em>.
+            </p>
+          </div>
+        </div>
       </div>
     </section>
   )

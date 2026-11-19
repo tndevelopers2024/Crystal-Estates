@@ -67,7 +67,8 @@ function ShowcaseCard({ project }) {
   const area = cleanAreaText(project)
   const propType = project.type || project.propertyType || 'Residential'
   const status = project.status || 'Available'
-  const isAvailable = status.toLowerCase() === 'available' || status.toLowerCase() === 'booking open'
+  const isSold = String(status).toLowerCase().includes('sold')
+  const isAvailable = !isSold && (status.toLowerCase() === 'available' || status.toLowerCase() === 'booking open')
   const totalPlots = project.totalPlots || (Array.isArray(project.plots) ? project.plots.length : 0)
 
   // Curate 3 clean pill badges for the image bottom
@@ -90,43 +91,61 @@ function ShowcaseCard({ project }) {
     pills.push(isAvailable ? 'Available' : 'Sold Out')
   }
 
-  return (
-    <article className="featured-showcase-card group">
-      <Link href={projectUrl} className="featured-showcase-card__link" aria-label={`View ${title}`}>
-        {/* Large Rounded Image Container */}
-        <div className="featured-showcase-card__image-container">
-          <Image
-            src={imgSrc}
-            alt={title}
-            fill
-            unoptimized
-            sizes="(max-width: 640px) 85vw, (max-width: 1024px) 360px, 400px"
-            className="featured-showcase-card__image"
-            onError={handleImageError}
-          />
-          {/* Subtle bottom gradient to ensure pills are crystal clear */}
-          <div className="featured-showcase-card__gradient" />
+  const cardInner = (
+    <>
+      {/* Large Rounded Image Container */}
+      <div className="featured-showcase-card__image-container">
+        <Image
+          src={imgSrc}
+          alt={title}
+          fill
+          unoptimized
+          sizes="(max-width: 640px) 85vw, (max-width: 1024px) 360px, 400px"
+          className="featured-showcase-card__image"
+          onError={handleImageError}
+        />
+        {/* Subtle bottom gradient to ensure pills are crystal clear */}
+        <div className="featured-showcase-card__gradient" />
 
-          {/* Frosted Glass Pill Badges at Bottom of Image */}
-          <div className="featured-showcase-card__pills">
-            {pills.slice(0, 3).map((pill, idx) => (
-              <span key={idx} className="featured-showcase-card__pill">
-                {pill}
-              </span>
-            ))}
-          </div>
+        {/* Frosted Glass Pill Badges at Bottom of Image */}
+        <div className="featured-showcase-card__pills">
+          {pills.slice(0, 3).map((pill, idx) => (
+            <span key={idx} className="featured-showcase-card__pill">
+              {pill}
+            </span>
+          ))}
         </div>
+      </div>
 
-        {/* Card Footer: Title and Diagonal Arrow Circle Button */}
-        <div className="featured-showcase-card__footer">
-          <h3 className="featured-showcase-card__title">
-            {title}
-          </h3>
+      {/* Card Footer: Title and Diagonal Arrow Circle Button */}
+      <div className="featured-showcase-card__footer">
+        <h3 className="featured-showcase-card__title">
+          {title}
+        </h3>
+        {isSold ? (
+          <div className="featured-showcase-card__sold-badge" aria-hidden="true">
+            Sold Out
+          </div>
+        ) : (
           <div className="featured-showcase-card__arrow-btn" aria-hidden="true">
             <ArrowUpRight size={18} className="featured-showcase-card__arrow-icon" />
           </div>
+        )}
+      </div>
+    </>
+  )
+
+  return (
+    <article className={`featured-showcase-card ${isSold ? 'featured-showcase-card--sold' : ''} group`}>
+      {isSold ? (
+        <div className="featured-showcase-card__link featured-showcase-card__link--sold" role="presentation">
+          {cardInner}
         </div>
-      </Link>
+      ) : (
+        <Link href={projectUrl} className="featured-showcase-card__link" aria-label={`View ${title}`}>
+          {cardInner}
+        </Link>
+      )}
     </article>
   )
 }

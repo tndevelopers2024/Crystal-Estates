@@ -1,0 +1,307 @@
+/* ─────────────────────────────────────────────────────────────
+   Crystal Estates — Slim Semi-Transparent Horizontal Menu Bar
+   Inspired by Reference Image UI
+   ───────────────────────────────────────────────────────────── */
+
+.header-ref {
+  position: fixed;
+  top: 16px;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  padding: 0 clamp(16px, 3.5vw, 40px);
+  pointer-events: none;
+  transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.header-ref__wrapper {
+  position: relative;
+  width: 100%;
+  max-width: var(--container-max, 1600px);
+  margin: 0 auto;
+  pointer-events: auto;
+}
+
+/* Slim, horizontal floating bar with semi-transparent dark background */
+.header-ref__bar {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 9px 24px;
+  background: rgba(18, 24, 28, 0.62);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.28);
+  transition: background 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
+}
+
+/* When scrolled past hero or on non-hero pages */
+.header-ref--scrolled .header-ref__bar,
+.header-ref--inner .header-ref__bar {
+  background: rgba(15, 61, 46, 0.94);
+  border-color: rgba(184, 150, 78, 0.38);
+  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.35);
+}
+
+/* ── Logo on Left ── */
+.header-ref__brand {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  flex-shrink: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.header-ref__brand:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+.header-ref__brand-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1;
+}
+
+.header-ref__brand-img {
+  height: 36px;
+  width: auto;
+  max-width: 140px;
+  object-fit: contain;
+  display: block;
+}
+
+.header-ref__brand-tagline {
+  font-family: var(--font-montserrat, Montserrat, sans-serif);
+  font-size: 7.5px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.8);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+/* ── Centered Navigation Links ── */
+.header-ref__nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(12px, 1.6vw, 28px);
+  margin: 0 auto;
+}
+
+.header-ref__nav-link {
+  font-family: var(--font-montserrat, Montserrat, sans-serif);
+  font-size: clamp(13px, 0.95vw, 14.5px);
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.88);
+  text-decoration: none;
+  padding: 6px 3px;
+  position: relative;
+  white-space: nowrap;
+  transition: color 0.2s ease, opacity 0.2s ease;
+}
+
+.header-ref__nav-link:hover {
+  color: #ffffff;
+}
+
+.header-ref__nav-link--active {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.header-ref__nav-link--active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 4px;
+  right: 4px;
+  height: 2px;
+  border-radius: 999px;
+  background: #B8964E;
+}
+
+/* ── Right Actions: Get In Touch Button & Mobile Burger ── */
+.header-ref__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.header-ref__get-in-touch-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 24px;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #111827;
+  font-family: var(--font-montserrat, Montserrat, sans-serif);
+  font-size: 13.5px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+  transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.header-ref__get-in-touch-btn:hover {
+  background: #f8fafc;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
+}
+
+.header-ref__burger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.header-ref__burger:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* ── Mobile Dropdown Panel ── */
+.header-ref__mobile-drawer {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  right: 0;
+  background: rgba(15, 30, 24, 0.96);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: header-drawer-fade 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes header-drawer-fade {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.header-ref__mobile-links {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.header-ref__mobile-link {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #f1f5f9;
+  text-decoration: none;
+  transition: background 0.2s, color 0.2s;
+}
+
+.header-ref__mobile-link:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #B8964E;
+}
+
+.header-ref__mobile-footer {
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.header-ref__mobile-cta {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #111827;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+
+/* ── Responsive Queries ── */
+@media (max-width: 1023px) {
+  .header-ref__nav {
+    display: none;
+  }
+  .header-ref__burger {
+    display: flex;
+  }
+  .header-ref__bar {
+    padding: 8px 18px;
+  }
+}
+
+@media (max-width: 520px) {
+  .header-ref {
+    top: 10px;
+    padding: 0 12px;
+  }
+  .header-ref__bar {
+    padding: 8px 14px;
+    border-radius: 14px;
+  }
+  .header-ref__get-in-touch-btn {
+    padding: 7px 16px;
+    font-size: 12.5px;
+  }
+  .header-ref__brand-img {
+    height: 30px;
+  }
+}
+
+/* ── Layout Offset Spacer for Non-Home Pages ── */
+.header-ref-spacer {
+  display: block;
+  width: 100%;
+  height: clamp(88px, 10vw, 108px);
+  background: var(--ch-paper, #F8F9FA);
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .header-ref-spacer {
+    height: clamp(80px, 12vw, 96px);
+  }
+}
+
+@media (max-width: 520px) {
+  .header-ref-spacer {
+    height: clamp(74px, 15vw, 86px);
+  }
+}
+

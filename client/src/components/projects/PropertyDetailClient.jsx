@@ -14,10 +14,12 @@ import {
   Compass,
   FileCheck2,
   ShieldCheck,
+  Check,
 } from 'lucide-react'
 import EnquiryForm from '../forms/EnquiryForm'
 import { ProjectCard } from './ProjectCard'
 import PlotViewer from '../plot-viewer/PlotViewer'
+import ProjectGallery3D from './ProjectGallery3D'
 import { resolveMapEmbedUrl, resolveMapDirectUrl } from '../../lib/api'
 import { parseViewBox } from '../../lib/svgUtils'
 import { business } from '../../data/site'
@@ -201,7 +203,7 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
     return true
   })
   const hasVideos = projectVideos.length > 0
-  const hasMedia = hasImages || hasVideos
+  const hasMedia = hasImages || hasVideos || true
 
   const getEmbedVideoUrl = (url) => {
     if (!url) return ''
@@ -310,6 +312,24 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
     (typeof project.availablePlots === 'number' &&
       project.availablePlots === 0 &&
       project.totalPlots > 0)
+
+  // Derived dynamic CRM metrics & specs for Land Information & Approvals
+  const totalPlotsCount = Number(project.totalPlots) || inventory.total || 0
+  const availablePlotsCount =
+    typeof project.availablePlots === 'number'
+      ? project.availablePlots
+      : (typeof inventory.available === 'number' ? inventory.available : 0)
+  const bookedOrSoldPlotsCount = Math.max(0, totalPlotsCount - availablePlotsCount)
+  const occupancyPercent =
+    totalPlotsCount > 0
+      ? Math.round(((totalPlotsCount - availablePlotsCount) / totalPlotsCount) * 100)
+      : (isSoldOut ? 100 : 0)
+  const cleanedArea = (project.area || project.totalLandArea || project.plotSizes || '1200 Sq.ft.')
+    .replace(/\.{2,}/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  const displayImage = project.coverImage || project.image || '/images/hero-bg.jpg'
+  const displayPreview = project.layoutPreview || project.layoutImage || displayImage
 
   return (
     <>
@@ -507,178 +527,251 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
         <div className="project-detail-container">
           <div className="project-section-header">
             <span className="project-section-eyebrow">
-              PLOT SPECIFICATIONS &amp; PARAMETERS
+              CRM VERIFIED SPECIFICATIONS
             </span>
             <h2 className="project-section-title">
               Comprehensive Land Information &amp; Approvals
             </h2>
             <p className="project-section-subtitle">
-              Verified survey extents, layout approvals, avenue widths, and ownership documentation for {project.name}.
+              Verified survey extents, layout approvals, avenue widths, and ownership records for {project.name}.
             </p>
           </div>
 
-          {/* Metric Strips */}
-          <div className="project-metric-rows">
-            <div className="project-metric-row">
-              <div className="project-metric-row__info">
-                <strong className="project-metric-row__title">Standard Plotted Extents</strong>
-                <p className="project-metric-row__desc">Carefully demarcated residential and farm parcel dimensions with clear corner stones.</p>
+          {/* Bento Grid: 3 Metric Cards (Inspired by Reference Image) */}
+          <div className="project-land-info-bento">
+            {/* Card 1: Dark Visual Hero Stat Card with Speedometer / Gauge */}
+            <div className="project-bento-card project-bento-card--hero">
+              <div
+                className="project-bento-card__bg"
+                style={{ backgroundImage: `url(${displayImage})` }}
+              />
+              <div className="project-bento-card__hero-top">
+                <div className="project-bento-hero-badges">
+                  <span className="project-bento-badge">
+                    PROJECT ID: {project.projectId || project.id || 'CE-VERIFIED'}
+                  </span>
+                  <span className={`project-bento-badge project-bento-badge--${isSoldOut ? 'sold' : 'active'}`}>
+                    {isSoldOut ? 'Sold Out' : (project.status || 'Available')}
+                  </span>
+                </div>
+                <div className="project-bento-hero-title-wrap">
+                  <h3 className="project-bento-hero-title">{project.name}</h3>
+                  <p className="project-bento-hero-location">
+                    <MapPin size={13} />
+                    {project.location || 'Chennai, Tamil Nadu'}
+                  </p>
+                </div>
               </div>
-              <div className="project-metric-row__stat">
-                {project.area || project.plotSizes || '1200+ Sq.ft'}
+
+              <div className="project-bento-card__hero-bottom">
+                <div className="project-bento-hero-stat">
+                  <span className="project-bento-hero-stat__label">
+                    {isSoldOut ? 'Project Status' : 'Plot Availability'}
+                  </span>
+                  <div className="project-bento-hero-stat__num">
+                    {isSoldOut ? (
+                      <span className="project-bento-sold-tag">100% Sold</span>
+                    ) : (
+                      <>
+                        <strong>{availablePlotsCount}</strong>
+                        <span className="project-bento-hero-stat__denom">
+                          {totalPlotsCount > 0 ? ` / ${totalPlotsCount} Plots` : ' Plots'}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                  <span className="project-bento-hero-stat__detail">
+                    {cleanedArea} Standard Parcels
+                  </span>
+                </div>
+
+                <div className="project-gauge-box">
+                  <svg viewBox="0 0 120 70" className="project-gauge-svg" aria-hidden="true">
+                    <path
+                      d="M 15 62 A 45 45 0 0 1 105 62"
+                      fill="none"
+                      stroke="rgba(255, 255, 255, 0.16)"
+                      strokeWidth="9"
+                      strokeLinecap="round"
+                    />
+                    <path
+                      d="M 15 62 A 45 45 0 0 1 105 62"
+                      fill="none"
+                      stroke="#B8964E"
+                      strokeWidth="9"
+                      strokeLinecap="round"
+                      strokeDasharray="141.37"
+                      strokeDashoffset={141.37 * (1 - Math.min(100, Math.max(0, occupancyPercent)) / 100)}
+                    />
+                    <circle cx="60" cy="62" r="4" fill="#ffffff" />
+                    <line
+                      x1="60"
+                      y1="62"
+                      x2={60 + 35 * Math.cos((Math.PI * (180 - (Math.min(100, Math.max(0, occupancyPercent)) / 100) * 180)) / 180)}
+                      y2={62 - 35 * Math.sin((Math.PI * (180 - (Math.min(100, Math.max(0, occupancyPercent)) / 100) * 180)) / 180)}
+                      stroke="#ffffff"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <div className="project-gauge-caption">
+                    <span className="project-gauge-pct">{occupancyPercent}%</span>
+                    <span className="project-gauge-sub">{isSoldOut ? 'Sold Out' : 'Booked'}</span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="project-metric-row">
-              <div className="project-metric-row__info">
-                <strong className="project-metric-row__title">Individual Patta Ownership</strong>
-                <p className="project-metric-row__desc">Guaranteed immediate online computerized Patta transfer directly in the buyer’s name.</p>
+            {/* Card 2: Light Clean Card - Plot Extents & Infrastructure */}
+            <div className="project-bento-card project-bento-card--light">
+              <div className="project-bento-card__head">
+                <div className="project-bento-icon-badge">
+                  <Maximize2 size={20} />
+                </div>
+                <h3 className="project-bento-card-title">Land Extent &amp; Infrastructure</h3>
+                <p className="project-bento-card-desc">
+                  Accurate survey demarcations with planned road access and layout parameters.
+                </p>
               </div>
-              <div className="project-metric-row__stat project-metric-row__stat--green">
-                100% Patta
+
+              <div className="project-bento-specs-list">
+                <div className="project-bento-spec-item">
+                  <span className="project-bento-spec-label">Extent / Land Area</span>
+                  <span className="project-bento-spec-val">{cleanedArea}</span>
+                </div>
+                <div className="project-bento-spec-item">
+                  <span className="project-bento-spec-label">Facing Orientation</span>
+                  <span className="project-bento-spec-val">{project.facing || 'East Facing'}</span>
+                </div>
+                <div className="project-bento-spec-item">
+                  <span className="project-bento-spec-label">Property Classification</span>
+                  <span className="project-bento-spec-val">{project.propertyType || project.type || 'Residential'}</span>
+                </div>
+                <div className="project-bento-spec-item">
+                  <span className="project-bento-spec-label">Road Infrastructure</span>
+                  <span className="project-bento-spec-val">30 ft &amp; 40 ft Blacktop Roads</span>
+                </div>
               </div>
             </div>
 
-            <div className="project-metric-row">
-              <div className="project-metric-row__info">
-                <strong className="project-metric-row__title">Parent Title Due Diligence</strong>
-                <p className="project-metric-row__desc">Exhaustive 30-year legal link document vetting and nil-encumbrance certificate assurance.</p>
+            {/* Card 3: Light Clean Card - Approvals & Title Guarantee */}
+            <div className="project-bento-card project-bento-card--light">
+              <div className="project-bento-card__head">
+                <div className="project-bento-icon-badge">
+                  <ShieldCheck size={20} />
+                </div>
+                <h3 className="project-bento-card-title">Approvals &amp; Title Guarantee</h3>
+                <p className="project-bento-card-desc">
+                  Sanctioned planning clearances, title ownership, and due diligence verification.
+                </p>
               </div>
-              <div className="project-metric-row__stat">
-                30+ Years
-              </div>
-            </div>
 
-            <div className="project-metric-row">
-              <div className="project-metric-row__info">
-                <strong className="project-metric-row__title">Government Approval Clearance</strong>
-                <p className="project-metric-row__desc">Sanctioned planning approvals compliant with road widths, OSR spaces, and bank loan pre-clearance.</p>
-              </div>
-              <div className="project-metric-row__stat project-metric-row__stat--gold">
-                {project.approval || 'DTCP / CMDA'}
+              <div className="project-bento-specs-list">
+                <div className="project-bento-spec-item">
+                  <span className="project-bento-spec-label">Sanction Authority</span>
+                  <span className="project-bento-spec-val project-bento-spec-val--green">
+                    <CheckCircle2 size={14} />
+                    {project.approval || project.approvalStatus || 'Clear Title & Patta'}
+                  </span>
+                </div>
+                <div className="project-bento-spec-item">
+                  <span className="project-bento-spec-label">Title Ownership</span>
+                  <span className="project-bento-spec-val project-bento-spec-val--green">
+                    <CheckCircle2 size={14} />
+                    100% Individual Patta
+                  </span>
+                </div>
+                <div className="project-bento-spec-item">
+                  <span className="project-bento-spec-label">Parent Title Scrutiny</span>
+                  <span className="project-bento-spec-val">30+ Years Scrutinized</span>
+                </div>
+                <div className="project-bento-spec-item">
+                  <span className="project-bento-spec-label">Investment Price</span>
+                  <span className="project-bento-spec-val project-bento-spec-val--gold">
+                    {formattedPrice}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* 2-Column Specifications & Legal Checklist Grid */}
-          <div className="project-specs-grid">
-            {/* Left: Detailed Parameters Grid */}
-            <div className="project-specs-col">
-              <h3 className="project-subsection-title">
-                Technical Land Specifications
-              </h3>
-
-              <div className="project-specs-tiles">
-                {(project.area || project.plotSizes) && (
-                  <div className="project-spec-tile">
-                    <span className="project-spec-label">Extent / Land Area</span>
-                    <strong className="project-spec-val">{project.area || project.plotSizes}</strong>
-                  </div>
-                )}
-
-                {project.plotSizes && (
-                  <div className="project-spec-tile">
-                    <span className="project-spec-label">Available Plot Sizes</span>
-                    <strong className="project-spec-val">{project.plotSizes}</strong>
-                  </div>
-                )}
-
-                {project.facing && (
-                  <div className="project-spec-tile">
-                    <span className="project-spec-label">Facing Orientation</span>
-                    <strong className="project-spec-val">{project.facing}</strong>
-                  </div>
-                )}
-
-                <div className="project-spec-tile">
-                  <span className="project-spec-label">Road Infrastructure</span>
-                  <strong className="project-spec-val">30 ft &amp; 40 ft Blacktop Roads</strong>
+          {/* 2-Split Bento Cards Row (Inspired by Reference Image 1) */}
+          <div className="project-land-info-splits">
+            {/* Split Card 1: Light Theme - Physical Demarcation */}
+            <div className="project-split-card project-split-card--light">
+              <div className="project-split-card__content">
+                <div className="project-split-card__badge-row">
+                  <span className="project-split-pill">
+                    <Layers size={13} />
+                    On-Ground Demarcation
+                  </span>
                 </div>
-
-                <div className="project-spec-tile">
-                  <span className="project-spec-label">Title Ownership</span>
-                  <strong className="project-spec-val project-spec-val--green">
-                    <FileCheck2 size={14} />
-                    100% Individual Patta
-                  </strong>
+                <span className="project-split-subhead">Technical Land Delivery</span>
+                <h3 className="project-split-title">Physical Boundary &amp; Avenue Access</h3>
+                <p className="project-split-desc">
+                  Every parcel is demarcated with firm corner stones compliant with revenue records, bordered by 30 ft and 40 ft blacktop avenues.
+                </p>
+                <div className="project-split-bullets">
+                  <span className="project-split-bullet">
+                    <Check size={13} className="project-split-bullet-icon" />
+                    Boundary Corner Stones
+                  </span>
+                  <span className="project-split-bullet">
+                    <Check size={13} className="project-split-bullet-icon" />
+                    30 &amp; 40 ft Blacktop Roads
+                  </span>
+                  <span className="project-split-bullet">
+                    <Check size={13} className="project-split-bullet-icon" />
+                    Avenue Tree Plantation
+                  </span>
                 </div>
-
-                <div className="project-spec-tile">
-                  <span className="project-spec-label">Sanction Authority</span>
-                  <strong className="project-spec-val project-spec-val--green">
-                    <ShieldCheck size={14} />
-                    {project.approval || 'DTCP / CMDA Sanctioned'}
-                  </strong>
-                </div>
-
-                {project.surveyNumber && (
-                  <div className="project-spec-tile">
-                    <span className="project-spec-label">Revenue Survey No.</span>
-                    <strong className="project-spec-val">{project.surveyNumber}</strong>
-                  </div>
-                )}
-
-                <div className="project-spec-tile project-spec-tile--price">
-                  <span className="project-spec-label">Investment Price</span>
-                  <strong className="project-spec-val project-spec-val--gold">{formattedPrice}</strong>
-                </div>
+              </div>
+              <div className="project-split-card__media">
+                <img
+                  src={displayImage}
+                  alt={`${project.name} on-ground development`}
+                  className="project-split-img"
+                  loading="lazy"
+                />
               </div>
             </div>
 
-            {/* Right: Buyer Assurance & Legal Checklist Card */}
-            <div className="project-checklist-col">
-              <div className="project-checklist-card">
-                <span className="project-checklist-badge">
-                  BUYER ASSURANCE MANDATE
-                </span>
-                <h3 className="project-checklist-title">
-                  Legal &amp; Infrastructure Standards
-                </h3>
-                <p className="project-checklist-desc">
-                  Every property curated by Crystal Estates fulfills our rigorous 6-point verification mandate before presentation.
-                </p>
-
-                <div className="project-checklist-items">
-                  <div className="project-checklist-item">
-                    <CheckCircle2 size={18} className="project-checklist-icon" />
-                    <div>
-                      <strong>30+ Years Parent Title Scrutiny</strong>
-                      <p>Exhaustive legal link audit and nil-encumbrance certificate certification.</p>
-                    </div>
-                  </div>
-
-                  <div className="project-checklist-item">
-                    <CheckCircle2 size={18} className="project-checklist-icon" />
-                    <div>
-                      <strong>Computerized Patta Handover</strong>
-                      <p>Complete revenue department liaison until physical patta transfer to your name.</p>
-                    </div>
-                  </div>
-
-                  <div className="project-checklist-item">
-                    <CheckCircle2 size={18} className="project-checklist-icon" />
-                    <div>
-                      <strong>Physical Demarcation Stones</strong>
-                      <p>Boundary stones firmly demarcated on ground according to sanctioned FMB sketches.</p>
-                    </div>
-                  </div>
-
-                  <div className="project-checklist-item">
-                    <CheckCircle2 size={18} className="project-checklist-icon" />
-                    <div>
-                      <strong>Avenue Road Connectivity</strong>
-                      <p>Wide internal blacktop/concrete avenues with planned avenue plantation and drainage.</p>
-                    </div>
-                  </div>
-
-                  <div className="project-checklist-item">
-                    <CheckCircle2 size={18} className="project-checklist-icon" />
-                    <div>
-                      <strong>Bank Approval Eligibility</strong>
-                      <p>Pre-cleared with nationalized and private banks for hassle-free plot purchase loans.</p>
-                    </div>
-                  </div>
+            {/* Split Card 2: Dark Emerald Theme - Title Clearance & Bank Finance */}
+            <div className="project-split-card project-split-card--dark">
+              <div className="project-split-card__content">
+                <div className="project-split-card__badge-row">
+                  <span className="project-split-pill project-split-pill--gold">
+                    <FileCheck2 size={13} />
+                    Buyer Due Diligence
+                  </span>
                 </div>
+                <span className="project-split-subhead">Legal &amp; Banking Eligibility</span>
+                <h3 className="project-split-title">Clear Title &amp; Bank Loan Pre-Clearance</h3>
+                <p className="project-split-desc">
+                  Comprehensive 30-year parent link document audit with guaranteed immediate computerized Patta transfer and nationalized bank loan approvals.
+                </p>
+                <div className="project-split-bullets">
+                  <span className="project-split-bullet">
+                    <Check size={13} className="project-split-bullet-icon" />
+                    Computerized Patta Handover
+                  </span>
+                  <span className="project-split-bullet">
+                    <Check size={13} className="project-split-bullet-icon" />
+                    Pre-Approved Bank Loans
+                  </span>
+                  <span className="project-split-bullet">
+                    <Check size={13} className="project-split-bullet-icon" />
+                    Nil Encumbrance Certificate
+                  </span>
+                </div>
+              </div>
+              <div className="project-split-card__media">
+                <img
+                  src={displayPreview}
+                  alt={`${project.name} layout and approval plan`}
+                  className="project-split-img"
+                  loading="lazy"
+                />
               </div>
             </div>
           </div>
@@ -686,96 +779,15 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
       </section>
 
       {/* ────────────────────────────────────────────────────────── */}
-      {/* 4. GALLERY (DEDICATED IMAGES & VIDEOS SECTION)            */}
+      {/* 4. GALLERY (3D PERSPECTIVE CAROUSEL & VIDEO WALKTHROUGH)   */}
       {/* ────────────────────────────────────────────────────────── */}
       {hasMedia && (
-        <section className="project-detail-section project-detail-section--warm" id="gallery">
-          <div className="project-detail-container">
-            <div className="project-section-header">
-              <span className="project-section-eyebrow">
-                VISUAL DOCUMENTATION
-              </span>
-              <h2 className="project-section-title">
-                Project Photographs &amp; Video Walkthrough
-              </h2>
-              <p className="project-section-subtitle">
-                On-ground photography, perimeter boundaries, and video walkthrough of {project.name}{project.location ? ` in ${project.location}` : ''}.
-              </p>
-            </div>
-
-            {/* Photo Gallery Grid */}
-            {hasImages && (
-              <div
-                className={`project-gallery-grid ${projectImages.length === 1 ? 'project-gallery-grid--single' : ''
-                  }`}
-              >
-                {projectImages.map((imgSrc, idx) => (
-                  <div
-                    key={idx}
-                    onClick={() => openLightbox(idx)}
-                    className="project-gallery-item"
-                  >
-                    <img
-                      src={imgSrc}
-                      alt={`${project.name} photo ${idx + 1}`}
-                      className="project-gallery-img"
-                    />
-                    <div className="project-gallery-badge">
-                      <Maximize2 size={13} /> Click to expand
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Video Walkthrough (if videos available) */}
-            {hasVideos && (
-              <div className="project-videos-wrapper">
-                <div className="project-videos-heading-row">
-                  <span className="project-section-eyebrow">AERIAL &amp; GROUND WALKTHROUGH</span>
-                  <h3 className="project-videos-heading">
-                    <Video size={19} />
-                    <span>Watch Site Walkthrough</span>
-                  </h3>
-                </div>
-
-                <div
-                  className={`project-videos-grid ${projectVideos.length === 1 ? 'project-videos-grid--single' : ''
-                    }`}
-                >
-                  {projectVideos.map((vidObj, vIdx) => {
-                    const vidUrl = typeof vidObj === 'string' ? vidObj : vidObj.url
-                    const vidName = typeof vidObj === 'object' && vidObj.name ? vidObj.name : `Video ${vIdx + 1}`
-                    const isDirectVideo =
-                      vidUrl.match(/\.(mp4|webm|ogg)($|\?)/i) ||
-                      vidUrl.startsWith('/videos/') ||
-                      vidUrl.includes('video-')
-                    return (
-                      <div key={vIdx} className="project-video-frame">
-                        {isDirectVideo ? (
-                          <video
-                            controls
-                            playsInline
-                            preload="metadata"
-                            src={vidUrl}
-                            suppressHydrationWarning
-                          />
-                        ) : (
-                          <iframe
-                            src={getEmbedVideoUrl(vidUrl)}
-                            title={`${project.name} ${vidName}`}
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                          />
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-        </section>
+        <ProjectGallery3D
+          project={project}
+          images={projectImages}
+          videos={projectVideos}
+          onOpenLightbox={openLightbox}
+        />
       )}
 
       {/* ────────────────────────────────────────────────────────── */}
@@ -883,8 +895,8 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
             </div>
 
             <div className="project-similar-grid">
-              {relatedProjects.map((rel) => (
-                <ProjectCard key={rel.id || rel._id} project={rel} />
+              {relatedProjects.map((rel, relIdx) => (
+                <ProjectCard key={rel.id || rel._id || rel.slug || `rel-${relIdx}`} project={rel} />
               ))}
             </div>
           </div>

@@ -1,0 +1,493 @@
+/* ─────────────────────────────────────────────────────────────
+   Crystal Estates — Clean Modern Horizontal Projects Slider
+   Non-overlapping, drag-enabled, responsive, smooth looping
+   ───────────────────────────────────────────────────────────── */
+
+.ps-slider-section {
+  position: relative;
+  width: 100%;
+  padding: clamp(60px, 7vw, 100px) 0 clamp(70px, 8vw, 110px);
+  background: var(--ch-paper, #F8F9FA);
+  overflow: hidden;
+}
+
+/* ── 1. Section Header ── */
+.ps-slider__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 28px;
+  flex-wrap: wrap;
+  margin-bottom: clamp(28px, 4vw, 44px);
+}
+
+.ps-slider__head-left {
+  display: flex;
+  flex-direction: column;
+}
+
+.ps-slider__title-serif {
+  font-family: 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: clamp(34px, 4.6vw, 58px);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: #111827;
+}
+
+.ps-slider__title-row {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.ps-slider__title-sans {
+  font-family: var(--font-montserrat, Montserrat, sans-serif);
+  font-weight: 800;
+  font-size: clamp(36px, 5vw, 62px);
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+  color: #111827;
+}
+
+.ps-slider__title-cursive {
+  font-family: 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
+  font-style: italic;
+  font-weight: 500;
+  font-size: clamp(34px, 4.6vw, 58px);
+  letter-spacing: -0.02em;
+  color: #111827;
+}
+
+.ps-slider__title-cursive span {
+  font-family: var(--font-montserrat, Montserrat, sans-serif);
+  font-weight: 800;
+  font-style: normal;
+  letter-spacing: 0.04em;
+}
+
+/* Header Right: Badges & Navigation Buttons */
+.ps-slider__head-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.ps-slider__pill-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  border-radius: 999px;
+  border: 1.5px solid #1e293b;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  user-select: none;
+}
+
+.ps-slider__nav-btns {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ps-slider__arrow-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ps-slider__arrow-btn:hover {
+  background: #0F3D2E;
+  color: #ffffff;
+  border-color: #0F3D2E;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(15, 61, 46, 0.2);
+}
+
+/* ── 2. Visible Drag Control Indicator ── */
+.ps-slider__subbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.ps-slider__drag-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(15, 61, 46, 0.06);
+  border: 1px solid rgba(15, 61, 46, 0.12);
+  color: #0F3D2E;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  user-select: none;
+}
+
+.ps-slider__count-indicator {
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+/* ── 3. Horizontal Scroll / Drag Track ── */
+.ps-slider__viewport {
+  position: relative;
+  width: 100%;
+}
+
+.ps-slider__track {
+  display: flex;
+  align-items: stretch;
+  gap: clamp(20px, 2.5vw, 32px);
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  padding: 12px 0 28px;
+  padding-left: clamp(20px, 4vw, calc((100vw - var(--container-max, 1600px)) / 2 + 32px));
+  padding-right: clamp(24px, 6vw, 100px);
+  width: 100%;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.ps-slider__track::-webkit-scrollbar {
+  display: none;
+}
+
+.ps-slider__track:active {
+  cursor: grabbing;
+}
+
+/* ── 4. Clean, Upright Project Card (Non-Overlapping) ── */
+.ps-card-item {
+  flex: 0 0 clamp(310px, 25vw, 390px);
+  height: clamp(480px, 39vw, 540px);
+  scroll-snap-align: start;
+  position: relative;
+  border-radius: 28px;
+  overflow: hidden;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 30px -8px rgba(15, 61, 46, 0.08), 0 0 0 1px rgba(15, 61, 46, 0.06);
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.ps-card-item:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 24px 50px -10px rgba(15, 61, 46, 0.18), 0 0 0 1px rgba(184, 150, 78, 0.35);
+}
+
+.ps-card-item--soldout {
+  cursor: default !important;
+}
+
+.ps-card-item--soldout:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px -8px rgba(15, 61, 46, 0.1);
+}
+
+/* Card Background Image */
+.ps-card-item__media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: #0f231c;
+  overflow: hidden;
+}
+
+.ps-card-item__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.85s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ps-card-item:hover .ps-card-item__img {
+  transform: scale(1.05);
+}
+
+/* Multi-stop dark gradient for text contrast */
+.ps-card-item__scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(15, 30, 24, 0.35) 0%,
+    transparent 35%,
+    rgba(10, 25, 20, 0.45) 55%,
+    rgba(10, 25, 20, 0.90) 80%,
+    rgba(10, 25, 20, 0.98) 100%
+  );
+  pointer-events: none;
+}
+
+/* Top Floating Badges (Status / Price) */
+.ps-card-item__top-bar {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  right: 18px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ps-card-item__status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(15, 61, 46, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.ps-card-item__status-pill--soldout {
+  background: rgba(185, 28, 28, 0.9) !important;
+  border-color: rgba(255, 255, 255, 0.35) !important;
+}
+
+.ps-card-item__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.8);
+}
+
+.ps-card-item__status-pill--soldout .ps-card-item__dot {
+  background: #ffffff;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
+}
+
+.ps-card-item__arrow-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s ease, background 0.3s ease;
+}
+
+.ps-card-item:hover .ps-card-item__arrow-circle {
+  background: #B8964E;
+  color: #ffffff;
+  transform: translate(2px, -2px);
+}
+
+/* Bottom Content Container */
+.ps-card-item__content {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 24px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ps-card-item__title {
+  font-family: var(--font-montserrat, Montserrat, sans-serif);
+  font-size: clamp(22px, 2vw, 26px);
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  margin: 0;
+}
+
+.ps-card-item__location {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.82);
+  margin: 0;
+}
+
+.ps-card-item__location svg {
+  color: #B8964E;
+  flex-shrink: 0;
+}
+
+.ps-card-item__desc {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.75);
+  line-height: 1.45;
+  margin: 2px 0 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Specs Row */
+.ps-card-item__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.ps-card-item__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+/* Action Button at bottom of card */
+.ps-card-item__cta-btn {
+  margin-top: 8px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 18px;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #111827;
+  font-size: 13px;
+  font-weight: 700;
+  border: none;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  transition: all 0.25s ease;
+}
+
+.ps-card-item:hover .ps-card-item__cta-btn:not(.ps-card-item__cta-btn--soldout) {
+  background: #B8964E;
+  color: #ffffff;
+}
+
+.ps-card-item__cta-btn--soldout {
+  background: rgba(239, 68, 68, 0.16) !important;
+  color: #ef4444 !important;
+  border: 1px solid rgba(239, 68, 68, 0.38) !important;
+  box-shadow: none !important;
+  cursor: not-allowed !important;
+}
+
+/* ── 5. Bottom Social Proof ── */
+.ps-slider__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: clamp(24px, 3.5vw, 40px);
+  flex-wrap: wrap;
+}
+
+.ps-slider__social-proof {
+  max-width: 520px;
+  margin-left: auto;
+  text-align: right;
+}
+
+.ps-slider__social-text {
+  font-size: clamp(14px, 1.3vw, 16px);
+  color: #1e293b;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.ps-slider__social-text strong {
+  font-weight: 800;
+  color: #0F3D2E;
+}
+
+.ps-slider__social-text em {
+  font-family: 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
+  font-style: italic;
+  font-weight: 500;
+  color: #111827;
+}
+
+/* ── Responsive Adaptations ── */
+@media (max-width: 1024px) {
+  .ps-slider__head {
+    align-items: flex-start;
+  }
+  .ps-slider__social-proof {
+    text-align: left;
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .ps-card-item {
+    flex: 0 0 290px;
+    height: 470px;
+    border-radius: 24px;
+  }
+  .ps-card-item__content {
+    padding: 18px;
+  }
+  .ps-card-item__title {
+    font-size: 21px;
+  }
+  .ps-slider__foot {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .ps-card-item {
+    flex: 0 0 260px;
+    height: 440px;
+    border-radius: 22px;
+  }
+}

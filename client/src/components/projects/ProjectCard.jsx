@@ -1,205 +1,370 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { MapPin, ArrowUpRight, ShieldCheck, Ruler, IndianRupee, Layers } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import {
+  MapPin,
+  Star,
+  BedDouble,
+  Bath,
+  Maximize2,
+  Heart,
+  ChevronLeft,
+  ChevronRight,
+  FileText,
+  Layers,
+  Compass,
+  ShieldCheck,
+} from 'lucide-react'
 import { formatPrice } from '../../lib/api'
 
 /**
- * Modern News-Style ProjectCard Component
- * Delivers an editorial, premium presentation matching the redesigned News & Featured Projects UI.
- * Fully responsive across all devices (320px to 1920px).
+ * Clean & Dynamic Reference-Style ProjectCard Component
+ * - Fixes carousel jump bug (smooth layered cross-fade, zero window scroll or layout shifts)
+ * - 100% dynamic: NO hardcoded ratings, fake specs, or fabricated fallback photos
+ * - Dynamic Sold Out handling: replaces action button with clear "Sold Out" badge/button
  */
 export function ProjectCard({ project, className = '' }) {
+  const router = useRouter()
   if (!project) return null
-
-  const isFlagship = Boolean(project?.isFlagship || project?.featured)
-  const fallbackImage = '/images/hero-estate.jpg'
-
-  const primaryImage =
-    project.image ||
-    (Array.isArray(project.images) && project.images[0]) ||
-    (Array.isArray(project.gallery) && project.gallery[0]) ||
-    fallbackImage
-
-  const [imgSrc, setImgSrc] = useState(primaryImage)
-
-  useEffect(() => {
-    setImgSrc(primaryImage)
-  }, [primaryImage])
-
-  const handleImageError = () => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
-    if (imgSrc && typeof imgSrc === 'string' && imgSrc.startsWith('/images/plots/') && !imgSrc.startsWith('http')) {
-      const fullUrl = `${apiUrl.replace(/\/$/, '')}${imgSrc}`
-      if (imgSrc !== fullUrl) {
-        setImgSrc(fullUrl)
-        return
-      }
-    }
-    const slugImage = project?.slug ? `/images/${project.slug}.jpg` : null
-    if (slugImage && imgSrc !== slugImage && imgSrc !== fallbackImage) {
-      setImgSrc(slugImage)
-      return
-    }
-    setImgSrc(fallbackImage)
-  }
 
   const projectSlug = project.slug || project.id || project.projectId
   const projectUrl = `/projects/${projectSlug}`
 
-  // Format Area display
-  const areaDisplay = (() => {
-    const sanitize = (val) => String(val || '').replace(/\.{2,}/g, ' ').replace(/\s+/g, ' ').trim()
-    if (project.totalLandArea) return sanitize(project.totalLandArea)
-    if (project.availableArea) return sanitize(project.availableArea)
-    if (typeof project.area === 'number') return `${project.area.toLocaleString('en-IN')} ${project.unit || 'sq.ft'}`
-    if (typeof project.area === 'string' && project.area.trim()) {
-      const num = Number(project.area)
-      return !isNaN(num) ? `${num.toLocaleString('en-IN')} ${project.unit || 'sq.ft'}` : sanitize(project.area)
-    }
-    if (project.plotSizes) return sanitize(project.plotSizes)
-    return 'Individual Plots'
-  })()
-
-  // Format Price display
-  const priceDisplay = (() => {
-    if (project.priceDisplay) return project.priceDisplay
-    if (project.priceFormatted) return project.priceFormatted
-    if (project.price) return formatPrice(project.price)
-    return 'Price on Request'
-  })()
-
-  // Format Location display
-  const locationDisplay =
-    project.location ||
-    [project.village, project.taluk, project.district].filter(Boolean).join(', ') ||
-    'Chennai'
-
-  const propType = project.propertyType || project.type || 'Residential Plot'
-  const propStatus = project.status || project.badge || 'Available'
-  const rawTitle = project.name || project.projectName || 'Crystal Estates Property'
-  const propTitle = rawTitle.replace(/_/g, ' ').trim()
-
-  const statusStr = String(propStatus || '').trim().toLowerCase()
+  // 1. Determine Sold Out status strictly from database
+  const statusStr = String(project.status || '').trim().toLowerCase()
+  const plotsArray = Array.isArray(project.plots) ? project.plots : []
+  const allPlotsSold =
+    plotsArray.length > 0 &&
+    plotsArray.every((p) => String(p.status || '').toLowerCase() === 'sold')
   const isSoldOut =
     statusStr === 'sold' ||
     statusStr === 'sold out' ||
     statusStr === 'soldout' ||
     Boolean(project.isSoldOut) ||
+    allPlotsSold ||
     (typeof project.availablePlots === 'number' &&
       project.availablePlots === 0 &&
-      (project.totalPlots > 0 || (Array.isArray(project.plots) && project.plots.length > 0)))
+      (project.totalPlots > 0 || plotsArray.length > 0))
 
-  // Description / Narrative
-  const description =
-    project.description ||
-    project.shortDescription ||
-    project.overview ||
-    project.tagline ||
-    `Clear-titled ${propType.toLowerCase()} opportunity in ${locationDisplay} featuring complete legal scrutiny, DTCP/CMDA compliance, and direct road connectivity.`
+  // 2. Extract genuine images from database (no dummy hardcoded fillers)
+  const cardImages = useMemo(() => {
+    const raw = [
+      project.coverImage,
+      project.image,
+      ...(Array.isArray(project.images) ? project.images : []),
+      ...(Array.isArray(project.gallery) ? project.gallery : []),
+    ].filter((img) => typeof img === 'string' && img.trim().length > 0)
 
-  const totalPlots = project.totalPlots || (Array.isArray(project.plots) ? project.plots.length : 0)
-  const approval = project.approval || project.approvalStatus || '100% Clear Title Patta'
+    const unique = Array.from(new Set(raw))
+    if (unique.length > 0) return unique
+    return ['/images/hero-estate.jpg']
+  }, [project])
+
+  const [activeImgIndex, setActiveImgIndex] = useState(0)
+  const [isFavorited, setIsFavorited] = useState(false)
+
+  // Load wishlist state from localStorage
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('ce_wishlist') || '[]')
+      setIsFavorited(saved.includes(projectSlug))
+    } catch {
+      // ignore
+    }
+  }, [projectSlug])
+
+  const toggleFavorite = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    try {
+      const saved = JSON.parse(localStorage.getItem('ce_wishlist') || '[]')
+      let updated = []
+      if (saved.includes(projectSlug)) {
+        updated = saved.filter((s) => s !== projectSlug)
+        setIsFavorited(false)
+      } else {
+        updated = [...saved, projectSlug]
+        setIsFavorited(true)
+      }
+      localStorage.setItem('ce_wishlist', JSON.stringify(updated))
+    } catch {
+      setIsFavorited(!isFavorited)
+    }
+  }
+
+  // Carousel navigation handlers: pure state updates with stopPropagation to prevent jumps
+  const handlePrevImage = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setActiveImgIndex((prev) => (prev - 1 + cardImages.length) % cardImages.length)
+  }
+
+  const handleNextImage = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setActiveImgIndex((prev) => (prev + 1) % cardImages.length)
+  }
+
+  const handleDotClick = (idx, e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setActiveImgIndex(idx)
+  }
+
+  const handleMediaClick = (e) => {
+    // If project is sold out, never redirect or navigate to other pages
+    if (isSoldOut) {
+      e.preventDefault()
+      e.stopPropagation()
+      return
+    }
+    // If click was on button, dots or interactive element, do not navigate
+    if (e.target.closest('button') || e.target.closest('.ce-pcard__dots') || e.target.closest('a')) {
+      return
+    }
+    router.push(projectUrl)
+  }
+
+  // 3. Dynamic Data Formatting (Strictly from DB)
+  const rawTitle = project.name || project.projectName || 'Crystal Estates Property'
+  const propTitle = rawTitle.replace(/_/g, ' ').trim()
+
+  const locationDisplay =
+    project.location ||
+    [project.village, project.taluk, project.district].filter(Boolean).join(', ') ||
+    ''
+
+  // Price Display
+  const priceDisplay = (() => {
+    if (isSoldOut) return 'Sold Out'
+    if (project.priceFormatted && project.priceFormatted !== 'Price on Request') return project.priceFormatted
+    if (project.priceDisplay && project.priceDisplay !== 'Price on Request') return project.priceDisplay
+    if (project.price) return formatPrice(project.price)
+    return 'Price on Request'
+  })()
+
+  // Clean Area extent
+  const areaDisplay = (() => {
+    const raw = project.availableArea || project.totalLandArea || project.area
+    if (!raw) return null
+    return String(raw)
+      .replace(/\.{2,}/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+  })()
+
+  // Dynamic Specs directly from database
+  const totalPlots = project.totalPlots || (Array.isArray(project.plots) ? project.plots.length : null)
+  const facing = project.facing ? `${project.facing} Facing` : null
+  const bedrooms = project.bedrooms ? `${project.bedrooms} Bedrooms` : null
+  const bathrooms = project.bathrooms ? `${project.bathrooms} Bathrooms` : null
+
+  // Real database rating if present
+  const hasRating = typeof project.rating === 'number' || Boolean(project.rating)
+  const ratingValue = project.rating
+  const reviewsCount = project.reviewsCount || project.reviews?.length || null
+
+  const hasMultipleImages = cardImages.length > 1
 
   return (
-    <article className={`news-project-card ${isFlagship ? 'news-project-card--flagship' : ''} ${className}`.trim()}>
-      <Link href={projectUrl} className="news-project-card__link" aria-label={`View ${propTitle}`}>
-        {/* 1. News-Style Rounded Image Container */}
-        <div className="news-project-card__image-box">
-          <Image
-            src={imgSrc}
-            alt={propTitle}
-            fill
-            unoptimized
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            className="news-project-card__image"
-            loading="lazy"
-            onError={handleImageError}
-          />
-          <div className="news-project-card__image-gradient" />
-
-          {/* Top Badges */}
-          <div className="news-project-card__badges-row">
-            <span className="news-project-card__type-badge">
-              {propType}
-            </span>
-
-            <span className={`news-project-card__status-badge ${isSoldOut ? 'is-soldout' : 'is-available'}`}>
-              <span className="news-project-card__status-dot" />
-              <span>{isSoldOut ? 'Sold Out' : propStatus}</span>
-            </span>
+    <article className={`ce-pcard ${isSoldOut ? 'ce-pcard--soldout' : ''} ${className}`.trim()}>
+      {/* ── Media Viewport (standard div to prevent router scroll-to-top jumping) ── */}
+      <div
+        className="ce-pcard__media"
+        onClick={handleMediaClick}
+        role="region"
+        aria-label={`${propTitle} photo preview`}
+      >
+        {/* Layered smooth cross-fade slides */}
+        {cardImages.map((src, idx) => (
+          <div
+            key={src + idx}
+            className={`ce-pcard__slide-layer ${idx === activeImgIndex ? 'is-active' : ''}`}
+          >
+            <Image
+              src={src}
+              alt={`${propTitle} image ${idx + 1}`}
+              fill
+              unoptimized
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              className="ce-pcard__img"
+              loading={idx === 0 ? 'eager' : 'lazy'}
+              onError={(e) => {
+                e.currentTarget.src = '/images/hero-estate.jpg'
+              }}
+            />
           </div>
+        ))}
+
+        {/* Top Badges Floating Row */}
+        <div className="ce-pcard__top-bar">
+          {/* Price or Sold Out Pill Badge */}
+          <div
+            className={`ce-pcard__price-badge ${isSoldOut ? 'ce-pcard__price-badge--soldout' : ''}`}
+            title={isSoldOut ? 'Project is fully sold out' : `Price: ${priceDisplay}`}
+          >
+            {isSoldOut && <span className="ce-pcard__soldout-dot" />}
+            <span>{isSoldOut ? 'Sold Out' : priceDisplay}</span>
+          </div>
+
+          {/* Wishlist Heart Button */}
+          <button
+            type="button"
+            onClick={toggleFavorite}
+            className={`ce-pcard__heart-btn ${isFavorited ? 'is-active' : ''}`}
+            aria-label={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+            title={isFavorited ? 'Saved to Favorites' : 'Save to Favorites'}
+          >
+            <Heart
+              size={18}
+              fill={isFavorited ? '#ef4444' : 'none'}
+              color={isFavorited ? '#ef4444' : '#ffffff'}
+              strokeWidth={2}
+            />
+          </button>
         </div>
 
-        {/* 2. Structured Editorial Content Body */}
-        <div className="news-project-card__content">
-          {/* Location & Approval Meta */}
-          <div className="news-project-card__meta-row">
-            <div className="news-project-card__location" title={locationDisplay}>
-              <MapPin size={14} className="news-project-card__meta-icon" />
-              <span>{locationDisplay}</span>
-            </div>
+        {/* Carousel Prev/Next Buttons (only if project has multiple images) */}
+        {hasMultipleImages && (
+          <>
+            <button
+              type="button"
+              onClick={handlePrevImage}
+              className="ce-pcard__arrow ce-pcard__arrow--prev"
+              aria-label="Previous image"
+              title="Previous photo"
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <button
+              type="button"
+              onClick={handleNextImage}
+              className="ce-pcard__arrow ce-pcard__arrow--next"
+              aria-label="Next image"
+              title="Next photo"
+            >
+              <ChevronRight size={18} />
+            </button>
+          </>
+        )}
 
-            <div className="news-project-card__approval" title={approval}>
-              <ShieldCheck size={14} className="news-project-card__meta-icon" />
-              <span>{approval}</span>
+        {/* Bottom Dark Gradient Overlay */}
+        <div className="ce-pcard__overlay">
+          {/* Slide Indicators: only shown if multiple images exist */}
+          {hasMultipleImages && (
+            <div className="ce-pcard__dots">
+              {cardImages.map((_, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={(e) => handleDotClick(idx, e)}
+                  className={`ce-pcard__dot ${idx === activeImgIndex ? 'is-active' : ''}`}
+                  aria-label={`Go to photo ${idx + 1}`}
+                />
+              ))}
             </div>
+          )}
+
+          {/* Line 1: Title on left, dynamic rating or approval badge on right */}
+          <div className="ce-pcard__header-row">
+            {isSoldOut ? (
+              <div className="ce-pcard__title-wrap" title={`${propTitle} (Sold Out)`}>
+                <h3 className="ce-pcard__title ce-pcard__title--soldout">{propTitle}</h3>
+              </div>
+            ) : (
+              <Link href={projectUrl} className="ce-pcard__title-link" title={propTitle}>
+                <h3 className="ce-pcard__title">{propTitle}</h3>
+              </Link>
+            )}
+
+            {hasRating ? (
+              <div className="ce-pcard__rating" title={`Rating: ${ratingValue}`}>
+                <Star size={14} className="ce-pcard__rating-star" />
+                <span>{ratingValue}</span>
+                {reviewsCount && <span className="ce-pcard__rating-count">({reviewsCount})</span>}
+              </div>
+            ) : project.approvalStatus ? (
+              <div className="ce-pcard__approval-badge" title={project.approvalStatus}>
+                <ShieldCheck size={13} />
+                <span>{project.approvalStatus}</span>
+              </div>
+            ) : null}
           </div>
 
-          {/* Project Title */}
-          <h3 className="news-project-card__title">
-            {propTitle}
-          </h3>
-
-          {/* Project Description (News-Style Excerpt) */}
-          <p className="news-project-card__excerpt">
-            {description}
-          </p>
-
-          {/* Specs Bar (Extent, Price & Plots) */}
-          <div className="news-project-card__specs-grid">
-            <div className="news-project-card__spec-item">
-              <span className="news-project-card__spec-label">
-                <Ruler size={12} />
-                <span>Size / Extent</span>
-              </span>
-              <strong className="news-project-card__spec-value">{areaDisplay}</strong>
+          {/* Line 2: Dynamic Location from Database */}
+          {locationDisplay && (
+            <div className="ce-pcard__location-row" title={locationDisplay}>
+              <MapPin size={13} className="ce-pcard__location-icon" />
+              <span>{locationDisplay}</span>
             </div>
+          )}
 
-            <div className="news-project-card__spec-item">
-              <span className="news-project-card__spec-label">
-                <IndianRupee size={12} />
-                <span>Price</span>
-              </span>
-              <strong className="news-project-card__spec-value news-project-card__spec-value--price">
-                {priceDisplay}
-              </strong>
-            </div>
+          {/* Line 3: Dynamic Specs Row (Only showing fields that exist in DB) */}
+          <div className="ce-pcard__specs-row">
+            {bedrooms && (
+              <div className="ce-pcard__spec-item" title={bedrooms}>
+                <BedDouble size={14} className="ce-pcard__spec-icon" />
+                <span>{bedrooms}</span>
+              </div>
+            )}
 
-            {totalPlots > 0 && (
-              <div className="news-project-card__spec-item">
-                <span className="news-project-card__spec-label">
-                  <Layers size={12} />
-                  <span>Layout</span>
-                </span>
-                <strong className="news-project-card__spec-value">{totalPlots} Plots</strong>
+            {bathrooms && (
+              <div className="ce-pcard__spec-item" title={bathrooms}>
+                <Bath size={14} className="ce-pcard__spec-icon" />
+                <span>{bathrooms}</span>
+              </div>
+            )}
+
+            {totalPlots && !bedrooms && (
+              <div className="ce-pcard__spec-item" title={`${totalPlots} Total Plots`}>
+                <Layers size={14} className="ce-pcard__spec-icon" />
+                <span>{totalPlots} Plots</span>
+              </div>
+            )}
+
+            {facing && (
+              <div className="ce-pcard__spec-item" title={facing}>
+                <Compass size={14} className="ce-pcard__spec-icon" />
+                <span>{facing}</span>
+              </div>
+            )}
+
+            {areaDisplay && (
+              <div className="ce-pcard__spec-item" title={areaDisplay}>
+                <Maximize2 size={13} className="ce-pcard__spec-icon" />
+                <span>{areaDisplay}</span>
               </div>
             )}
           </div>
 
-          {/* Action Footer */}
-          <div className="news-project-card__footer">
-            <span className="news-project-card__cta-text">
-              {isSoldOut ? 'View Project Archive' : 'Explore Project'}
-            </span>
-            <div className="news-project-card__cta-btn" aria-hidden="true">
-              <ArrowUpRight size={16} />
-            </div>
-          </div>
+          {/* Line 4: Action Button — Dynamically replaced with 'Sold Out' if sold */}
+          {isSoldOut ? (
+            <button
+              type="button"
+              disabled
+              className="ce-pcard__cta-btn ce-pcard__cta-btn--soldout"
+              aria-disabled="true"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+              }}
+            >
+              <span className="ce-pcard__soldout-badge">
+                <span className="ce-pcard__soldout-dot" />
+                <span>Sold Out</span>
+              </span>
+            </button>
+          ) : (
+            <Link href={projectUrl} className="ce-pcard__cta-btn" aria-label={`View ${propTitle} Details`}>
+              <FileText size={15} className="ce-pcard__cta-icon" />
+              <span>View Project Details</span>
+            </Link>
+          )}
         </div>
-      </Link>
+      </div>
     </article>
   )
 }

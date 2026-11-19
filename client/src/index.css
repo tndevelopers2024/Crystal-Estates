@@ -31,8 +31,8 @@
   --card-bg: #ffffff;
 
   /* Layout tokens */
-  --container-max: 1360px;
-  --container-pad: clamp(20px, 4vw, 32px);
+  --container-max: 1600px;
+  --container-pad: clamp(20px, 3.5vw, 40px);
   --radius-sm: 8px;
   --radius-md: 8px;
   --radius-lg: 8px;
@@ -57,6 +57,12 @@
   --font-serif: var(--font-display);
 }
 
+@media (min-width: 1800px) {
+  :root {
+    --container-max: 1680px;
+  }
+}
+
 /* ───────── Reset & Base ───────── */
 *,
 *::before,
@@ -68,9 +74,14 @@
 
 html {
   scroll-behavior: auto !important;
-  scroll-padding-top: 96px;
+  scroll-padding-top: clamp(96px, 11vw, 120px);
   overflow-x: hidden;
   width: 100%;
+}
+
+section[id],
+main > [id] {
+  scroll-margin-top: clamp(96px, 11vw, 120px);
 }
 
 body {
@@ -1638,7 +1649,7 @@ textarea {
 }
 
 .modern-stats-container {
-  max-width: 1360px;
+  max-width: var(--container-max, 1600px);
   margin: 0 auto;
   padding: 0 clamp(20px, 4vw, 32px);
 }
@@ -5679,7 +5690,7 @@ textarea {
 }
 
 .modern-projects-container {
-  max-width: 1360px;
+  max-width: var(--container-max, 1600px);
   margin: 0 auto;
   padding: 0 clamp(20px, 4vw, 32px);
 }
@@ -6764,7 +6775,7 @@ video {
 }
 
 .cat-horizon-header {
-  max-width: 1360px;
+  max-width: var(--container-max, 1600px);
   margin: 0 auto;
   padding: 0 clamp(20px, 4vw, 32px) 32px;
   display: flex;
@@ -6887,7 +6898,7 @@ video {
 
 /* Category Quick-Filter Bar */
 .cat-horizon-filter-bar {
-  max-width: 1360px;
+  max-width: var(--container-max, 1600px);
   margin: 0 auto 28px auto;
   padding: 0 clamp(20px, 4vw, 32px);
 }
@@ -6959,7 +6970,7 @@ video {
   scroll-snap-type: x mandatory;
   padding-top: 12px;
   padding-bottom: 28px;
-  padding-left: clamp(20px, 5vw, calc((100vw - 1360px) / 2 + 32px));
+  padding-left: clamp(20px, 5vw, calc((100vw - var(--container-max, 1600px)) / 2 + 32px));
   padding-right: clamp(24px, 6vw, 100px);
   width: 100%;
   scrollbar-width: none;
@@ -7221,7 +7232,7 @@ video {
   align-items: stretch;
   gap: clamp(32px, 4vw, 56px);
   width: 100%;
-  padding-left: clamp(20px, 5vw, calc((100vw - 1360px) / 2 + 32px));
+  padding-left: clamp(20px, 5vw, calc((100vw - var(--container-max, 1600px)) / 2 + 32px));
   padding-right: 0;
 }
 
@@ -7535,7 +7546,7 @@ video {
 }
 
 .roadmap-container {
-  max-width: 1360px;
+  max-width: var(--container-max, 1600px);
   margin: 0 auto;
   padding: 0 clamp(20px, 4vw, 32px);
 }
@@ -7928,7 +7939,7 @@ video {
 }
 
 .updates-reel-header {
-  max-width: 1360px;
+  max-width: var(--container-max, 1600px);
   margin: 0 auto 36px auto;
   padding: 0 clamp(20px, 4vw, 32px);
   display: flex;
@@ -8058,7 +8069,7 @@ video {
   scroll-snap-type: x mandatory;
   padding-top: 8px;
   padding-bottom: 24px;
-  padding-left: clamp(20px, 5vw, calc((100vw - 1360px) / 2 + 32px));
+  padding-left: clamp(20px, 5vw, calc((100vw - var(--container-max, 1600px)) / 2 + 32px));
   padding-right: clamp(24px, 6vw, 100px);
   width: 100%;
   scrollbar-width: none;
@@ -8250,7 +8261,7 @@ video {
 }
 
 .exec-enquiry-container {
-  max-width: 1360px;
+  max-width: var(--container-max, 1600px);
   margin: 0 auto;
   padding: 0 clamp(20px, 4vw, 32px);
   display: grid;
@@ -8434,7 +8445,7 @@ video {
 }
 
 .exec-contact-container {
-  max-width: 1360px;
+  max-width: var(--container-max, 1600px);
   margin: 0 auto;
   padding: 0 clamp(20px, 4vw, 32px);
 }
@@ -8717,7 +8728,7 @@ video {
   align-items: stretch;
   gap: clamp(32px, 4vw, 56px);
   width: 100%;
-  padding-left: clamp(20px, 5vw, calc((100vw - 1360px) / 2 + 32px));
+  padding-left: clamp(20px, 5vw, calc((100vw - var(--container-max, 1600px)) / 2 + 32px));
   padding-right: 0;
 }
 
@@ -9051,7 +9062,7 @@ video {
 }
 
 .about-hero-container {
-  max-width: 1360px;
+  max-width: var(--container-max, 1600px);
   margin: 0 auto;
   padding: 0 clamp(20px, 4vw, 32px);
 }
@@ -9174,7 +9185,7 @@ video {
 }
 
 .about-purpose-container {
-  max-width: 1360px;
+  max-width: var(--container-max, 1600px);
   margin: 0 auto;
   padding: 0 clamp(20px, 4vw, 32px);
 }
@@ -9313,7 +9324,7 @@ video {
 }
 
 .about-leadership-container {
-  max-width: 1360px;
+  max-width: var(--container-max, 1600px);
   margin: 0 auto;
   padding: 0 clamp(20px, 4vw, 32px);
 }
@@ -9619,7 +9630,7 @@ video {
 }
 
 .services-hero-container {
-  max-width: 1360px;
+  max-width: var(--container-max, 1600px);
   margin: 0 auto;
   padding: 0 clamp(16px, 4vw, 40px);
 }
@@ -9765,7 +9776,7 @@ video {
 }
 
 .services-block-container {
-  max-width: 1360px;
+  max-width: var(--container-max, 1600px);
   margin: 0 auto;
   padding: 0 clamp(16px, 4vw, 40px);
 }
@@ -9939,7 +9950,7 @@ video {
 }
 
 .services-consultation-container {
-  max-width: 1360px;
+  max-width: var(--container-max, 1600px);
   margin: 0 auto;
   padding: 0 clamp(16px, 4vw, 40px);
 }
@@ -10005,7 +10016,7 @@ video {
 }
 
 .contact-hero-container {
-  max-width: 1360px;
+  max-width: var(--container-max, 1600px);
   margin: 0 auto;
   padding: 0 clamp(16px, 4vw, 40px);
 }
@@ -10161,7 +10172,7 @@ video {
 }
 
 .contact-office-container {
-  max-width: 1360px;
+  max-width: var(--container-max, 1600px);
   margin: 0 auto;
   padding: 0 clamp(16px, 4vw, 40px);
 }
@@ -10316,7 +10327,7 @@ video {
 }
 
 .contact-map-fullwidth-container {
-  max-width: 1360px;
+  max-width: var(--container-max, 1600px);
   margin: 0 auto;
   padding: 0 clamp(16px, 4vw, 40px);
 }
@@ -10445,7 +10456,7 @@ video {
 }
 
 .modern-news-container {
-  max-width: 1360px;
+  max-width: var(--container-max, 1600px);
   margin: 0 auto;
   padding: 0 clamp(16px, 4vw, 40px);
 }
@@ -10835,7 +10846,7 @@ video {
 }
 
 .article-hero-container {
-  max-width: 1360px;
+  max-width: var(--container-max, 1600px);
   margin: 0 auto;
   padding: 0 clamp(20px, 4vw, 32px);
 }
@@ -11006,7 +11017,7 @@ video {
 }
 
 .article-content-container {
-  max-width: 1360px;
+  max-width: var(--container-max, 1600px);
   margin: 0 auto;
   padding: 0 clamp(20px, 4vw, 32px);
 }
@@ -11407,7 +11418,7 @@ video {
 }
 
 .article-related-container {
-  max-width: 1360px;
+  max-width: var(--container-max, 1600px);
   margin: 0 auto;
   padding: 0 clamp(20px, 4vw, 32px);
 }
@@ -11629,7 +11640,7 @@ video {
 }
 
 .project-hero-container {
-  max-width: 1360px;
+  max-width: var(--container-max, 1600px);
   margin: 0 auto;
   padding: 0 clamp(20px, 4vw, 32px);
 }
@@ -11824,7 +11835,7 @@ video {
 }
 
 .project-detail-container {
-  max-width: 1360px;
+  max-width: var(--container-max, 1600px);
   margin: 0 auto;
   padding: 0 clamp(20px, 4vw, 32px);
 }
@@ -11871,7 +11882,7 @@ video {
 }
 
 .project-plot-container {
-  max-width: 1360px;
+  max-width: var(--container-max, 1600px);
   margin: 0 auto;
   padding: 0 clamp(20px, 4vw, 32px);
 }
@@ -13233,11 +13244,11 @@ video {
    Every section shares the Featured Projects gutter so content starts and ends
    on the same vertical lines across all pages.
      < 1024px : clamp(16px, 4vw, 32px)   (Featured Projects mobile gutter)
-     ≥ 1024px : 5vw, never less than the old 1360px container edge
+     ≥ 1024px : 5vw, never less than the container edge
    ───────────────────────────────────────────────────────────────────────────── */
 
 :root {
-  --page-gutter: max(clamp(16px, 4vw, 32px), min(5vw, calc((100vw - 1360px) / 2 + 32px)));
+  --page-gutter: max(clamp(16px, 4vw, 32px), min(5vw, calc((100vw - var(--container-max, 1600px)) / 2 + 32px)));
 }
 
 /* Full-width section wrappers: gutter on both sides, no centred max-width cap */

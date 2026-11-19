@@ -77,21 +77,10 @@ export default function ProjectsIndex({ projects = [] }) {
           onMouseMove={handleMove}
           onMouseLeave={() => setActive(null)}
         >
-          {rows.map((r, i) => (
-            <motion.div
-              key={r.key}
-              initial={reduce ? false : { opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '0px 0px -8% 0px' }}
-              transition={{ duration: 0.7, ease: EASE, delay: i * 0.06 }}
-            >
-              <Link
-                href={r.href}
-                className={`ch-projects__row ${active && active !== r.key ? 'is-dim' : ''}`}
-                onMouseEnter={() => setActive(r.key)}
-                onFocus={() => setActive(r.key)}
-                onBlur={() => setActive(null)}
-              >
+          {rows.map((r, i) => {
+            const isSold = String(r.status || '').toLowerCase().includes('sold')
+            const rowContent = (
+              <>
                 <span className="ch-projects__num">{String(i + 1).padStart(2, '0')}</span>
                 <span className="ch-projects__thumb">
                   <Image src={r.image} alt="" fill sizes="96px" />
@@ -100,14 +89,54 @@ export default function ProjectsIndex({ projects = [] }) {
                 <span className="ch-projects__loc">{r.location}</span>
                 <span className="ch-projects__meta">
                   <span>{r.type}</span>
-                  <span>{r.meta}</span>
+                  {isSold ? (
+                    <span style={{ color: '#ef4444', fontWeight: 600 }}>Sold Out</span>
+                  ) : (
+                    <span>{r.meta}</span>
+                  )}
                 </span>
                 <span className="ch-projects__arrow" aria-hidden="true">
-                  <ArrowRight size={18} />
+                  {isSold ? (
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', display: 'inline-block' }} />
+                  ) : (
+                    <ArrowRight size={18} />
+                  )}
                 </span>
-              </Link>
-            </motion.div>
-          ))}
+              </>
+            )
+
+            return (
+              <motion.div
+                key={r.key}
+                initial={reduce ? false : { opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '0px 0px -8% 0px' }}
+                transition={{ duration: 0.7, ease: EASE, delay: i * 0.06 }}
+              >
+                {isSold ? (
+                  <div
+                    className={`ch-projects__row ch-projects__row--sold ${active && active !== r.key ? 'is-dim' : ''}`}
+                    style={{ cursor: 'default' }}
+                    onMouseEnter={() => setActive(r.key)}
+                    onFocus={() => setActive(r.key)}
+                    onBlur={() => setActive(null)}
+                  >
+                    {rowContent}
+                  </div>
+                ) : (
+                  <Link
+                    href={r.href}
+                    className={`ch-projects__row ${active && active !== r.key ? 'is-dim' : ''}`}
+                    onMouseEnter={() => setActive(r.key)}
+                    onFocus={() => setActive(r.key)}
+                    onBlur={() => setActive(null)}
+                  >
+                    {rowContent}
+                  </Link>
+                )}
+              </motion.div>
+            )
+          })}
 
           <AnimatePresence>
             {current && !reduce && (

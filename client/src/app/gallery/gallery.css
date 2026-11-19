@@ -113,7 +113,7 @@
   padding: clamp(48px, 6vw, 90px) 0 clamp(80px, 10vw, 140px);
 }
 .ch-gallery-page .gx-container {
-  max-width: 1360px;
+  max-width: var(--container-max, 1600px);
   margin: 0 auto;
   padding: 0 var(--ch-pad);
 }

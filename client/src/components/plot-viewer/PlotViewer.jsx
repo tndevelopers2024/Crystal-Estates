@@ -918,14 +918,21 @@ export default function PlotViewer({
                   textRendering="geometricPrecision"
                   aria-label="Interactive Plot Overlay"
                 >
-                  {displayPlots.filter((plot) => Boolean(plot.svgPath && plot.svgPath.trim())).map((plot) => {
+                  {displayPlots.filter((plot) => Boolean(plot.svgPath && plot.svgPath.trim())).map((plot, plotIdx) => {
                 const isMatch = isPlotMatchingFilter(plot)
-                const isSelected = selectedPlot?.id === plot.id
+                const isSelected = selectedPlot
+                  ? ((selectedPlot.uid && plot.uid)
+                      ? selectedPlot.uid === plot.uid
+                      : (selectedPlot._id && plot._id)
+                        ? selectedPlot._id === plot._id
+                        : selectedPlot.id === plot.id && selectedPlot.plotNo === plot.plotNo)
+                  : false
+                const plotKey = plot.uid || plot._id || `plot-${plot.id ?? ''}-${plot.plotNo ?? ''}-${plotIdx}`
 
                 return (
                   <g
-                    key={plot.id || plot.plotNo}
-                    id={`plot-group-${plot.plotNo}`}
+                    key={plotKey}
+                    id={`plot-group-${plot.uid || plot._id || plot.plotNo || plotIdx}`}
                     className={`pv-plot pv-plot--${plot.status} ${isSelected ? 'pv-plot--selected' : ''} ${!isMatch ? 'pv-plot--dimmed' : ''}`}
                     onClick={(e) => {
                       e.stopPropagation()
