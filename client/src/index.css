@@ -80,7 +80,7 @@ html {
 }
 
 section[id],
-main > [id] {
+main>[id] {
   scroll-margin-top: clamp(96px, 11vw, 120px);
 }
 
@@ -13239,6 +13239,7 @@ video {
     min-height: 320px;
   }
 }
+
 /* ─────────────────────────────────────────────────────────────────────────────
    Site-wide Layout Unification
    Every section shares the Featured Projects gutter so content starts and ends
@@ -13360,7 +13361,7 @@ video {
   gap: 6px;
 }
 
-.testimonial-showcase-summary__meta > span {
+.testimonial-showcase-summary__meta>span {
   font-size: 13px;
   font-weight: 500;
   color: #71717A;
@@ -13432,7 +13433,7 @@ video {
   background: #F4F4F5;
 }
 
-.testimonial-showcase-card__score > span {
+.testimonial-showcase-card__score>span {
   font-size: 13px;
   font-weight: 600;
   color: #27272A;
@@ -13809,6 +13810,7 @@ video {
 }
 
 @media (max-width: 1023px) {
+
   .split-sec__grid,
   .services-consultation-container {
     grid-template-columns: minmax(0, 1fr);
