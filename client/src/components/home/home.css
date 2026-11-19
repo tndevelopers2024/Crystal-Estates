@@ -102,13 +102,39 @@
 .ch-pill {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 14px;
   padding: 7px 7px 7px 24px;
   border-radius: 999px;
+  font-family: inherit;
   font-size: 15px;
   font-weight: 600;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  background: transparent;
   transition: transform 0.4s var(--ch-ease), background 0.3s ease, color 0.3s ease;
   white-space: nowrap;
+  vertical-align: middle;
+}
+button.ch-pill {
+  appearance: none;
+  -webkit-appearance: none;
+  outline: none;
+}
+.ch-pill__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1;
+  white-space: nowrap;
+}
+.ch-pill__label svg,
+.ch-pill svg {
+  display: inline-block !important;
+  vertical-align: middle;
+  flex-shrink: 0;
 }
 .ch-pill__icon {
   display: grid;
@@ -116,7 +142,11 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
+  flex-shrink: 0;
   transition: transform 0.45s var(--ch-ease);
+}
+.ch-pill__icon svg {
+  display: block !important;
 }
 .ch-pill:hover .ch-pill__icon { transform: rotate(-45deg); }
 .ch-pill:hover { transform: translateY(-2px); }

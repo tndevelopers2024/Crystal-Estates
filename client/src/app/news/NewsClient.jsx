@@ -396,11 +396,11 @@ export default function NewsClient({ initialArticles = [] }) {
                   href="https://wa.me/919884455555?text=Hi%20Crystal%20Estates,%20please%20share%20the%20latest%20Chennai%20land%20market%20intelligence%20reports."
                   variant="cream"
                 >
-                  <MessageCircle size={15} style={{ marginRight: '6px' }} aria-hidden="true" />
+                  <MessageCircle size={15} aria-hidden="true" />
                   Request via WhatsApp
                 </PillLink>
                 <PillLink href="#enquire" variant="dark" onClick={openSiteVisit}>
-                  <PhoneCall size={15} style={{ marginRight: '6px' }} aria-hidden="true" />
+                  <PhoneCall size={15} aria-hidden="true" />
                   Consult Legal Desk
                 </PillLink>
               </div>

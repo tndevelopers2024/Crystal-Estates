@@ -136,7 +136,7 @@ export function Reveal({ children, className = '', delay = 0, y = 24, scale = 1,
 /**
  * Pill CTA with a circular arrow badge.
  */
-export function PillLink({ href, children, variant = 'cream', onClick, className = '' }) {
+export function PillLink({ href, children, variant = 'cream', onClick, className = '', ...props }) {
   const content = (
     <>
       <span className="ch-pill__label">{children}</span>
@@ -148,13 +148,13 @@ export function PillLink({ href, children, variant = 'cream', onClick, className
   const cls = `ch-pill ch-pill--${variant} ${className}`.trim()
   if (onClick) {
     return (
-      <button type="button" className={cls} onClick={onClick}>
+      <button type="button" className={cls} onClick={onClick} {...props}>
         {content}
       </button>
     )
   }
   return (
-    <Link href={href} className={cls}>
+    <Link href={href || '#'} className={cls} {...props}>
       {content}
     </Link>
   )

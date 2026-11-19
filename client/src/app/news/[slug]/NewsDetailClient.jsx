@@ -228,7 +228,7 @@ export default function NewsDetailClient({ article, otherArticles = [] }) {
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    <MessageCircle size={15} style={{ marginRight: '6px' }} aria-hidden="true" />
+                    <MessageCircle size={15} aria-hidden="true" />
                     Enquire on WhatsApp
                   </PillLink>
                   <a

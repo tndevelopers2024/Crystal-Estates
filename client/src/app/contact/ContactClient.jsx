@@ -101,7 +101,7 @@ export default function ContactClient() {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <MessageCircle size={15} style={{ marginRight: '6px' }} aria-hidden="true" />
+                <MessageCircle size={15} aria-hidden="true" />
                 Chat on WhatsApp
               </PillLink>
             </div>
