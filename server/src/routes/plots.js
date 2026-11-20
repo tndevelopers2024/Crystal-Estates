@@ -312,6 +312,8 @@ const handlePatchPlot = async (req, res) => {
     // Who made the change (for the plot activity log); never stored on the property
     const actor = updates._actor
     delete updates._actor
+    // Nearby places have their own endpoints; a property save must never overwrite them with a stale copy
+    delete updates.nearbyPlaces
 
     if (updates.price) {
       updates.priceFormatted = formatPrice(updates.price)
@@ -341,10 +343,11 @@ const handlePatchPlot = async (req, res) => {
       ? await db.collection('featured_plots').findOne({ $or: [{ id }, { projectId: id }] }, { projection: { _id: 0 } })
       : null
 
+    // Update only: an unknown id must not create an empty property
+    // ($or filters aren't copied into upserted documents)
     const result = await db.collection('featured_plots').updateOne(
       { $or: [{ id }, { projectId: id }] },
-      { $set: updates },
-      { upsert: true }
+      { $set: updates }
     )
 
     if (result.matchedCount === 0 && result.upsertedCount === 0) {
@@ -411,6 +414,109 @@ const handlePatchPlot = async (req, res) => {
 
 router.patch('/:id', handlePatchPlot)
 router.patch('/', handlePatchPlot)
+
+/* ───────── Nearby places (temples, schools, hospitals, landmarks…) ─────────
+   Stored on the project as `nearbyPlaces`. x / y are positions in the phase
+   layout's SVG coordinate space (they may sit outside the drawing), picked on
+   the 3D view from the CRM. */
+
+const PLACE_FIELDS = { name: 120, category: 60, description: 600, distance: 40, phase: 80 }
+
+function cleanPlace(body = {}, existing = {}) {
+  const out = { ...existing }
+  for (const [k, max] of Object.entries(PLACE_FIELDS)) {
+    if (body[k] !== undefined) out[k] = String(body[k] ?? '').trim().slice(0, max)
+  }
+  for (const k of ['x', 'y']) {
+    if (body[k] !== undefined) {
+      const n = Number(body[k])
+      out[k] = Number.isFinite(n) ? Math.round(n * 100) / 100 : null
+    }
+  }
+  return out
+}
+
+function placeError(p) {
+  if (!p.name) return 'Place name is required'
+  if (!p.category) return 'Choose a category'
+  if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) return 'Pick the place position on the 3D layout'
+  if (Math.abs(p.x) > 1e6 || Math.abs(p.y) > 1e6) return 'Position is out of range'
+  return null
+}
+
+const projectQuery = (id) => ({ $or: [{ id }, { projectId: id }] })
+
+router.get('/:id/places', async (req, res) => {
+  try {
+    const db = await getDb()
+    const prop = await db.collection('featured_plots').findOne(projectQuery(req.params.id), { projection: { _id: 0, nearbyPlaces: 1 } })
+    if (!prop) return res.status(404).json({ success: false, error: 'Property not found' })
+    return res.json({ success: true, places: Array.isArray(prop.nearbyPlaces) ? prop.nearbyPlaces : [] })
+  } catch (err) {
+    console.error('Error loading nearby places:', err.message)
+    return res.status(500).json({ success: false, error: err.message })
+  }
+})
+
+router.post('/:id/places', async (req, res) => {
+  try {
+    const place = cleanPlace(req.body)
+    const error = placeError(place)
+    if (error) return res.status(400).json({ success: false, error })
+    const db = await getDb()
+    const now = new Date()
+    const doc = { id: `place-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, ...place, createdAt: now, updatedAt: now }
+    const result = await db.collection('featured_plots').findOneAndUpdate(
+      projectQuery(req.params.id),
+      { $push: { nearbyPlaces: doc }, $set: { updatedAt: now } },
+      { returnDocument: 'after', projection: { _id: 0, nearbyPlaces: 1 } }
+    )
+    const prop = result?.value !== undefined ? result.value : result
+    if (!prop) return res.status(404).json({ success: false, error: 'Property not found' })
+    return res.status(201).json({ success: true, place: doc, places: prop.nearbyPlaces || [] })
+  } catch (err) {
+    console.error('Error adding nearby place:', err.message)
+    return res.status(500).json({ success: false, error: err.message })
+  }
+})
+
+router.patch('/:id/places/:placeId', async (req, res) => {
+  try {
+    const db = await getDb()
+    const prop = await db.collection('featured_plots').findOne(projectQuery(req.params.id), { projection: { _id: 0, nearbyPlaces: 1 } })
+    if (!prop) return res.status(404).json({ success: false, error: 'Property not found' })
+    const current = (prop.nearbyPlaces || []).find((p) => p.id === req.params.placeId)
+    if (!current) return res.status(404).json({ success: false, error: 'Place not found' })
+    const place = { ...cleanPlace(req.body, current), id: current.id, createdAt: current.createdAt, updatedAt: new Date() }
+    const error = placeError(place)
+    if (error) return res.status(400).json({ success: false, error })
+    await db.collection('featured_plots').updateOne(
+      { ...projectQuery(req.params.id), 'nearbyPlaces.id': current.id },
+      { $set: { 'nearbyPlaces.$': place, updatedAt: new Date() } }
+    )
+    const after = await db.collection('featured_plots').findOne(projectQuery(req.params.id), { projection: { _id: 0, nearbyPlaces: 1 } })
+    return res.json({ success: true, place, places: after?.nearbyPlaces || [] })
+  } catch (err) {
+    console.error('Error updating nearby place:', err.message)
+    return res.status(500).json({ success: false, error: err.message })
+  }
+})
+
+router.delete('/:id/places/:placeId', async (req, res) => {
+  try {
+    const db = await getDb()
+    const result = await db.collection('featured_plots').updateOne(projectQuery(req.params.id), {
+      $pull: { nearbyPlaces: { id: req.params.placeId } },
+      $set: { updatedAt: new Date() },
+    })
+    if (!result.matchedCount) return res.status(404).json({ success: false, error: 'Property not found' })
+    const after = await db.collection('featured_plots').findOne(projectQuery(req.params.id), { projection: { _id: 0, nearbyPlaces: 1 } })
+    return res.json({ success: true, removed: result.modifiedCount > 0, places: after?.nearbyPlaces || [] })
+  } catch (err) {
+    console.error('Error deleting nearby place:', err.message)
+    return res.status(500).json({ success: false, error: err.message })
+  }
+})
 
 /**
  * DELETE /api/plots/:id

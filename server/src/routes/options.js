@@ -22,6 +22,7 @@ export const DEFAULT_OPTIONS = {
     'Floor / plot plan',
     'Other document',
   ],
+  placeCategory: ['Temple', 'School', 'College', 'Hospital', 'Railway station', 'Bus stop', 'Market', 'Bank / ATM', 'Park', 'Landmark'],
 }
 
 const LIST_NAME = /^[a-zA-Z][a-zA-Z0-9_-]{1,40}$/

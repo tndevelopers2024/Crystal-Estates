@@ -12,19 +12,18 @@ import {
   CheckCircle2,
   Video,
   ArrowUpRight,
-  Compass,
   FileCheck2,
   ShieldCheck,
   Check,
-  Box,
 } from 'lucide-react'
 import EnquiryForm from '../forms/EnquiryForm'
 import PlotViewer from '../plot-viewer/PlotViewer'
+import ExploreGuide from './ExploreGuide'
 import ProjectGallery3D from './ProjectGallery3D'
 import { resolveMapEmbedUrl, resolveMapDirectUrl } from '../../lib/api'
 import { parseViewBox } from '../../lib/svgUtils'
 import { business } from '../../data/site'
-import { Eyebrow, PillLink, openSiteVisit } from '../home/motion'
+import { Eyebrow, PillLink } from '../home/motion'
 
 export default function PropertyDetailClient({ initialProject, staticAllProjects = [] }) {
   const [project, setProject] = useState(initialProject)
@@ -331,47 +330,6 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
   const displayImage = project.coverImage || project.image || '/images/hero-bg.jpg'
   const displayPreview = project.layoutPreview || project.layoutImage || displayImage
 
-  // Phase 1 and Phase 2 switch buttons connected to dynamic CRM data
-  const phaseButtons = useMemo(() => {
-    if (layoutPhases && layoutPhases.length >= 2) {
-      return layoutPhases.map((lp, idx) => ({
-        id: lp.id || `phase-${idx + 1}`,
-        index: idx,
-        name: lp.name || `Phase ${idx + 1}`,
-        plotCount: Array.isArray(lp.plots) ? lp.plots.length : 0,
-        isUpcoming: false,
-      }))
-    }
-    return [
-      {
-        id: layoutPhases[0]?.id || 'phase-1',
-        index: 0,
-        name: layoutPhases[0]?.name || 'Phase 1',
-        plotCount: (layoutPhases[0]?.plots && layoutPhases[0].plots.length) || inventory.total || 0,
-        isUpcoming: false,
-      },
-      {
-        id: 'phase-2',
-        index: 1,
-        name: 'Phase 2',
-        plotCount: 0,
-        isUpcoming: true,
-      },
-    ]
-  }, [layoutPhases, inventory.total])
-
-  const [phaseNotice, setPhaseNotice] = useState('')
-
-  const handlePhaseSelectWithNotice = (phaseItem) => {
-    if (phaseItem.isUpcoming) {
-      setPhaseNotice(`Phase 2 layout demarcation for ${project.name} is currently in progress. Phase 1 is open for live reservations.`)
-      setTimeout(() => setPhaseNotice(''), 4500)
-      return
-    }
-    setPhaseNotice('')
-    handlePhaseChange(phaseItem.index)
-  }
-
   return (
     <>
       {/* ────────────────────────────────────────────────────────── */}
@@ -380,17 +338,11 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
       {/* ────────────────────────────────────────────────────────── */}
       <section className="ce-projects-editorial-header project-detail-editorial-hero" aria-labelledby="project-editorial-title">
         <div className="ch-wrap">
-          <div className="ce-projects-editorial-header__grid">
-            <div className="ce-projects-editorial-header__left">
-              <div className="ce-projects-editorial-header__bullet-tag">
-                <span className="ce-projects-editorial-header__bullet" />
-                <span>Crystal Estates · {project.propertyType || project.type || 'Residential'}</span>
-              </div>
+          <div className="project-hero-simple">
+            <div className="project-hero-simple__main">
               <h1 id="project-editorial-title" className="ce-projects-editorial-header__headline">
                 {project.name}
               </h1>
-
-              {/* Status and Approval Pills */}
               <div className="project-editorial-pills">
                 {project.approval && (
                   <span className="project-editorial-pill project-editorial-pill--gold">
@@ -404,125 +356,18 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
                   }`}
                 >
                   <span className="project-editorial-pill__dot" aria-hidden="true" />
-                  <span>{isSoldOut ? 'Sold Out' : (project.status || 'Available')}</span>
+                  <span>{isSoldOut ? 'Sold Out' : project.status || 'Available'}</span>
                 </span>
-                {currentPhase && (
-                  <span className="project-editorial-pill project-editorial-pill--phase">
-                    <Layers size={13} aria-hidden="true" />
-                    <span>Viewing {currentPhase.name || `Phase ${activePhaseIndex + 1}`}</span>
-                  </span>
-                )}
               </div>
             </div>
 
-            <div className="ce-projects-editorial-header__right">
-              <p className="ce-projects-editorial-header__desc">
-                {project.description ||
-                  `Verified ${project.propertyType || project.type || 'residential property'} located in ${project.location || 'Chennai, Tamil Nadu'}. 100% legally clear title patta with complete revenue document verification.`}
-              </p>
-
-              {/* Dynamic specs summary row */}
-              <div className="project-editorial-quick-specs">
-                <div className="project-editorial-quick-spec">
-                  <span className="project-editorial-quick-spec__k">
-                    <MapPin size={13} aria-hidden="true" /> Location
-                  </span>
-                  <span className="project-editorial-quick-spec__v">{project.location || 'Chennai, Tamil Nadu'}</span>
-                </div>
-                <div className="project-editorial-quick-spec">
-                  <span className="project-editorial-quick-spec__k">
-                    <Layers size={13} aria-hidden="true" /> Plot Sizes
-                  </span>
-                  <span className="project-editorial-quick-spec__v">{cleanedArea || '1200 Sq.ft.'}</span>
-                </div>
-                <div className="project-editorial-quick-spec">
-                  <span className="project-editorial-quick-spec__k">
-                    <Compass size={13} aria-hidden="true" /> Facing
-                  </span>
-                  <span className="project-editorial-quick-spec__v">{project.facing || 'East / North'}</span>
-                </div>
-                <div className="project-editorial-quick-spec project-editorial-quick-spec--price">
-                  <span className="project-editorial-quick-spec__k">Price</span>
-                  <span className="project-editorial-quick-spec__v">{formattedPrice}</span>
-                </div>
-              </div>
-            </div>
           </div>
 
-          {/* ── Interactive Phase Switch & 3D Action Console ── */}
-          <div className="project-editorial-console">
-            {/* Phase 1 & Phase 2 switch buttons */}
-            <div className="project-editorial-console__phase-group">
-              <span className="project-editorial-console__label">Project Phase:</span>
-              <div className="project-phase-switcher" role="tablist" aria-label="Select layout phase">
-                {phaseButtons.map((ph) => {
-                  const isActive = activePhaseIndex === ph.index
-                  return (
-                    <button
-                      key={ph.id || `phase-${ph.index}`}
-                      type="button"
-                      role="tab"
-                      aria-selected={isActive}
-                      onClick={() => handlePhaseSelectWithNotice(ph)}
-                      className={`project-phase-btn ${isActive ? 'project-phase-btn--active' : ''} ${
-                        ph.isUpcoming ? 'project-phase-btn--upcoming' : ''
-                      }`}
-                      title={ph.isUpcoming ? 'Phase 2 layout demarcation underway' : `Switch to ${ph.name}`}
-                    >
-                      <span className="project-phase-btn__dot" />
-                      <span className="project-phase-btn__name">{ph.name}</span>
-                      {ph.plotCount > 0 ? (
-                        <span className="project-phase-btn__count">({ph.plotCount} plots)</span>
-                      ) : ph.isUpcoming ? (
-                        <span className="project-phase-btn__tag">Upcoming</span>
-                      ) : null}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* View in 3D Button (Prominently Highlighted) + Book Visit + WhatsApp */}
-            <div className="project-editorial-console__action-group">
-              <Link
-                href={`/projects/${project.slug || project.id}/3d?phase=${activePhaseIndex + 1}`}
-                className="project-view-3d-btn"
-                title={`Explore ${project.name} ${currentPhase?.name || `Phase ${activePhaseIndex + 1}`} in interactive 3D`}
-              >
-                <span className="project-view-3d-btn__icon-box">
-                  <Box size={17} aria-hidden="true" />
-                </span>
-                <span className="project-view-3d-btn__text-wrap">
-                  <span className="project-view-3d-btn__label">View in 3D</span>
-                  <span className="project-view-3d-btn__badge">Live Walkthrough</span>
-                </span>
-                <ArrowUpRight size={16} className="project-view-3d-btn__arrow" aria-hidden="true" />
-              </Link>
-
-              <PillLink variant="cream" onClick={openSiteVisit} className="project-site-visit-pill">
-                Book a site visit
-              </PillLink>
-
-              <a
-                href={`https://wa.me/${business?.whatsapp || '919444000000'}?text=${encodeURIComponent(
-                  `Hi Crystal Estates, I'm interested in ${project.name} (${currentPhase?.name || `Phase ${activePhaseIndex + 1}`}). Please share availability and pricing.`
-                )}`}
-                target="_blank"
-                rel="noreferrer"
-                className="project-whatsapp-link"
-              >
-                Enquire on WhatsApp
-                <ArrowUpRight size={14} aria-hidden="true" />
-              </a>
-            </div>
-          </div>
-
-          {/* Phase Notice (if Phase 2 is upcoming) */}
-          {phaseNotice && (
-            <div className="project-phase-notice" role="status">
-              <CheckCircle2 size={15} aria-hidden="true" />
-              <span>{phaseNotice}</span>
-            </div>
+          {hasLayout && (
+            <ExploreGuide
+              href={`/projects/${project.slug || project.id}/3d?phase=${activePhaseIndex + 1}`}
+              projectName={project.name}
+            />
           )}
         </div>
       </section>

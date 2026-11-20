@@ -747,9 +747,34 @@ export default function PlotViewer({
     >
       {/* ── Top Header with Project Name & Status Filter ── */}
       <div className="plot-viewer__header">
-        <h3 className="plot-viewer__title">
-          {cleanTitle}
-        </h3>
+        <div className="plot-viewer__title-group">
+          <h3 className="plot-viewer__title">
+            {cleanTitle}
+          </h3>
+          {/* Phase switch sits with the layout so visitors change phase while looking at it */}
+          {layoutPhases && layoutPhases.length > 1 && (
+            <div className="pv-phase-tabs" role="tablist" aria-label="Layout phase">
+              {layoutPhases.map((ph, idx) => {
+                const active = idx === currentPhaseIdx
+                const count = Array.isArray(ph.plots) ? ph.plots.length : 0
+                return (
+                  <button
+                    key={ph.id || `phase-${idx}`}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    className={`pv-phase-tab ${active ? 'pv-phase-tab--active' : ''}`}
+                    onClick={() => !active && handlePhaseSelect(idx)}
+                    title={count ? `${ph.name || `Phase ${idx + 1}`} · ${count} plots` : undefined}
+                  >
+                    {ph.name || `Phase ${idx + 1}`}
+                    {count > 0 && <span className="pv-phase-tab__count">{count}</span>}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
 
         <div className="plot-viewer__header-actions">
           {/* Status Filter: segmented pills on desktop, clean dropdown on mobile */}

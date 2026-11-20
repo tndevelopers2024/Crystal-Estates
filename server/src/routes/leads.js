@@ -1,5 +1,18 @@
 import { Router } from 'express'
 import { getDb } from '../config/db.js'
+import { actorFromRequest } from '../lib/auth.js'
+import {
+  CONTACTED_STAGES,
+  STAGE_LABELS,
+  findCustomerForLead,
+  followUpActivityType,
+  logCustomerActivity,
+  logForLead,
+  phoneKey,
+  emailKey,
+  safely,
+  upsertCustomerFromLead,
+} from '../lib/customers.js'
 
 const router = Router()
 
@@ -403,11 +416,20 @@ router.post('/', async (req, res) => {
     }
 
     await db.collection('leads').insertOne(newLead)
+    delete newLead._id
+
+    // Leads created straight into a contacted stage get their customer profile now
+    let createdLead = newLead
+    if (CONTACTED_STAGES.has(newLead.stage)) {
+      const actor = await actorFromRequest(req)
+      await safely(() => upsertCustomerFromLead(db, newLead, { actor, reason: `Added as ${STAGE_LABELS[newLead.stage] || newLead.stage}` }))
+      createdLead = (await db.collection('leads').findOne({ id }, { projection: { _id: 0 } })) || newLead
+    }
 
     return res.status(201).json({
       success: true,
       message: 'Lead created successfully',
-      lead: newLead,
+      lead: createdLead,
     })
   } catch (err) {
     console.error('Error creating lead:', err.message)
@@ -476,22 +498,25 @@ router.post('/:id/payments', async (req, res) => {
     }
 
     // Plot link: stored on the payment and mirrored into that plot's activity log
+    // Project only (no plot) is stored too, so the payment maps to the right listing
     const linkedPlot = String(plotNo || '').trim()
-    if (propertyId && linkedPlot) {
+    if (propertyId) {
       const prop = await db.collection('featured_plots').findOne(
-        { $or: [{ id: propertyId }, { projectId: propertyId }] },
+        { $or: [{ id: String(propertyId) }, { projectId: String(propertyId) }] },
         { projection: { _id: 0, id: 1, name: 1 } }
       )
       if (prop) {
-        Object.assign(paymentRecord, {
-          propertyId: prop.id,
-          property: prop.name || paymentRecord.property,
-          plotUid: String(plotUid || '').trim() || null,
-          plotNo: linkedPlot,
-          phase: String(phase || '').trim() || null,
-          plotLinked: true,
-        })
-        if (!unitAllotted) paymentRecord.unitAllotted = `Plot ${linkedPlot}`
+        paymentRecord.propertyId = prop.id
+        paymentRecord.property = prop.name || paymentRecord.property
+        if (linkedPlot) {
+          Object.assign(paymentRecord, {
+            plotUid: String(plotUid || '').trim() || null,
+            plotNo: linkedPlot,
+            phase: String(phase || '').trim() || null,
+            plotLinked: true,
+          })
+          if (!unitAllotted) paymentRecord.unitAllotted = `Plot ${linkedPlot}`
+        }
       }
     }
 
@@ -534,8 +559,17 @@ router.post('/:id/payments', async (req, res) => {
     // 3. Update lead document
     const setUpdates = {
       advanceReceived: formatted,
-      unit: unitAllotted ? unitAllotted.trim() : (lead.unit || 'Not allotted'),
+      unit: String(unitAllotted || '').trim() || (paymentRecord.plotLinked ? paymentRecord.unitAllotted : lead.unit || 'Not allotted'),
       updatedAt: new Date(),
+    }
+
+    // A payment against a listed project ties the lead to that project when it had none
+    if (paymentRecord.propertyId) {
+      const generic = !lead.property || /^general enquiry$/i.test(String(lead.property).trim())
+      if (!lead.propertyId || generic) {
+        setUpdates.propertyId = paymentRecord.propertyId
+        setUpdates.property = paymentRecord.property
+      }
     }
 
     if (moveLeadToWon) {
@@ -552,6 +586,41 @@ router.post('/:id/payments', async (req, res) => {
         },
       }
     )
+
+    // A paying lead is a customer: create/link the profile and log the payment on its timeline.
+    // (A newly linked profile imports the lead's payments, this one included.)
+    await safely(async () => {
+      const afterPayment = await db.collection('leads').findOne({ id }, { projection: { _id: 0 } })
+      const actor = await actorFromRequest(req)
+      const r = await upsertCustomerFromLead(db, afterPayment, { actor, reason: 'Payment received' })
+      if (r.customer && !r.linked) {
+        await logCustomerActivity(
+          db,
+          r.customer.id,
+          {
+            type: 'payment',
+            title: `${paymentFor} of ${formatted} received`,
+            details: [
+              `Mode: ${mode}`,
+              paymentRecord.referenceNo && `Ref: ${paymentRecord.referenceNo}`,
+              paymentRecord.unitAllotted && paymentRecord.unitAllotted !== 'Not allotted' && `Unit: ${paymentRecord.unitAllotted}`,
+            ]
+              .filter(Boolean)
+              .join(' · '),
+            occurredAt: paymentRecord.paidOn,
+            leadId: id,
+            paymentId,
+            propertyId: paymentRecord.propertyId || null,
+            property: paymentRecord.property,
+            amount: numAmount,
+          },
+          actor,
+        )
+      }
+      if (moveLeadToWon && lead.stage !== 'won' && r.customer && !r.linked) {
+        await logCustomerActivity(db, r.customer.id, { type: 'status', title: `Stage moved from ${STAGE_LABELS[lead.stage] || lead.stage} to ${STAGE_LABELS.won}`, leadId: id }, actor)
+      }
+    })
 
     const updatedLead = await db.collection('leads').findOne({ id }, { projection: { _id: 0 } })
 
@@ -609,6 +678,20 @@ router.post('/:id/followups', async (req, res) => {
       }
     )
 
+    await safely(async () =>
+      logForLead(
+        db,
+        lead,
+        {
+          type: followUpActivityType(type),
+          title: `${type} follow-up scheduled for ${when}`,
+          details: followUp.title,
+          meta: { followUpId: followUp.id, when },
+        },
+        await actorFromRequest(req),
+      ),
+    )
+
     const updatedLead = await db.collection('leads').findOne({ id }, { projection: { _id: 0 } })
 
     return res.json({
@@ -644,6 +727,23 @@ router.patch('/:id/followups/:fuId/toggle', async (req, res) => {
       { id },
       { $set: { upcomingFollowUps: followUps, updatedAt: new Date() } }
     )
+
+    const toggled = followUps.find((fu) => fu.id === fuId)
+    if (toggled) {
+      await safely(async () =>
+        logForLead(
+          db,
+          lead,
+          {
+            type: followUpActivityType(toggled.type),
+            title: toggled.completed ? `${toggled.type || 'Follow-up'} completed` : `${toggled.type || 'Follow-up'} reopened`,
+            details: [toggled.title, toggled.when && `Planned for ${toggled.when}`].filter(Boolean).join(' · '),
+            meta: { followUpId: toggled.id },
+          },
+          await actorFromRequest(req),
+        ),
+      )
+    }
 
     const updatedLead = await db.collection('leads').findOne({ id }, { projection: { _id: 0 } })
 
@@ -696,6 +796,8 @@ router.post('/:id/notes', async (req, res) => {
       }
     )
 
+    await safely(async () => logForLead(db, lead, { type: 'note', title: 'Note added', details: noteText }, await actorFromRequest(req)))
+
     const updatedLead = await db.collection('leads').findOne({ id }, { projection: { _id: 0 } })
 
     return res.json({
@@ -708,6 +810,86 @@ router.post('/:id/notes', async (req, res) => {
     return res.status(500).json({ success: false, error: err.message })
   }
 })
+
+/**
+ * Keep the customer profile in step with a lead edit:
+ *  - moving into a contacted stage creates (or links) the profile
+ *  - later stage moves, agent, project and contact changes go on its timeline
+ *  - name/phone/email edits on the customer's primary lead update the profile
+ *    (unless that would clash with another customer)
+ */
+async function syncCustomerAfterLeadUpdate(db, req, before, id) {
+  const after = await db.collection('leads').findOne({ id }, { projection: { _id: 0 } })
+  if (!after) return
+  const actor = await actorFromRequest(req)
+  const stageChanged = after.stage !== before.stage
+  let customer = await findCustomerForLead(db, after)
+  let justLinked = false
+
+  if (stageChanged && CONTACTED_STAGES.has(after.stage) && !(customer && (customer.leadIds || []).includes(id))) {
+    const r = await upsertCustomerFromLead(db, after, { actor, reason: `Stage moved to ${STAGE_LABELS[after.stage] || after.stage}` })
+    customer = r.customer
+    justLinked = r.linked
+  }
+  if (!customer || !(customer.leadIds || []).includes(id)) return
+
+  const log = (entry) => logCustomerActivity(db, customer.id, { leadId: id, ...entry }, actor)
+
+  if (stageChanged && !justLinked) {
+    await log({
+      type: 'status',
+      title: `Stage moved from ${STAGE_LABELS[before.stage] || before.stage || '—'} to ${STAGE_LABELS[after.stage] || after.stage}`,
+    })
+  }
+  if (after.assignedAgent?.name && after.assignedAgent.name !== before.assignedAgent?.name) {
+    await log({ type: 'profile', title: `Assigned to ${after.assignedAgent.name}` })
+    if (!customer.assignedAgent || customer.primaryLeadId === id) {
+      await db.collection('customers').updateOne({ id: customer.id }, { $set: { assignedAgent: { name: after.assignedAgent.name }, updatedAt: new Date() } })
+    }
+  }
+  const projectChanged = (after.propertyId || after.property) !== (before.propertyId || before.property)
+  const generic = !after.property || /^general enquiry$/i.test(String(after.property).trim())
+  if (projectChanged && !generic) {
+    await log({ type: 'property', title: `Interested in ${after.property}`, propertyId: after.propertyId || null, property: after.property })
+    const known = (customer.interests || []).some((i) => (after.propertyId && i.propertyId === after.propertyId) || i.property === after.property)
+    if (!known) {
+      await db.collection('customers').updateOne(
+        { id: customer.id },
+        { $push: { interests: { propertyId: after.propertyId || null, property: after.property, unit: null, addedAt: new Date() } } },
+      )
+    }
+  }
+  if (after.unit && after.unit !== before.unit && after.unit !== 'Not allotted') {
+    await log({ type: 'property', title: `Unit allotted: ${after.unit}`, propertyId: after.propertyId || null, property: generic ? null : after.property })
+  }
+
+  // Contact details follow the primary lead, never overwriting another customer's phone/email
+  if (customer.primaryLeadId === id) {
+    const set = {}
+    const changed = []
+    if (after.name && after.name !== before.name && after.name !== customer.name) {
+      set.name = String(after.name).trim().slice(0, 120)
+      changed.push('Name')
+    }
+    const pk = phoneKey(after.phone)
+    if (after.phone !== before.phone && pk && pk !== customer.phoneKey) {
+      const clash = await db.collection('customers').findOne({ phoneKey: pk, id: { $ne: customer.id } }, { projection: { id: 1 } })
+      if (!clash) {
+        Object.assign(set, { phone: String(after.phone).trim(), phoneKey: pk })
+        changed.push('Phone')
+      }
+    }
+    const ek = emailKey(after.email)
+    if (after.email !== before.email && ek && ek !== customer.emailKey) {
+      Object.assign(set, { email: String(after.email).trim(), emailKey: ek })
+      changed.push('Email')
+    }
+    if (changed.length) {
+      await db.collection('customers').updateOne({ id: customer.id }, { $set: { ...set, updatedAt: new Date() } })
+      await log({ type: 'profile', title: `Contact details updated from lead: ${changed.join(', ')}` })
+    }
+  }
+}
 
 /**
  * PATCH /api/leads/:id
@@ -726,6 +908,10 @@ router.patch('/:id', async (req, res) => {
     const updates = { ...req.body, updatedAt: new Date() }
     delete updates._id
     delete updates.id
+    // Customer links and payments are managed by their own endpoints
+    delete updates.customerId
+    delete updates.payments
+    delete updates.actor
 
     const activitiesToPush = []
 
@@ -786,6 +972,8 @@ router.patch('/:id', async (req, res) => {
 
     await db.collection('leads').updateOne({ id }, updateOps)
 
+    await safely(() => syncCustomerAfterLeadUpdate(db, req, existing, id))
+
     const updatedLead = await db.collection('leads').findOne({ id }, { projection: { _id: 0 } })
 
     return res.json({
@@ -807,7 +995,15 @@ router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params
     const db = await getDb()
+    const lead = await db.collection('leads').findOne({ id }, { projection: { _id: 0 } })
     const result = await db.collection('leads').deleteOne({ id })
+
+    // The customer profile and its history are kept; the timeline notes the removal
+    if (lead && result.deletedCount) {
+      await safely(async () =>
+        logForLead(db, lead, { type: 'status', title: 'Original lead removed from the pipeline', details: 'Customer profile and history kept' }, await actorFromRequest(req)),
+      )
+    }
 
     return res.json({
       success: true,

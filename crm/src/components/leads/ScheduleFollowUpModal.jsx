@@ -122,6 +122,7 @@ export default function ScheduleFollowUpModal({
   const [customTime, setCustomTime] = useState('11:00 AM')
   const [note, setNote] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
   const dateInputRef = React.useRef(null)
 
   React.useEffect(() => {
@@ -138,6 +139,7 @@ export default function ScheduleFollowUpModal({
       setCustomDate(getTomorrowDateString())
       setCustomTime('11:00 AM')
       setNote('')
+      setError('')
     }
   }, [isOpen, defaultWhen])
 
@@ -148,6 +150,7 @@ export default function ScheduleFollowUpModal({
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setError('')
     try {
       setSubmitting(true)
       const scheduledWhen =
@@ -163,7 +166,7 @@ export default function ScheduleFollowUpModal({
       })
       onClose()
     } catch (err) {
-      console.error(err)
+      setError(err?.message || 'Could not schedule the follow-up. Please try again.')
     } finally {
       setSubmitting(false)
     }
@@ -188,6 +191,11 @@ export default function ScheduleFollowUpModal({
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {error && (
+            <div role="alert" className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 font-medium">
+              {error}
+            </div>
+          )}
           {/* Lead Field */}
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1.5">

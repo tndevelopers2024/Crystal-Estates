@@ -6,7 +6,6 @@ import {
   CalendarCheck,
   ChevronDown,
   Compass,
-  ExternalLink,
   MapPin,
   Maximize2,
   MessageCircle,
@@ -207,18 +206,6 @@ export function AvailabilityCard({ counts, total, other, open, onToggle, availab
               </li>
             )}
           </ul>
-          {availableList.length > 0 && (
-            <>
-              <p className="l3d-label">Available plots</p>
-              <div className="l3d-pick">
-                {availableList.map((p) => (
-                  <button key={p.key} type="button" className={p.i === selected ? 'on' : ''} onClick={() => onPick(p.i)}>
-                    {p.no}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
           <p className="l3d-note">Surroundings are illustrative</p>
         </div>
       )}
@@ -228,7 +215,7 @@ export function AvailabilityCard({ counts, total, other, open, onToggle, availab
 
 /* ───────── Camera tools ───────── */
 
-export function ViewTools({ onZoomIn, onZoomOut, onTop, onReset, autoRotate, onRotate, fullscreen, onFullscreen, needleRef }) {
+export function ViewTools({ onZoomIn, onZoomOut, onTop, onReset, autoRotate, onRotate, fullscreen, onFullscreen, needleRef, placesCount = 0, placesOn, onPlaces }) {
   return (
     <div className="l3d-glass l3d-tools" role="toolbar" aria-label="View controls">
       <IconButton label="Zoom in" onClick={onZoomIn}>
@@ -250,6 +237,11 @@ export function ViewTools({ onZoomIn, onZoomOut, onTop, onReset, autoRotate, onR
       <IconButton label={fullscreen ? 'Exit fullscreen' : 'Fullscreen'} onClick={onFullscreen}>
         {fullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
       </IconButton>
+      {placesCount > 0 && (
+        <IconButton label={placesOn ? 'Hide nearby places' : 'Show nearby places'} onClick={onPlaces} active={placesOn}>
+          <MapPin size={15} />
+        </IconButton>
+      )}
       <span className="l3d-tools__sep" aria-hidden="true" />
       <IconButton label="North up" onClick={onReset} className="l3d-compass">
         <span ref={needleRef}>
@@ -297,11 +289,6 @@ export function PlotDetails({ no, group, statusText, price, specs, hasRecord, fl
           <MessageCircle size={15} /> WhatsApp
         </a>
       </div>
-      {crmUrl && (
-        <a className="l3d-crm" href={crmUrl} target="_blank" rel="noopener noreferrer">
-          Open in CRM <ExternalLink size={11} />
-        </a>
-      )}
     </section>
   )
 }

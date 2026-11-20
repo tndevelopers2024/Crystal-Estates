@@ -118,6 +118,7 @@ function parseDueDisplay(whenStr = '') {
 
 export default function FollowUpsView({
   leadsState,
+  properties = [],
   onShowToast,
 }) {
   const {
@@ -490,6 +491,7 @@ export default function FollowUpsView({
         <LeadDrawer
           lead={selectedLead}
           meta={meta}
+          properties={properties}
           onClose={() => setSelectedLead(null)}
           onUpdate={async (id, updates) => {
             const updated = await updateLeadDetails(id, updates)

@@ -212,7 +212,7 @@ export async function fetchLeads() {
 export async function createLead(leadData) {
   const res = await fetch(getApiUrl('/api/leads'), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(leadData),
   })
   if (!res.ok) {
@@ -228,7 +228,7 @@ export async function createLead(leadData) {
 export async function updateLead(id, updates) {
   const res = await fetch(getApiUrl(`/api/leads/${id}`), {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(updates),
   })
   if (!res.ok) {
@@ -244,6 +244,7 @@ export async function updateLead(id, updates) {
 export async function deleteLead(id) {
   const res = await fetch(getApiUrl(`/api/leads/${id}`), {
     method: 'DELETE',
+    headers: authHeaders(),
   })
   if (!res.ok) throw new Error(`Failed to delete lead: HTTP ${res.status}`)
   return await res.json()
@@ -255,7 +256,7 @@ export async function deleteLead(id) {
 export async function recordLeadPayment(id, paymentData) {
   const res = await fetch(getApiUrl(`/api/leads/${id}/payments`), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(paymentData),
   })
   if (!res.ok) {
@@ -271,7 +272,7 @@ export async function recordLeadPayment(id, paymentData) {
 export async function scheduleLeadFollowUp(id, followUpData) {
   const res = await fetch(getApiUrl(`/api/leads/${id}/followups`), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(followUpData),
   })
   if (!res.ok) {
@@ -287,6 +288,7 @@ export async function scheduleLeadFollowUp(id, followUpData) {
 export async function toggleLeadFollowUp(id, fuId) {
   const res = await fetch(getApiUrl(`/api/leads/${id}/followups/${fuId}/toggle`), {
     method: 'PATCH',
+    headers: authHeaders(),
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
@@ -301,7 +303,7 @@ export async function toggleLeadFollowUp(id, fuId) {
 export async function addLeadNote(id, note) {
   const res = await fetch(getApiUrl(`/api/leads/${id}/notes`), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({ note }),
   })
   if (!res.ok) {
@@ -454,7 +456,7 @@ export async function fetchSiteVisits() {
 export async function createSiteVisit(visitData) {
   const res = await fetch(getApiUrl('/api/visits'), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(visitData),
   })
   if (!res.ok) {
@@ -467,7 +469,7 @@ export async function createSiteVisit(visitData) {
 export async function updateSiteVisit(id, updates) {
   const res = await fetch(getApiUrl(`/api/visits/${id}`), {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(updates),
   })
   if (!res.ok) {
@@ -581,6 +583,14 @@ export async function deletePayment(paymentId) {
   return data
 }
 
+/** A 404 "Route not found" means the API server is an older build without this feature. */
+function apiError(res, data, fallback) {
+  if (res.status === 404 && /route not found/i.test(String(data?.error || ''))) {
+    return new Error('This feature needs the latest API server. Please redeploy the server and try again.')
+  }
+  return new Error(data?.error || `${fallback}: HTTP ${res.status}`)
+}
+
 /**
  * Customer documents (receipts, booking confirmations, statements, uploads)
  */
@@ -599,7 +609,7 @@ export async function renderDocumentPreview(draft) {
     body: JSON.stringify(draft),
   })
   const data = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error(data.error || `Preview failed: HTTP ${res.status}`)
+  if (!res.ok) throw apiError(res, data, 'Preview failed')
   return data
 }
 
@@ -610,7 +620,7 @@ export async function createDocument(draft) {
     body: JSON.stringify(draft),
   })
   const data = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error(data.error || `Could not create document: HTTP ${res.status}`)
+  if (!res.ok) throw apiError(res, data, 'Could not create document')
   return data
 }
 
@@ -624,4 +634,77 @@ export async function deleteDocument(id) {
 /** Customer-facing link for a saved document */
 export function getDocumentShareUrl(doc) {
   return getApiUrl(`/api/documents/${encodeURIComponent(doc.id)}/view?t=${encodeURIComponent(doc.token)}`)
+}
+
+/* ───────────── Customers (signed-in CRM users only) ───────────── */
+
+function authHeaders(extra = {}) {
+  let token = ''
+  try {
+    token = localStorage.getItem('ce_crm_token') || ''
+  } catch {
+    /* storage unavailable */
+  }
+  return token ? { ...extra, Authorization: `Bearer ${token}` } : extra
+}
+
+async function customerRequest(path, { method = 'GET', body, fallback } = {}) {
+  const res = await fetch(getApiUrl(path), {
+    method,
+    headers: authHeaders(body ? { 'Content-Type': 'application/json' } : {}),
+    body: body ? JSON.stringify(body) : undefined,
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    const err = apiError(res, data, fallback || 'Request failed')
+    err.status = res.status
+    err.existingId = data.existingId
+    throw err
+  }
+  return data
+}
+
+export function fetchCustomers({ q = '', status = 'active', limit = 50, skip = 0 } = {}) {
+  const params = new URLSearchParams({ status, limit: String(limit), skip: String(skip) })
+  if (q) params.set('q', q)
+  return customerRequest(`/api/customers?${params.toString()}`, { fallback: 'Could not load customers' })
+}
+
+export function fetchCustomer(id) {
+  return customerRequest(`/api/customers/${encodeURIComponent(id)}`, { fallback: 'Could not load customer' })
+}
+
+export function createCustomer(data) {
+  return customerRequest('/api/customers', { method: 'POST', body: data, fallback: 'Could not create customer' })
+}
+
+export function updateCustomer(id, data) {
+  return customerRequest(`/api/customers/${encodeURIComponent(id)}`, { method: 'PATCH', body: data, fallback: 'Could not update customer' })
+}
+
+export function deleteCustomer(id) {
+  return customerRequest(`/api/customers/${encodeURIComponent(id)}`, { method: 'DELETE', fallback: 'Could not delete customer' })
+}
+
+export function addCustomerActivity(id, entry) {
+  return customerRequest(`/api/customers/${encodeURIComponent(id)}/activity`, { method: 'POST', body: entry, fallback: 'Could not save activity' })
+}
+
+export function updateCustomerActivity(id, activityId, entry) {
+  return customerRequest(`/api/customers/${encodeURIComponent(id)}/activity/${encodeURIComponent(activityId)}`, {
+    method: 'PATCH',
+    body: entry,
+    fallback: 'Could not update activity',
+  })
+}
+
+export function deleteCustomerActivity(id, activityId) {
+  return customerRequest(`/api/customers/${encodeURIComponent(id)}/activity/${encodeURIComponent(activityId)}`, {
+    method: 'DELETE',
+    fallback: 'Could not delete activity',
+  })
+}
+
+export function importCustomersFromLeads() {
+  return customerRequest('/api/customers/import-from-leads', { method: 'POST', body: {}, fallback: 'Could not import customers' })
 }

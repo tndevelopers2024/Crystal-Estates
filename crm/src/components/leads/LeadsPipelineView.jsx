@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { ChevronDown } from 'lucide-react'
 import LeadColumn from './LeadColumn'
 import AddLeadModal from './AddLeadModal'
@@ -104,6 +105,18 @@ export default function LeadsPipelineView({
 
   const [addModalStage, setAddModalStage] = useState('new')
   const [selectedLead, setSelectedLead] = useState(null)
+  // /leads?lead=<id> (e.g. from a customer profile) opens that lead's drawer
+  const [searchParams, setSearchParams] = useSearchParams()
+  const linkedLeadId = searchParams.get('lead')
+  const drawerLead = selectedLead || (linkedLeadId ? allLeads.find((l) => l.id === linkedLeadId) || null : null)
+  const closeDrawer = () => {
+    setSelectedLead(null)
+    if (linkedLeadId) {
+      const next = new URLSearchParams(searchParams)
+      next.delete('lead')
+      setSearchParams(next, { replace: true })
+    }
+  }
   const [followUpDropLead, setFollowUpDropLead] = useState(null)
   const [siteVisitDropLead, setSiteVisitDropLead] = useState(null)
 
@@ -254,11 +267,11 @@ export default function LeadsPipelineView({
         />
       )}
 
-      {selectedLead && (
+      {drawerLead && (
         <LeadDrawer
-          lead={selectedLead}
+          lead={drawerLead}
           meta={leadsState.meta}
-          onClose={() => setSelectedLead(null)}
+          onClose={closeDrawer}
           onUpdate={async (id, updates) => {
             const updated = await updateLeadDetails(id, updates)
             if (updated) setSelectedLead(updated)
@@ -268,10 +281,28 @@ export default function LeadsPipelineView({
             setSelectedLead(null)
             if (onShowToast) onShowToast('Lead deleted successfully')
           }}
-          onRecordPayment={leadsState.recordPayment}
-          onScheduleFollowUp={leadsState.scheduleFollowUp}
-          onToggleFollowUp={leadsState.toggleFollowUp}
-          onAddNote={leadsState.addNote}
+          properties={properties}
+          onRecordPayment={async (id, paymentData) => {
+            const updated = await leadsState.recordPayment(id, paymentData)
+            if (updated) setSelectedLead(updated)
+            if (onShowToast) onShowToast(`Payment of ${paymentData.amountFormatted} recorded`, 'success')
+            return updated
+          }}
+          onScheduleFollowUp={async (id, data) => {
+            const updated = await leadsState.scheduleFollowUp(id, data)
+            if (updated) setSelectedLead(updated)
+            return updated
+          }}
+          onToggleFollowUp={async (id, fuId) => {
+            const updated = await leadsState.toggleFollowUp(id, fuId)
+            if (updated) setSelectedLead(updated)
+            return updated
+          }}
+          onAddNote={async (id, note) => {
+            const updated = await leadsState.addNote(id, note)
+            if (updated) setSelectedLead(updated)
+            return updated
+          }}
         />
       )}
 

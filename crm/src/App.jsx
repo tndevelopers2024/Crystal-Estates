@@ -12,6 +12,8 @@ import PropertyGrid from './components/properties/PropertyGrid'
 import AddEditPropertyPage from './components/properties/AddEditPropertyPage'
 import PlotsPage from './components/properties/PlotsPage'
 import PaymentsPage from './components/payments/PaymentsPage'
+import CustomersPage from './components/customers/CustomersPage'
+import CustomerProfilePage from './components/customers/CustomerProfilePage'
 import DocumentsPage from './components/documents/DocumentsPage'
 import DashboardView from './components/dashboard/DashboardView'
 import LeadsPipelineView from './components/leads/LeadsPipelineView'
@@ -22,6 +24,8 @@ import ScheduleFollowUpModal from './components/leads/ScheduleFollowUpModal'
 import LoginPage from './components/auth/LoginPage'
 import ForgotPasswordPage from './components/auth/ForgotPasswordPage'
 import ProtectedRoute from './components/auth/ProtectedRoute'
+import RegisterPage from './components/auth/RegisterPage'
+import SetPasswordPage from './components/auth/SetPasswordPage'
 import Toast from './components/common/Toast'
 import { useDialog } from './context/DialogContext'
 import { useProperties } from './hooks/useProperties'
@@ -170,6 +174,7 @@ export default function App() {
     const path = location.pathname
     if (path.startsWith('/properties')) return 'properties'
     if (path.startsWith('/leads')) return 'leads'
+    if (path.startsWith('/customers')) return 'customers'
     if (path.startsWith('/dashboard')) return 'dashboard'
     if (path.startsWith('/followups')) return 'followups'
     if (path.startsWith('/visits')) return 'visits'
@@ -360,7 +365,7 @@ export default function App() {
 
   // Check if current URL is an auth route
   const isAuthRoute =
-    location.pathname === '/login' || location.pathname === '/forgot-password'
+    ['/login', '/forgot-password', '/register', '/set-password'].includes(location.pathname)
 
   if (isAuthRoute) {
     return (
@@ -368,6 +373,8 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/set-password" element={<SetPasswordPage />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
         {toast && (
@@ -479,6 +486,7 @@ export default function App() {
             element={
               <FollowUpsView
                 leadsState={leadsState}
+                properties={properties}
                 onShowToast={showToast}
               />
             }
@@ -509,6 +517,10 @@ export default function App() {
               />
             }
           />
+
+          {/* Customer management */}
+          <Route path="/customers" element={<CustomersPage onShowToast={showToast} />} />
+          <Route path="/customers/:id" element={<CustomerProfilePage properties={properties} onShowToast={showToast} />} />
 
           {/* Standalone Modules (Visits, Payments, etc.) */}
           <Route

@@ -5,16 +5,15 @@ import {
   Lock,
   Eye,
   EyeOff,
-  ShieldCheck,
-  Building2,
   ArrowRight,
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
+import { AuthShell, authInputCls, authLabelCls, authButtonCls } from './AuthShell'
 
 export default function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { login, isAuthenticated } = useAuth()
+  const { login, isAuthenticated, home } = useAuth()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -22,15 +21,17 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  // Pending / rejected / deactivated accounts get an explanation, not an error
+  const [notice, setNotice] = useState(location.state?.notice || null)
 
   // Redirect if already authenticated
-  const from = location.state?.from?.pathname || '/properties'
+  const from = location.state?.from?.pathname && location.state.from.pathname !== '/' ? location.state.from.pathname : null
 
   React.useEffect(() => {
     if (isAuthenticated) {
-      navigate(from, { replace: true })
+      navigate(from || home, { replace: true })
     }
-  }, [isAuthenticated, navigate, from])
+  }, [isAuthenticated, navigate, from, home])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -42,134 +43,121 @@ export default function LoginPage() {
     try {
       setLoading(true)
       setError(null)
-      await login(email.trim(), password.trim())
-      navigate(from, { replace: true })
+      setNotice(null)
+      const data = await login(email.trim(), password)
+      navigate(from || data.home || '/account', { replace: true })
     } catch (err) {
-      setError(err.message || 'Invalid email or password. Please try again.')
+      if (err.code && err.code.startsWith('ACCOUNT_')) {
+        setNotice({
+          tone: err.code === 'ACCOUNT_PENDING' ? 'amber' : 'rose',
+          text: err.message,
+        })
+      } else {
+        setError(err.message || 'Invalid email or password. Please try again.')
+      }
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-[#F4F6F9] flex flex-col justify-center items-center p-4 sm:p-6 select-none font-sans">
-      <div className="w-full max-w-md">
-        {/* Brand Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#0F3D2E] text-white shadow-md mb-3.5">
-            <Building2 className="w-7 h-7" />
+    <AuthShell
+      badge="Staff Access Portal"
+      title="Sign In to Workspace"
+      subtitle="Enter your credentials to access properties, leads pipeline &amp; sales workspace"
+      notice={notice}
+      error={error}
+      footer={
+        <p className="mt-3.5 text-center text-xs text-slate-500">
+          New to the team?{' '}
+          <Link
+            to="/register"
+            className="font-bold text-[#0F3D2E] hover:text-[#B8964E] hover:underline transition"
+          >
+            Create staff account
+          </Link>
+        </p>
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-3.5">
+        {/* Email Field */}
+        <div>
+          <label htmlFor="login-email" className={authLabelCls}>
+            Work Email Address
+          </label>
+          <div className="relative">
+            <input
+              id="login-email"
+              type="email"
+              required
+              autoFocus
+              autoComplete="email"
+              placeholder="admin@crystalestates.in"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className={`${authInputCls} pl-10`}
+            />
+            <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-2.5 pointer-events-none" />
           </div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center justify-center gap-2">
-            <span>Crystal Estates</span>
-            <span className="text-[11px] font-bold bg-[#B8964E] text-white px-2 py-0.5 rounded tracking-wider uppercase">
-              CRM
-            </span>
-          </h1>
-          <p className="text-xs text-slate-500 mt-1.5 font-medium">
-            Sign in to access your properties, leads pipeline &amp; sales workspace
-          </p>
         </div>
 
-        {/* Login Card */}
-        <div className="bg-white rounded-3xl border border-slate-200/90 shadow-[0_8px_30px_rgba(0,0,0,0.06)] p-7 sm:p-8">
-          {error && (
-            <div className="mb-5 p-3.5 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl font-medium animate-in fade-in">
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4.5">
-            {/* Email Field */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                Email Address or Username
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  required
-                  autoFocus
-                  placeholder="you@company.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs placeholder:text-slate-400 focus:outline-none focus:border-[#0F3D2E] focus:bg-white transition"
-                />
-                <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-              </div>
-            </div>
-
-            {/* Password Field */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-bold text-slate-700">
-                  Password
-                </label>
-                <Link
-                  to="/forgot-password"
-                  className="text-xs font-semibold text-[#0F3D2E] hover:text-[#B8964E] hover:underline transition"
-                >
-                  Forgot password?
-                </Link>
-              </div>
-
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs placeholder:text-slate-400 focus:outline-none focus:border-[#0F3D2E] focus:bg-white transition"
-                />
-                <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 transition"
-                  tabIndex={-1}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-4 h-4" />
-                  ) : (
-                    <Eye className="w-4 h-4" />
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* Remember Me */}
-            <div className="flex items-center justify-between pt-1">
-              <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-600 font-medium">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded border-slate-300 text-[#0F3D2E] focus:ring-[#0F3D2E]"
-                />
-                <span>Remember me on this browser</span>
-              </label>
-            </div>
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 px-4 bg-[#0F3D2E] hover:bg-[#16533D] text-white font-bold rounded-xl text-xs shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50 mt-2"
+        {/* Password Field */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <label htmlFor="login-password" className={authLabelCls}>
+              Password
+            </label>
+            <Link
+              to="/forgot-password"
+              className="text-xs font-semibold text-[#0F3D2E] hover:text-[#B8964E] hover:underline transition"
             >
-              <span>{loading ? 'Signing In...' : 'Sign In to Workspace'}</span>
-              {!loading && <ArrowRight className="w-4 h-4" />}
+              Forgot password?
+            </Link>
+          </div>
+
+          <div className="relative">
+            <input
+              id="login-password"
+              type={showPassword ? 'text' : 'password'}
+              required
+              placeholder="••••••••••••"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className={`${authInputCls} pl-10 pr-10`}
+            />
+            <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-2.5 pointer-events-none" />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-2 text-slate-400 hover:text-slate-600 transition"
+              tabIndex={-1}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+            >
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
-          </form>
+          </div>
         </div>
 
-        {/* Security Tagline */}
-        <div className="mt-6 text-center flex items-center justify-center gap-1.5 text-[11px] text-slate-400 font-medium">
-          <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-          <span>256-bit SSL Encrypted • Crystal Estates Secure Portal</span>
+        {/* Remember Me */}
+        <div className="flex items-center justify-between pt-0.5">
+          <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-600 font-medium">
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="w-4 h-4 rounded border-slate-300 text-[#0F3D2E] focus:ring-[#0F3D2E]"
+            />
+            <span>Remember me on this browser</span>
+          </label>
         </div>
-      </div>
-    </div>
+
+        {/* Submit Button */}
+        <button type="submit" disabled={loading} className={`${authButtonCls} mt-2`}>
+          <span>{loading ? 'Authenticating...' : 'Sign In to Workspace'}</span>
+          {!loading && <ArrowRight className="w-4 h-4" />}
+        </button>
+      </form>
+    </AuthShell>
   )
 }
-

@@ -1,233 +1,330 @@
 'use client'
 
-import React, { useState, useRef, useEffect, useCallback } from 'react'
+import React, { useState, useRef, useCallback, useEffect } from 'react'
 import Image from 'next/image'
-import { Sparkles, Eye, Maximize2 } from 'lucide-react'
+import Link from 'next/link'
+import { Sparkles, ArrowRight, Home as HomeIcon, CheckCircle2 } from 'lucide-react'
 import './PlotTransformation.css'
 
-export default function PlotTransformation() {
-  const stageRef = useRef(null)
-  const [isHovered, setIsHovered] = useState(false)
-  const [pos, setPos] = useState({ x: 0, y: 0 })
-  const [hasInteracted, setHasInteracted] = useState(false)
-  const [mode, setMode] = useState('lens') // 'lens' | 'full'
-  const [lensRadius, setLensRadius] = useState(220)
+// Organic, irregular fluid splash mask with soft feathered blurred edges (NOT a circle)
+const ORGANIC_SPLASH_SVG = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 240' width='240' height='240'><defs><filter id='f' x='-30%' y='-30%' width='160%' height='160%'><feGaussianBlur stdDeviation='8'/></filter></defs><g filter='url(%23f)' fill='%23000'><path d='M 120 28 C 142 22, 168 38, 178 58 C 188 78, 165 98, 195 118 C 218 134, 204 165, 175 178 C 148 190, 138 214, 115 212 C 90 210, 84 185, 62 188 C 36 191, 22 165, 30 140 C 36 120, 58 114, 45 92 C 30 66, 62 38, 92 48 C 105 52, 108 32, 120 28 Z'/><circle cx='195' cy='72' r='8.5'/><circle cx='212' cy='128' r='6'/><circle cx='182' cy='198' r='7.5'/><circle cx='128' cy='224' r='5'/><circle cx='48' cy='202' r='7'/><circle cx='18' cy='122' r='8'/><circle cx='28' cy='62' r='6.5'/><circle cx='76' cy='22' r='7'/><circle cx='154' cy='18' r='5'/></g></svg>")`
 
-  // Dynamically calibrate lens radius based on viewport size
+export default function PlotTransformation() {
+  const containerRef = useRef(null)
+  const revealLayerRef = useRef(null)
+
+  const [isHovered, setIsHovered] = useState(false)
+  const [isTouchDevice, setIsTouchDevice] = useState(false)
+
+  const target = useRef({ x: 0, y: 0, r: 0 })
+  const current = useRef({ x: 0, y: 0, r: 0 })
+  const isHovering = useRef(false)
+  const rafId = useRef(null)
+  const touchTimer = useRef(null)
+
+  // Reveal radius around cursor (~100px as requested)
+  const SPLASH_RADIUS = 100
+
+  // Detect touch capability for mobile devices
   useEffect(() => {
-    const updateRadius = () => {
-      if (window.innerWidth < 640) {
-        setLensRadius(140)
-      } else if (window.innerWidth < 1024) {
-        setLensRadius(180)
+    if (typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0)) {
+      setIsTouchDevice(true)
+    }
+  }, [])
+
+  // 60/120fps hardware-accelerated lerp loop with organic irregular splash mask
+  const renderFrame = useCallback(() => {
+    const t = target.current
+    const c = current.current
+
+    // Spring-lerp calculation for butter-smooth organic tracking
+    c.x += (t.x - c.x) * 0.28
+    c.y += (t.y - c.y) * 0.28
+    c.r += (t.r - c.r) * 0.22
+
+    if (revealLayerRef.current) {
+      if (c.r > 0.5) {
+        // ~100px radius = ~220px total splash bounding box
+        const size = c.r * 2.2
+        const offset = size / 2
+        const posX = (c.x - offset).toFixed(1)
+        const posY = (c.y - offset).toFixed(1)
+
+        const layerStyle = revealLayerRef.current.style
+        layerStyle.webkitMaskImage = ORGANIC_SPLASH_SVG
+        layerStyle.maskImage = ORGANIC_SPLASH_SVG
+        layerStyle.webkitMaskPosition = `${posX}px ${posY}px`
+        layerStyle.maskPosition = `${posX}px ${posY}px`
+        layerStyle.webkitMaskSize = `${size.toFixed(1)}px ${size.toFixed(1)}px`
+        layerStyle.maskSize = `${size.toFixed(1)}px ${size.toFixed(1)}px`
+        layerStyle.webkitMaskRepeat = 'no-repeat'
+        layerStyle.maskRepeat = 'no-repeat'
+        layerStyle.opacity = '1'
       } else {
-        setLensRadius(220)
+        const layerStyle = revealLayerRef.current.style
+        layerStyle.opacity = '0'
+        layerStyle.webkitMaskImage = 'none'
+        layerStyle.maskImage = 'none'
       }
     }
-    updateRadius()
-    window.addEventListener('resize', updateRadius)
-    return () => window.removeEventListener('resize', updateRadius)
+
+    // Keep loop active until settled
+    const diffR = Math.abs(t.r - c.r)
+    const diffX = Math.abs(t.x - c.x)
+    const diffY = Math.abs(t.y - c.y)
+
+    if (diffR > 0.2 || diffX > 0.2 || diffY > 0.2) {
+      rafId.current = requestAnimationFrame(renderFrame)
+    } else {
+      c.r = t.r
+      c.x = t.x
+      c.y = t.y
+      rafId.current = null
+    }
   }, [])
 
-  // Coordinate updater
-  const updateCoords = useCallback((clientX, clientY) => {
-    if (!stageRef.current) return
-    const rect = stageRef.current.getBoundingClientRect()
-    const x = Math.max(0, Math.min(rect.width, clientX - rect.left))
-    const y = Math.max(0, Math.min(rect.height, clientY - rect.top))
-    setPos({ x, y })
-  }, [])
+  const startLoop = useCallback(() => {
+    if (!rafId.current) {
+      rafId.current = requestAnimationFrame(renderFrame)
+    }
+  }, [renderFrame])
+
+  // Mouse event handlers
+  const handleMouseEnter = useCallback(
+    (e) => {
+      if (!containerRef.current) return
+      const rect = containerRef.current.getBoundingClientRect()
+      const x = e.clientX - rect.left
+      const y = e.clientY - rect.top
+
+      current.current.x = x
+      current.current.y = y
+      current.current.r = 0
+
+      target.current.x = x
+      target.current.y = y
+      target.current.r = SPLASH_RADIUS
+
+      isHovering.current = true
+      setIsHovered(true)
+      startLoop()
+    },
+    [SPLASH_RADIUS, startLoop]
+  )
 
   const handleMouseMove = useCallback(
     (e) => {
-      updateCoords(e.clientX, e.clientY)
-      if (!isHovered) setIsHovered(true)
-      if (!hasInteracted) setHasInteracted(true)
-    },
-    [isHovered, hasInteracted, updateCoords]
-  )
+      if (!containerRef.current) return
+      const rect = containerRef.current.getBoundingClientRect()
+      const x = e.clientX - rect.left
+      const y = e.clientY - rect.top
 
-  const handleMouseEnter = useCallback(
-    (e) => {
-      updateCoords(e.clientX, e.clientY)
-      setIsHovered(true)
-      setHasInteracted(true)
+      target.current.x = x
+      target.current.y = y
+      target.current.r = SPLASH_RADIUS
+
+      if (!isHovering.current) {
+        isHovering.current = true
+        setIsHovered(true)
+      }
+      startLoop()
     },
-    [updateCoords]
+    [SPLASH_RADIUS, startLoop]
   )
 
   const handleMouseLeave = useCallback(() => {
+    isHovering.current = false
     setIsHovered(false)
-  }, [])
+    target.current.r = 0
+    startLoop()
+  }, [startLoop])
 
-  // Touch device handling
+  // Touch handlers for mobile devices
   const handleTouchStart = useCallback(
     (e) => {
-      if (e.touches && e.touches[0]) {
-        updateCoords(e.touches[0].clientX, e.touches[0].clientY)
-        setIsHovered(true)
-        setHasInteracted(true)
-      }
+      if (!containerRef.current || !e.touches || !e.touches[0]) return
+      if (touchTimer.current) clearTimeout(touchTimer.current)
+
+      const rect = containerRef.current.getBoundingClientRect()
+      const x = e.touches[0].clientX - rect.left
+      const y = e.touches[0].clientY - rect.top
+
+      current.current.x = x
+      current.current.y = y
+      current.current.r = 0
+
+      target.current.x = x
+      target.current.y = y
+      target.current.r = SPLASH_RADIUS
+
+      isHovering.current = true
+      setIsHovered(true)
+      startLoop()
     },
-    [updateCoords]
+    [SPLASH_RADIUS, startLoop]
   )
 
   const handleTouchMove = useCallback(
     (e) => {
-      if (e.touches && e.touches[0]) {
-        updateCoords(e.touches[0].clientX, e.touches[0].clientY)
-        setIsHovered(true)
-      }
+      if (!containerRef.current || !e.touches || !e.touches[0]) return
+      if (touchTimer.current) clearTimeout(touchTimer.current)
+
+      const rect = containerRef.current.getBoundingClientRect()
+      const x = e.touches[0].clientX - rect.left
+      const y = e.touches[0].clientY - rect.top
+
+      target.current.x = x
+      target.current.y = y
+      target.current.r = SPLASH_RADIUS
+
+      startLoop()
     },
-    [updateCoords]
+    [SPLASH_RADIUS, startLoop]
   )
 
   const handleTouchEnd = useCallback(() => {
-    // Retain vision lens on mobile for a moment
-    setTimeout(() => {
+    if (touchTimer.current) clearTimeout(touchTimer.current)
+    touchTimer.current = setTimeout(() => {
+      isHovering.current = false
       setIsHovered(false)
+      target.current.r = 0
+      startLoop()
     }, 1800)
+  }, [startLoop])
+
+  // Clean up RAF on unmount
+  useEffect(() => {
+    return () => {
+      if (rafId.current) cancelAnimationFrame(rafId.current)
+      if (touchTimer.current) clearTimeout(touchTimer.current)
+    }
   }, [])
-
-  const handleStageClick = useCallback(
-    (e) => {
-      updateCoords(e.clientX, e.clientY)
-      setIsHovered(true)
-      setHasInteracted(true)
-    },
-    [updateCoords]
-  )
-
-  // Compute dynamic clipPath
-  const getClipPath = () => {
-    if (mode === 'full') {
-      return 'circle(150% at 50% 50%)'
-    }
-    if (isHovered) {
-      return `circle(${lensRadius}px at ${pos.x}px ${pos.y}px)`
-    }
-    return `circle(0px at ${pos.x}px ${pos.y}px)`
-  }
 
   return (
     <section className="pt-section" aria-labelledby="pt-title">
-      <div className="pt-header">
-        <span className="pt-header__pill">
-          <span className="pt-header__pill-dot" />
-          Interactive Vision
-        </span>
-        <h2 id="pt-title" className="pt-header__title">
-          Every Plot Holds a Future.{' '}
-          <span className="ch-accent">Glide your cursor to reveal it.</span>
-        </h2>
-        <p className="pt-header__desc">
-          Witness what your verified layout will become. Move your cursor across the virgin land
-          to seamlessly uncover the architectural dream home designed for this parcel.
-        </p>
+      {/* Section Header: Minimal, Meaningful, Engaging */}
+      <div className="ch-wrap">
+        <div className="pt-header">
+          <div className="pt-header__eyebrow">
+            <span className="pt-header__dot" />
+            Plot Transformation
+          </div>
+          <h2 id="pt-title" className="pt-header__title">
+            From Approved Land to <span className="pt-gold">Your Dream Home</span>
+          </h2>
+          <p className="pt-header__desc">
+            Every Crystal Estates plot comes with 30-year high court legal scrutiny, DTCP & CMDA
+            sanctions, and precise boundary demarcation. Move your cursor across the virgin land to
+            reveal the architectural living space that awaits.
+          </p>
+        </div>
       </div>
 
-      <div className="pt-stage-wrap">
+      {/* Full-Width Edge-to-Edge Visual Canvas */}
+      <div className="pt-edge-stage">
         <div
-          ref={stageRef}
-          className="pt-stage"
-          onMouseMove={handleMouseMove}
+          ref={containerRef}
+          className={`pt-canvas ${isHovered ? 'is-revealed' : ''}`}
           onMouseEnter={handleMouseEnter}
+          onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          onClick={handleStageClick}
           role="region"
-          aria-label="Interactive Plot to Dream Villa Reveal Canvas"
+          aria-label="Interactive Plot Transformation. Move cursor to reveal Your Dream Home in an organic 100px splash."
         >
-          {/* Base Layer: Empty Land / Plot */}
-          <div className="pt-layer">
+          {/* Layer 1: Base Empty Demarcated Plot (100% visible across the entire canvas) */}
+          <div className="pt-layer pt-layer--base">
             <Image
               src="/images/empty-plot.jpg"
-              alt="Empty approved residential plot ready for development"
+              alt="Demarcated virgin residential plot with boundary stones"
               fill
-              sizes="(max-width: 1200px) 100vw, 1140px"
+              sizes="100vw"
               priority
-              className="pt-layer__img"
+              className="pt-img"
               draggable={false}
             />
-            {/* Tag badge on plot */}
-            <div className="pt-tag pt-tag--plot">
-              <span className="pt-tag-dot pt-tag-dot--green" />
-              Approved Residential Parcel
-            </div>
           </div>
 
-          {/* Reveal Layer: Futuristic Dream Villa */}
-          <div
-            className={`pt-layer--reveal ${mode === 'full' ? 'is-full' : ''}`}
-            style={{
-              clipPath: getClipPath(),
-              WebkitClipPath: getClipPath(),
-            }}
-          >
+          {/* Layer 2: Dream Home Image - strictly revealed within ~100px irregular splash mask with blurred edges */}
+          <div className="pt-layer pt-layer--reveal" ref={revealLayerRef}>
             <Image
               src="/images/dream-home.jpg"
-              alt="Architectural luxury dream villa concept revealed on plot"
+              alt="Architectural luxury villa revealed within organic splash mask"
               fill
-              sizes="(max-width: 1200px) 100vw, 1140px"
+              sizes="100vw"
               priority
-              className="pt-layer__img"
+              className="pt-img"
               draggable={false}
             />
-            {/* Tag badge on villa */}
-            <div className="pt-tag pt-tag--villa">
-              <span className="pt-tag-dot pt-tag-dot--gold" />
-              Luxury Villa Concept
+          </div>
+
+          {/* Top Bar Status Indicator */}
+          <div className="pt-topbar" onClick={(e) => e.stopPropagation()}>
+            <div className="pt-status-pill">
+              <span className={`pt-status-dot ${isHovered ? 'is-gold' : 'is-green'}`} />
+              <span>{isHovered ? 'Dream Home Splash Active' : 'Demarcated Plot'}</span>
             </div>
           </div>
 
-          {/* Cursor Lens Halo Ring (follows cursor in lens mode) */}
-          {mode === 'lens' && isHovered && (
-            <div
-              className="pt-lens-ring"
-              style={{
-                left: `${pos.x}px`,
-                top: `${pos.y}px`,
-                width: `${lensRadius * 2}px`,
-                height: `${lensRadius * 2}px`,
-                opacity: isHovered ? 1 : 0,
-              }}
-              aria-hidden="true"
-            >
-              <div className="pt-lens-badge">
-                <Sparkles size={11} style={{ display: 'inline', marginRight: 4 }} />
-                Dream Home Vision
+          {/* Base State Prompt Hint (Visible when not hovering) */}
+          <div className={`pt-overlay-base ${!isHovered ? 'is-visible' : ''}`}>
+            <div className="pt-base-badge">
+              <span className="pt-base-badge-dot" />
+              CMDA & DTCP Approved Residential Parcel
+            </div>
+            <div className="pt-prompt-pill">
+              <Sparkles size={14} className="pt-prompt-sparkle" />
+              <span>
+                {isTouchDevice
+                  ? 'Touch and drag across the plot to reveal Your Dream Home'
+                  : 'Glide cursor across the plot to splash-reveal Your Dream Home'}
+              </span>
+            </div>
+          </div>
+
+          {/* "Your Dream Home" Content Card (Revealed on Hover / Touch) */}
+          <div
+            className={`pt-dream-card ${isHovered ? 'is-visible' : ''}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="pt-dream-card__header">
+              <span className="pt-dream-card__tag">
+                <HomeIcon size={13} style={{ display: 'inline', marginRight: 5 }} />
+                Bespoke Living
+              </span>
+              <span className="pt-dream-card__status">100% Ready to Build</span>
+            </div>
+
+            <h3 className="pt-dream-card__title">Your Dream Home</h3>
+
+            <p className="pt-dream-card__desc">
+              From demarcated ground to custom luxury villa. Designed with open-plan garden living,
+              expansive sun decks, and Vaastu precision—grounded on 100% clear-title land.
+            </p>
+
+            <div className="pt-dream-card__specs">
+              <div className="pt-spec-item">
+                <CheckCircle2 size={13} className="pt-spec-icon" />
+                <span>3,400+ Sq.Ft Custom Villa</span>
+              </div>
+              <div className="pt-spec-item">
+                <CheckCircle2 size={13} className="pt-spec-icon" />
+                <span>Immediate Spot Patta Transfer</span>
+              </div>
+              <div className="pt-spec-item">
+                <CheckCircle2 size={13} className="pt-spec-icon" />
+                <span>Pre-Approved Bank Plot Loans</span>
               </div>
             </div>
-          )}
 
-          {/* Initial Prompt Hint (hides on interaction) */}
-          <div className={`pt-hint ${hasInteracted ? 'is-hidden' : ''}`} aria-hidden="true">
-            <Sparkles size={16} />
-            <span>Hover or tap over the land to transform</span>
-          </div>
-
-          {/* Quick Controls: Lens Mode vs Full Villa View */}
-          <div className="pt-controls" onClick={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              className={`pt-btn ${mode === 'lens' ? 'is-active' : ''}`}
-              onClick={() => setMode('lens')}
-              title="Cursor Spotlight Lens"
-            >
-              <Eye size={13} />
-              Cursor Lens
-            </button>
-            <button
-              type="button"
-              className={`pt-btn ${mode === 'full' ? 'is-active' : ''}`}
-              onClick={() => setMode('full')}
-              title="Full Villa Vision"
-            >
-              <Maximize2 size={13} />
-              Full Vision
-            </button>
+            <div className="pt-dream-card__action">
+              <Link href="/contact" className="pt-dream-card__btn">
+                <span>Enquire for Villa Planning</span>
+                <ArrowRight size={14} />
+              </Link>
+            </div>
           </div>
         </div>
       </div>

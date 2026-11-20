@@ -77,6 +77,41 @@ export function parseLayoutSvg(svgText, dbPlots = [], fallbackViewBox) {
     }
   }
 
+  // The CRM is the source of truth: a boundary saved on the plot record
+  // replaces the file's shape, and plots added in the CRM (with a boundary)
+  // appear even though the SVG file doesn't have them.
+  if (plots.length > 0) {
+    const records = new Map()
+    for (const r of dbPlots) {
+      const key = norm(r.plotNo)
+      if (key && !records.has(key) && r.svgPath && String(r.svgPath).trim()) records.set(key, r)
+    }
+    const seen = new Set()
+    plots = plots.map((p) => {
+      seen.add(p.key)
+      const r = records.get(p.key)
+      if (!r) return p
+      return {
+        ...p,
+        d: String(r.svgPath).trim(),
+        labelX: Number.isFinite(Number(r.textX)) && r.textX !== null ? Number(r.textX) : p.labelX,
+        labelY: Number.isFinite(Number(r.textY)) && r.textY !== null ? Number(r.textY) : p.labelY,
+        source: 'db',
+      }
+    })
+    records.forEach((r, key) => {
+      if (seen.has(key)) return
+      plots.push({
+        no: String(r.plotNo).trim(),
+        key,
+        d: String(r.svgPath).trim(),
+        labelX: r.textX ?? undefined,
+        labelY: r.textY ?? undefined,
+        source: 'db',
+      })
+    })
+  }
+
   // Fallback: geometry stored on the plot records
   if (plots.length === 0) {
     plots = dbPlots

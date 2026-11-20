@@ -36,7 +36,9 @@ function shapesFromPaths(ds) {
 }
 
 export default class PlotScene {
-  constructor(container, { onHover, onSelect, onFrame } = {}) {
+  constructor(container, { onHover, onSelect, onFrame, onPick, pickMode = false } = {}) {
+    this.onPick = onPick
+    this.pickMode = pickMode
     this.container = container
     this.onHover = onHover
     this.onSelect = onSelect
@@ -357,8 +359,50 @@ export default class PlotScene {
     const d = this._down
     this._down = null
     if (!d || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 6) return
+    if (this.pickMode) {
+      const p = this.groundPointSvg(e.clientX, e.clientY)
+      if (p) this.onPick?.(p)
+      return
+    }
     const i = this._pick(e.clientX, e.clientY)
     this.onSelect?.(i >= 0 ? i : null)
+  }
+
+  /** Point under the cursor in layout (SVG) coordinates: plot tops first, then the ground. */
+  groundPointSvg(clientX, clientY) {
+    if (!this.center) return null
+    const rect = this.renderer.domElement.getBoundingClientRect()
+    this.pointer.set(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1)
+    this.raycaster.setFromCamera(this.pointer, this.camera)
+    let hit = this.plotMesh ? this.raycaster.intersectObject(this.plotMesh, false)[0]?.point : null
+    if (!hit) {
+      hit = new THREE.Vector3()
+      if (!this.raycaster.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), hit)) return null
+    }
+    return { x: hit.x + this.center.cx, y: hit.z + this.center.cz }
+  }
+
+  /** Screen position of a layout (SVG) point raised `h` units above the ground, or null if behind the camera. */
+  projectSvg(x, y, h = 0) {
+    if (!this.center) return null
+    const v = new THREE.Vector3(x - this.center.cx, h, y - this.center.cz)
+    v.project(this.camera)
+    if (v.z > 1 || v.z < -1) return null
+    const rect = this.renderer.domElement.getBoundingClientRect()
+    return { x: ((v.x + 1) / 2) * rect.width, y: ((1 - v.y) / 2) * rect.height }
+  }
+
+  /** Current camera pose, so a rebuild (new geometry from the CRM) can keep the view. */
+  getView() {
+    return { pos: this.camera.position.clone(), target: this.controls.target.clone() }
+  }
+
+  setView(view) {
+    if (!view) return
+    this.tween = null
+    this.camera.position.copy(view.pos)
+    this.controls.target.copy(view.target)
+    this.controls.update()
   }
 
   setSelected(i, { focus = true } = {}) {

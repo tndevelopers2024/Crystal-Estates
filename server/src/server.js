@@ -14,6 +14,10 @@ import layoutRouter from './routes/layout.js'
 import leadsRouter from './routes/leads.js'
 import visitsRouter from './routes/visits.js'
 import authRouter from './routes/auth.js'
+import customersRouter from './routes/customers.js'
+import usersRouter from './routes/users.js'
+import { apiPolicy } from './lib/auth.js'
+import { ensureRoles } from './lib/roles.js'
 import { testimonials } from './data/testimonials.js'
 import { getDb, closeDb } from './config/db.js'
 
@@ -23,6 +27,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const rootDir = path.resolve(__dirname, '../..')
 
 const app = express()
+// Behind Render / Vercel proxies: use the real client IP (rate limiting)
+app.set('trust proxy', 1)
 const PORT = process.env.PORT || 5000
 
 // Parse allowed origins from environment variable (supports comma-separated list, wildcards, and trailing slashes)
@@ -95,12 +101,14 @@ app.use(compression())
 app.use(express.json({ limit: '50mb' }))
 app.use(express.urlencoded({ limit: '50mb', extended: true }))
 
-// Request logger
-app.use((req, res, next) => {
-  const timestamp = new Date().toISOString()
-  console.log(`[${timestamp}] ${req.method} ${req.originalUrl}`)
-  next()
-})
+// Request logger (development only — production logs stay quiet)
+const isProduction = process.env.NODE_ENV === 'production' || Boolean(process.env.RENDER)
+if (!isProduction) {
+  app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`)
+    next()
+  })
+}
 
 // Serve static layout SVGs, plot images, documents and videos with cache headers
 const uploadsDir = path.join(__dirname, '../uploads')
@@ -194,6 +202,10 @@ app.get('/api/health', async (req, res) => {
   }
 })
 
+// Every /api request: public website endpoints pass; CRM endpoints need a
+// signed-in, active user whose role allows that section (lib/auth.js)
+app.use('/api', apiPolicy)
+
 // Mount API routes
 app.use('/api/upload', uploadRouter)
 app.use('/api/plot-activity', plotActivityRouter)
@@ -205,6 +217,8 @@ app.use('/api/plots', plotsRouter)
 app.use('/api/leads', leadsRouter)
 app.use('/api/visits', visitsRouter)
 app.use('/api/auth', authRouter)
+app.use('/api/customers', customersRouter)
+app.use('/api', usersRouter)
 
 // Testimonials endpoint
 app.get('/api/testimonials', (req, res) => {
@@ -444,13 +458,21 @@ app.use((err, req, res, next) => {
   })
 })
 
+// Roles collection + auth indexes (idempotent)
+getDb()
+  .then(async (db) => {
+    await ensureRoles()
+    await db.collection('users').createIndex({ 'sessions.hash': 1 }, { sparse: true })
+    await db.collection('users').createIndex({ setupTokenHash: 1 }, { sparse: true })
+  })
+  .catch((err) => console.error('Auth setup failed:', err.message))
+
 const server = app.listen(PORT, () => {
-  console.log(`🚀 Crystal Estates Server listening on port ${PORT}`)
-  console.log(`📡 Health Check: http://localhost:${PORT}/api/health`)
-  console.log(`🗺️ Plots API: http://localhost:${PORT}/api/plots`)
-  console.log(`📍 Kolapakkam API: http://localhost:${PORT}/api/plots/kolapakkam`)
-  console.log(`📤 Upload API: http://localhost:${PORT}/api/upload`)
-  console.log(`🌐 Allowed CORS Origins:`, allowedOrigins.length > 0 ? allowedOrigins : 'all')
+  console.log(`Crystal Estates Server listening on port ${PORT}`)
+  if (!isProduction) {
+    console.log(`Health check: http://localhost:${PORT}/api/health`)
+    console.log('Allowed CORS origins:', allowedOrigins.length > 0 ? allowedOrigins : 'all')
+  }
 })
 
 // Graceful Shutdown

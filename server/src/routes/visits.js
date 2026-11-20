@@ -1,5 +1,7 @@
 import { Router } from 'express'
 import { getDb } from '../config/db.js'
+import { actorFromRequest } from '../lib/auth.js'
+import { CONTACTED_STAGES, STAGE_LABELS, logCustomerActivity, logForLead, safely, upsertCustomerFromLead } from '../lib/customers.js'
 
 const router = Router()
 
@@ -354,6 +356,36 @@ router.post('/', async (req, res) => {
       }
     )
 
+    // Customer timeline: a scheduled visit (and the stage move it may cause) — creating the
+    // profile if this moved the lead into a contacted stage
+    await safely(async () => {
+      const afterVisit = await db.collection('leads').findOne({ id: targetLead.id }, { projection: { _id: 0 } })
+      if (!afterVisit) return
+      const actor = await actorFromRequest(req)
+      let linkedNow = false
+      if (CONTACTED_STAGES.has(afterVisit.stage)) {
+        const r = await upsertCustomerFromLead(db, afterVisit, { actor, reason: 'Site visit scheduled' })
+        linkedNow = r.linked
+      }
+      if (!linkedNow) {
+        if (updateSet.stage) {
+          await logForLead(db, afterVisit, { type: 'status', title: `Stage moved from ${STAGE_LABELS[currentStage] || currentStage} to ${STAGE_LABELS.sitevisit}` }, actor)
+        }
+        await logForLead(
+          db,
+          afterVisit,
+          {
+            type: 'visit',
+            title: `Site visit ${String(initialStatus).toLowerCase()} for ${dateLabel} · ${timeLabel}`,
+            details: [propName, cabPickup && 'Cab pickup requested', customerNotes].filter(Boolean).join(' · '),
+            property: propName,
+            meta: { visitId: newVisit.id },
+          },
+          actor,
+        )
+      }
+    })
+
     const updatedLead = await db.collection('leads').findOne({ id: targetLead.id }, { projection: { _id: 0 } })
 
     return res.status(201).json({
@@ -505,6 +537,32 @@ router.patch('/:id', async (req, res) => {
           },
         }
       )
+
+      await safely(async () => {
+        if (!targetLead) return
+        const actor = await actorFromRequest(req)
+        const entry = {
+          type: 'visit',
+          title: updates.status === 'Completed' ? `Visited ${updatedVisit.property || 'the site'}` : `Site visit ${String(updates.status).toLowerCase()}`,
+          details: [updatedVisit.dateLabel, updatedVisit.visitTime, updatedVisit.property].filter(Boolean).join(' · '),
+          property: updatedVisit.property || null,
+          meta: { visitId: updatedVisit.id },
+        }
+        const logged = await logForLead(db, targetLead, entry, actor)
+        if (logged && leadUpdateSet.stage && leadUpdateSet.stage !== targetLead.stage) {
+          await logCustomerActivity(
+            db,
+            logged.customerId,
+            { type: 'status', title: `Stage moved from ${STAGE_LABELS[targetLead.stage] || targetLead.stage} to ${STAGE_LABELS[leadUpdateSet.stage]}`, leadId: targetLead.id },
+            actor,
+          )
+        }
+        // Completing a visit moves a brand-new lead into a contacted stage — give them a profile
+        if (!logged && leadUpdateSet.stage && CONTACTED_STAGES.has(leadUpdateSet.stage)) {
+          const after = await db.collection('leads').findOne({ id: targetLead.id }, { projection: { _id: 0 } })
+          await upsertCustomerFromLead(db, after, { actor, reason: 'Site visit completed' })
+        }
+      })
     }
 
     const lead = updatedVisit.leadId

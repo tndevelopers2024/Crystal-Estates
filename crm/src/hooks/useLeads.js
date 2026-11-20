@@ -46,7 +46,9 @@ export function useLeads() {
           setMeta(data)
         }
       })
-      .catch((err) => console.warn('Could not load leads meta:', err.message))
+      .catch(() => {
+        /* metadata is optional; the pipeline falls back to defaults */
+      })
 
     // Automatically poll every 15s so new website enquiries arrive in real-time
     const interval = setInterval(() => {

@@ -12,6 +12,7 @@ import {
   Briefcase,
   Map,
   UserCheck,
+  Contact,
   Settings,
 } from 'lucide-react'
 
@@ -21,6 +22,7 @@ export const NAVIGATION_SECTIONS = [
     items: [
       { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
       { id: 'leads', label: 'Leads pipeline', icon: GitBranch, badge: '12', path: '/leads' },
+      { id: 'customers', label: 'Customers', icon: Contact, path: '/customers' },
       { id: 'followups', label: 'Follow-ups', icon: Clock, badge: '5', path: '/followups' },
       { id: 'visits', label: 'Site visits', icon: Compass, path: '/visits' },
     ],

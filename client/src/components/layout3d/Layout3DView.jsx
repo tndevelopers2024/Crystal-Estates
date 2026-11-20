@@ -8,6 +8,7 @@ import { formatPrice, normalizePlot } from '../../lib/api'
 import { parseLayoutSvg, parseSqft, plotKey, statusGroup } from './parseLayoutSvg'
 import { buildPhases, phaseIndexFrom } from './phases'
 import { SIZES, STATUS, cls } from './status'
+import { PlaceDetails, PlaceMarkers } from './Places'
 import { ActionBar, AvailabilityCard, FilterPanel, PlotDetails, ProjectHeader, SearchBar, ViewTools } from './Layout3DParts'
 import './layout3d.css'
 
@@ -59,7 +60,25 @@ export default function Layout3DView({ project: initialProject }) {
   const searchRef = useRef(null)
   const initialPlotRef = useRef(params.get('plot'))
 
-  const [layout, setLayout] = useState(null) // parsed SVG
+  // ?pick=1 — the CRM embeds this page to choose a nearby place's position
+  const pickMode = params.get('pick') === '1'
+  const pickOrigin = (() => {
+    const o = params.get('origin')
+    return o && /^https?:\/\/[^/]+$/i.test(o) ? o : '*'
+  })()
+  const [draft, setDraft] = useState(() => {
+    const x = parseFloat(params.get('x'))
+    const y = parseFloat(params.get('y'))
+    return pickMode ? { x: Number.isFinite(x) ? x : null, y: Number.isFinite(y) ? y : null, name: params.get('name') || '' } : null
+  })
+  const [activePlace, setActivePlace] = useState(null)
+  const [showPlaces, setShowPlaces] = useState(true)
+  const markerEls = useRef(new Map())
+  const placesRef = useRef([])
+  const draftRef = useRef(draft)
+  const viewRef = useRef(null)
+  const selectedKeyRef = useRef(null)
+  const [svgSource, setSvgSource] = useState(null) // { key, text } — the file is only read, never written
   const [plots, setPlots] = useState([]) // [{no,key}] aligned with scene indices
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -91,20 +110,12 @@ export default function Layout3DView({ project: initialProject }) {
 
   const recordAt = useCallback((i) => (i === null || i < 0 || !plots[i] ? null : records.get(plots[i].key) || null), [plots, records])
 
-  /* ───── Load + parse the layout SVG (file is only read, never written) ───── */
+  /* ───── Layout geometry: SVG file + plot records from the CRM ───── */
+  const phaseKey = `${phase?.id || ''}|${phase?.layoutUrl || ''}`
   useEffect(() => {
     let cancelled = false
     const url = phase?.layoutUrl
-    const done = (text) => {
-      if (cancelled) return
-      const parsed = parseLayoutSvg(text, phase?.plots || [], phase?.viewBox)
-      if (!parsed.plots.length) {
-        setError('This layout has no plot boundaries yet.')
-        setLoading(false)
-        return
-      }
-      setLayout(parsed)
-    }
+    const done = (text) => !cancelled && setSvgSource({ key: phaseKey, text })
     if (!url) done(null)
     else
       fetch(url)
@@ -114,13 +125,28 @@ export default function Layout3DView({ project: initialProject }) {
     return () => {
       cancelled = true
     }
-    // Only re-parse when the geometry source changes, not on status polls
+  }, [phaseKey, phase?.layoutUrl])
+
+  // Changes only when a boundary / label / plot number changes in the CRM (not on status edits)
+  const geomKey = useMemo(() => {
+    let h = 0
+    for (const r of phase?.plots || []) {
+      const str = `${r.plotNo}|${r.svgPath || ''}|${r.textX ?? ''}|${r.textY ?? ''};`
+      for (let i = 0; i < str.length; i += 1) h = (Math.imul(31, h) + str.charCodeAt(i)) | 0
+    }
+    return `${(phase?.plots || []).length}:${h}`
+  }, [phase])
+
+  const layout = useMemo(() => {
+    if (!svgSource || svgSource.key !== phaseKey) return null
+    return parseLayoutSvg(svgSource.text, phase?.plots || [], phase?.viewBox)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase?.id, phase?.layoutUrl])
+  }, [svgSource, phaseKey, geomKey])
+  const layoutError = layout && !layout.plots.length ? 'This layout has no plot boundaries yet.' : ''
 
   /* ───── Build the Three.js scene ───── */
   useEffect(() => {
-    if (!layout || !stageRef.current) return undefined
+    if (!layout || !layout.plots.length || !stageRef.current) return undefined
     let scene
     let cancelled = false
     import('./PlotScene').then(({ default: PlotScene }) => {
@@ -131,7 +157,19 @@ export default function Layout3DView({ project: initialProject }) {
           const rect = stageRef.current.getBoundingClientRect()
           setHover({ i, x: pt.x - rect.left, y: pt.y - rect.top })
         },
-        onSelect: (i) => setSelected(i),
+        onSelect: (i) => {
+          setActivePlace(null)
+          setSelected(i)
+        },
+        pickMode,
+        onPick: ({ x, y }) => {
+          const next = { ...(draftRef.current || {}), x: Math.round(x * 100) / 100, y: Math.round(y * 100) / 100 }
+          draftRef.current = next
+          setDraft(next)
+          if (window.parent !== window) {
+            window.parent.postMessage({ source: 'ce-3d-layout', type: 'pick', x: next.x, y: next.y, phase: phase?.name || '' }, pickOrigin)
+          }
+        },
         onFrame: (s) => {
           const pt = s.selectedScreenPoint()
           const el = labelRef.current
@@ -144,6 +182,26 @@ export default function Layout3DView({ project: initialProject }) {
               el.style.opacity = '1'
             } else el.style.opacity = '0'
           }
+          // Nearby place markers (and the draft marker in pick mode)
+          const top = topRef.current
+          const safe = top ? top.getBoundingClientRect().bottom - stageRef.current.getBoundingClientRect().top + 8 : 0
+          const place = (el, x, y) => {
+            const at = Number.isFinite(x) && Number.isFinite(y) ? s.projectSvg(x, y, 6) : null
+            if (!at || at.y < safe) {
+              el.style.opacity = '0'
+              el.style.pointerEvents = 'none'
+              return
+            }
+            el.style.transform = `translate(${at.x}px, ${at.y}px) translate(-50%, -100%)`
+            el.style.opacity = '1'
+            el.style.pointerEvents = ''
+          }
+          for (const pl of placesRef.current) {
+            const el = markerEls.current.get(pl.id)
+            if (el) place(el, pl.x, pl.y)
+          }
+          const dEl = markerEls.current.get('__draft')
+          if (dEl && draftRef.current) place(dEl, draftRef.current.x, draftRef.current.y)
           if (needleRef.current) needleRef.current.style.transform = `rotate(${(-s.getAzimuth() * 180) / Math.PI}deg)`
           const dot = miniDotRef.current
           if (dot) {
@@ -156,15 +214,24 @@ export default function Layout3DView({ project: initialProject }) {
       })
       const built = scene.load(layout)
       sceneRef.current = scene
+      // Same phase rebuilt with new geometry from the CRM: keep the visitor's view
+      if (viewRef.current?.phaseKey === phaseKey) scene.setView(viewRef.current.view)
+      else if (pickMode && draftRef.current && Number.isFinite(draftRef.current.x)) scene.panToSvg(draftRef.current.x, draftRef.current.y)
       if (process.env.NODE_ENV !== 'production') window.__plotScene = scene
-      setPlots(built.map((p) => ({ no: p.no, key: p.key, d: p.d })))
+      const list = built.map((p) => ({ no: p.no, key: p.key, d: p.d }))
+      setPlots(list)
+      // Keep the open plot selected even if its index moved
+      const keep = selectedKeyRef.current ? list.findIndex((p) => p.key === selectedKeyRef.current) : -1
+      setSelected(keep >= 0 ? keep : null)
       setLoading(false)
     })
     return () => {
       cancelled = true
+      if (scene?.viewBox) viewRef.current = { phaseKey, view: scene.getView() }
       sceneRef.current = null
       scene?.dispose()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [layout])
 
   /* ───── Live status: poll the API and refresh on focus ───── */
@@ -183,12 +250,15 @@ export default function Layout3DView({ project: initialProject }) {
   }, [initialProject.id])
 
   useEffect(() => {
+    // The server-rendered copy can be up to a minute old; fetch the latest straight away
+    const first = setTimeout(refresh, 0)
     const id = setInterval(() => {
       if (document.visibilityState === 'visible') refresh()
     }, POLL_MS)
     const onFocus = () => refresh()
     window.addEventListener('focus', onFocus)
     return () => {
+      clearTimeout(first)
       clearInterval(id)
       window.removeEventListener('focus', onFocus)
     }
@@ -246,6 +316,31 @@ export default function Layout3DView({ project: initialProject }) {
     [plots, info, matches],
   )
 
+  /* ───── Nearby places (managed in the CRM) ───── */
+  const places = useMemo(() => {
+    const name = String(phase?.name || '').trim().toLowerCase()
+    return (Array.isArray(project.nearbyPlaces) ? project.nearbyPlaces : []).filter(
+      (pl) => pl && pl.id && Number.isFinite(Number(pl.x)) && Number.isFinite(Number(pl.y)) && (!pl.phase || String(pl.phase).trim().toLowerCase() === name),
+    ).map((pl) => ({ ...pl, x: Number(pl.x), y: Number(pl.y) }))
+  }, [project.nearbyPlaces, phase?.name])
+  const visiblePlaces = showPlaces ? places : []
+  useEffect(() => {
+    placesRef.current = visiblePlaces
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [places, showPlaces])
+  const registerMarker = useCallback((id, el) => {
+    if (el) markerEls.current.set(id, el)
+    else markerEls.current.delete(id)
+  }, [])
+  const placeSel = activePlace ? places.find((pl) => pl.id === activePlace) || null : null
+  const openPlace = (id) => {
+    const pl = places.find((x) => x.id === id)
+    if (!pl) return
+    setSelected(null)
+    setActivePlace(id)
+    sceneRef.current?.panToSvg(pl.x, pl.y)
+  }
+
   /* ───── Push colours to the scene ───── */
   useEffect(() => {
     const s = sceneRef.current
@@ -255,6 +350,7 @@ export default function Layout3DView({ project: initialProject }) {
 
   /* ───── Selection ↔ scene ↔ URL ───── */
   useEffect(() => {
+    selectedKeyRef.current = selected !== null ? plots[selected]?.key || null : null
     // On phones the details sheet covers the lower half, so lift the view centre
     sceneRef.current?.setViewShift(selected !== null && window.innerWidth <= 860 ? 0.11 : 0)
     sceneRef.current?.setSelected(selected ?? -1)
@@ -348,6 +444,7 @@ export default function Layout3DView({ project: initialProject }) {
         if (typing) e.target.blur()
         setFiltersOpen(false)
         setSelected(null)
+        setActivePlace(null)
       } else if (!typing && e.key === '/') {
         e.preventDefault()
         searchRef.current?.focus()
@@ -369,7 +466,7 @@ export default function Layout3DView({ project: initialProject }) {
     setLoading(true)
     setError('')
     setSelected(null)
-    setLayout(null)
+    setActivePlace(null)
     setPlots([])
     setPhaseIdx(idx)
     setStatusFilter('all')
@@ -440,8 +537,18 @@ export default function Layout3DView({ project: initialProject }) {
   }
 
   return (
-    <div ref={rootRef} className={cls('l3d', sel && 'has-sel', statsOpen && 'stats-open', filtersOpen && 'filters-open')}>
+    <div ref={rootRef} className={cls('l3d', (sel || placeSel) && 'has-sel', statsOpen && 'stats-open', filtersOpen && 'filters-open', pickMode && 'is-picking')}>
       <div ref={stageRef} className="l3d-stage" onPointerDown={() => filtersOpen && setFiltersOpen(false)} />
+
+      <PlaceMarkers places={visiblePlaces} activeId={activePlace} onSelect={pickMode ? undefined : openPlace} registerRef={registerMarker} draft={pickMode ? draft : null} />
+
+      {pickMode && (
+        <div className="l3d-glass l3d-pickbar" role="status">
+          {draft && Number.isFinite(draft.x)
+            ? `Position set for ${draft.name || 'this place'} — click again to move it`
+            : `Click on the layout where ${draft?.name || 'the place'} is`}
+        </div>
+      )}
 
       {/* Selected plot label pinned above the plot */}
       <div ref={labelRef} className="l3d-pin" aria-hidden="true" style={{ opacity: 0 }}>
@@ -513,6 +620,8 @@ export default function Layout3DView({ project: initialProject }) {
           </div>
         </div>
 
+        {placeSel && !sel && <PlaceDetails place={placeSel} onClose={() => setActivePlace(null)} />}
+
         {sel && (
           <PlotDetails
             no={sel.no}
@@ -559,6 +668,12 @@ export default function Layout3DView({ project: initialProject }) {
           fullscreen={fullscreen}
           onFullscreen={toggleFullscreen}
           needleRef={needleRef}
+          placesCount={pickMode ? 0 : places.length}
+          placesOn={showPlaces}
+          onPlaces={() => {
+            setShowPlaces((v) => !v)
+            setActivePlace(null)
+          }}
         />
       </div>
 
@@ -577,13 +692,13 @@ export default function Layout3DView({ project: initialProject }) {
         </div>
       )}
 
-      <ActionBar onEnquire={enquire} waUrl={waUrl} telUrl={telUrl} mapUrl={mapUrl} />
+      {!pickMode && <ActionBar onEnquire={enquire} waUrl={waUrl} telUrl={telUrl} mapUrl={mapUrl} />}
 
-      {(loading || error) && (
+      {(loading || error || layoutError) && (
         <div className="l3d-loader" role="status">
-          {error ? (
+          {error || layoutError ? (
             <>
-              <p>{error}</p>
+              <p>{error || layoutError}</p>
               <a href={projectHref} className="l3d-btn l3d-btn--gold">
                 Back to project
               </a>

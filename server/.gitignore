@@ -25,6 +25,9 @@ test_*.js
 test_*.mjs
 test-*.js
 test-*.mjs
+# …but keep the unit test suite
+!test-unit/
+!test-unit/*.test.js
 
 # Uploads
 uploads/

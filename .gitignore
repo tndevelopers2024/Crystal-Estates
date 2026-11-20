@@ -34,6 +34,7 @@ crm/.env*.local
 # Test directories & test runners
 test/
 tests/
+!crm/tests/
 __tests__/
 coverage/
 playwright-report/

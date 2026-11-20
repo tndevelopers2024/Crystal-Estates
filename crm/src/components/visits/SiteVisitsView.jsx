@@ -457,6 +457,7 @@ export default function SiteVisitsView({
         <LeadDrawer
           lead={selectedLead}
           meta={meta}
+          properties={properties}
           onClose={() => setSelectedLead(null)}
           onUpdate={async (id, updates) => {
             const updated = await updateLeadDetails(id, updates)

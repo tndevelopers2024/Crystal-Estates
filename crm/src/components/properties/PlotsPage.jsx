@@ -24,6 +24,8 @@ import {
   Wallet,
   Info,
   Loader2,
+  MapPin,
+  Box,
 } from 'lucide-react'
 import { computePathCentroid } from '../../lib/svgPathCentroid'
 import { parseViewBox } from '../../lib/svgUtils'
@@ -50,6 +52,7 @@ import {
 } from '../../lib/plotUtils'
 import { useAuth } from '../../context/AuthContext'
 import { useDialog } from '../../context/DialogContext'
+import NearbyPlacesPanel from './NearbyPlacesPanel'
 
 const STATUSES = [
   { id: 'Available', fill: '#67E8F9', stroke: '#0284C7', chip: 'bg-sky-50 text-sky-700 border-sky-200' },
@@ -1047,6 +1050,8 @@ export default function PlotsPage({ property, onPropertyUpdated, onShowToast, on
   const { viewBoxStr } = parseViewBox(currentPhase?.viewBox || property.viewBox || '0 0 1056 816', 1056, 816)
   const slug = canonicalLayoutSlug(property.layoutSlug) || canonicalLayoutSlug(property.layoutBackgroundUrl) || property.projectId || property.id
   const publicLink = getClientUrl(`/projects/${property.slug || property.id}`)
+  const view3dLink = getClientUrl(`/projects/${property.slug || property.id}/3d?phase=${phaseIdx + 1}`)
+  const [placesOpen, setPlacesOpen] = useState(false)
 
   /** Save this phase's list while keeping every other phase untouched. */
   const persist = useCallback(
@@ -1139,6 +1144,19 @@ export default function PlotsPage({ property, onPropertyUpdated, onShowToast, on
           <a href={publicLink} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-white border border-slate-200 hover:border-slate-400 text-slate-700 text-xs font-bold rounded-xl shadow-2xs">
             <ExternalLink className="w-3.5 h-3.5" /> View on website
           </a>
+          <a href={view3dLink} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-white border border-slate-200 hover:border-slate-400 text-slate-700 text-xs font-bold rounded-xl shadow-2xs">
+            <Box className="w-3.5 h-3.5" /> 3D view
+          </a>
+          <button
+            type="button"
+            onClick={() => setPlacesOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-white border border-slate-200 hover:border-[#0F3D2E] text-slate-700 hover:text-[#0F3D2E] text-xs font-bold rounded-xl shadow-2xs"
+          >
+            <MapPin className="w-3.5 h-3.5" /> Nearby places
+            {Array.isArray(property.nearbyPlaces) && property.nearbyPlaces.length > 0 && (
+              <span className="ml-0.5 px-1.5 rounded-full bg-[#0F3D2E]/10 text-[10px]">{property.nearbyPlaces.length}</span>
+            )}
+          </button>
           <button
             type="button"
             onClick={() => {
@@ -1279,6 +1297,14 @@ export default function PlotsPage({ property, onPropertyUpdated, onShowToast, on
           </div>
         </aside>
       </div>
+      <NearbyPlacesPanel
+        open={placesOpen}
+        onClose={() => setPlacesOpen(false)}
+        property={property}
+        phases={layoutPhases || []}
+        onChanged={(list) => onPropertyUpdated?.({ ...property, nearbyPlaces: list })}
+        onShowToast={onShowToast}
+      />
     </div>
   )
 }

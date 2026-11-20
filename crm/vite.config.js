@@ -7,8 +7,10 @@ import { fileURLToPath } from 'url'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [react(), tailwindcss()],
+  // Production bundles drop debug logging; console.error stays for real failures
+  esbuild: command === 'build' ? { pure: ['console.log', 'console.info', 'console.debug', 'console.warn'] } : undefined,
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -27,5 +29,4 @@ export default defineConfig({
       },
     },
   },
-})
-
+}))

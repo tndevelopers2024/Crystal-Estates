@@ -3,9 +3,11 @@ import dotenv from 'dotenv'
 
 dotenv.config()
 
-const uri =
-  process.env.MONGODB_URI ||
-  'mongodb+srv://webstique_admin:VlMhjIbb3TEc7MVv@webstique.xzqsu2r.mongodb.net/Crystal-Estate?retryWrites=true&w=majority'
+// The connection string (with its credentials) must come from the environment, never from source code.
+const uri = process.env.MONGODB_URI
+if (!uri) {
+  throw new Error('MONGODB_URI is not set. Add it to server/.env (local) or the hosting environment.')
+}
 
 const options = {
   maxPoolSize: 10,

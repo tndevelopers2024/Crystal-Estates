@@ -499,3 +499,79 @@ body.l3d-open .pv-fab-wrap { display: none !important; }
 @media (prefers-reduced-motion: reduce) {
   .l3d-card, .l3d-spinner { animation: none; }
 }
+
+/* ───────── Nearby places (managed in the CRM) ───────── */
+.l3d-places { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+.l3d-place {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: opacity 0.15s;
+  will-change: transform;
+}
+.l3d-place__pin {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50% 50% 50% 4px;
+  transform: rotate(-45deg);
+  background: #ffffff;
+  color: #0f3d2e;
+  border: 2px solid #0f3d2e;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.28);
+  transition: transform 0.18s ease, background 0.18s ease;
+}
+.l3d-place__pin svg { transform: rotate(45deg); }
+.l3d-place__name {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  padding: 4px 9px;
+  border-radius: 8px;
+  background: var(--glass-strong);
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.15s, transform 0.15s;
+  pointer-events: none;
+}
+.l3d-place:hover .l3d-place__name, .l3d-place:focus-visible .l3d-place__name, .l3d-place.on .l3d-place__name { opacity: 1; transform: none; }
+.l3d-place:hover .l3d-place__pin, .l3d-place.on .l3d-place__pin { transform: rotate(-45deg) scale(1.12); background: var(--gold); border-color: #fff; color: var(--gold-ink); }
+.l3d-place--draft { cursor: default; pointer-events: none; }
+.l3d-place--draft .l3d-place__pin { background: var(--sel); border-color: #fff; color: var(--gold-ink); animation: l3d-drop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.l3d-place--draft .l3d-place__name { opacity: 1; transform: none; }
+@keyframes l3d-drop { from { transform: rotate(-45deg) translate(-10px, -10px) scale(0.6); } to { transform: rotate(-45deg); } }
+
+.l3d-card--place .l3d-card__head h2 { font-size: 18px; white-space: normal; }
+.l3d-place-icon { display: grid; place-items: center; width: 34px; height: 34px; flex: none; border-radius: 10px; background: var(--gold); color: var(--gold-ink); }
+.l3d-place-meta { margin: 8px 0 0; font-size: 12.5px; font-weight: 600; color: var(--gold); }
+.l3d-place-desc { margin: 8px 0 0; font-size: 13px; line-height: 1.5; color: var(--text); white-space: pre-line; }
+
+/* Pick mode (embedded in the CRM) */
+.l3d-pickbar {
+  position: absolute;
+  left: 50%;
+  bottom: var(--gap);
+  transform: translateX(-50%);
+  max-width: calc(100% - 2 * var(--gap));
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  background: var(--glass-strong);
+  border-color: rgba(212, 173, 82, 0.6);
+}
+.l3d.is-picking .l3d-stage canvas { cursor: crosshair; }
+.l3d.is-picking .l3d-avail, .l3d.is-picking .l3d-back, .l3d.is-picking .l3d-mini { display: none; }

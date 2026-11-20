@@ -14,7 +14,9 @@ import {
   Clock,
   Sparkles,
   Trash2,
+  UserCircle2,
 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import ScheduleFollowUpModal from './ScheduleFollowUpModal'
 import RecordPaymentModal from './RecordPaymentModal'
 import { useDialog } from '../../context/DialogContext'
@@ -53,9 +55,16 @@ function getSourceBadge(source = 'Website') {
   }
 }
 
-export default function LeadDrawer({
+// Hooks must not run after an early return, so the null check lives in this wrapper.
+export default function LeadDrawer(props) {
+  if (!props.lead) return null
+  return <LeadDrawerContent {...props} />
+}
+
+function LeadDrawerContent({
   lead,
   meta,
+  properties = [],
   onClose,
   onUpdate,
   onDelete,
@@ -64,8 +73,6 @@ export default function LeadDrawer({
   onToggleFollowUp,
   onAddNote,
 }) {
-  if (!lead) return null
-
   const { confirm, alert } = useDialog()
 
   const dynamicAgents = meta?.agents && meta.agents.length > 0 ? meta.agents : []
@@ -167,23 +174,15 @@ export default function LeadDrawer({
   }
 
   // Handle Stage change
+  // The server logs the stage change in the lead's activity, so only the stage is sent
   const handleStageChange = async (newStage) => {
+    const previous = stage
     setStage(newStage)
     try {
       await onUpdate(lead.id, { stage: newStage })
-      // Add activity entry
-      const stageName =
-        STAGE_OPTIONS.find((s) => s.id === newStage)?.label || newStage
-      const newAct = {
-        id: `act-${Date.now()}`,
-        text: `Pipeline stage moved to "${stageName}"`,
-        time: 'Just now',
-      }
-      const updatedActs = [newAct, ...activities]
-      setActivities(updatedActs)
-      await onUpdate(lead.id, { activity: updatedActs })
     } catch (err) {
-      console.error('Failed to update stage:', err)
+      setStage(previous)
+      alert?.({ title: 'Could not update stage', message: err.message || 'Please try again.' })
     }
   }
 
@@ -200,168 +199,60 @@ export default function LeadDrawer({
       color: '#64748B',
     })
     try {
+      // Server records "Lead assigned to …" in the activity log itself
       await onUpdate(lead.id, { assignedAgent: agentObj })
-      const newAct = {
-        id: `act-${Date.now()}`,
-        text: `Lead assigned to ${agentName}`,
-        time: 'Just now',
-      }
-      const updatedActs = [newAct, ...activities]
-      setActivities(updatedActs)
-      await onUpdate(lead.id, { activity: updatedActs })
     } catch (err) {
-      console.error('Failed to update agent:', err)
+      setAssignedAgent(lead.assignedAgent?.name || '')
+      alert?.({ title: 'Could not reassign lead', message: err.message || 'Please try again.' })
     }
+  }
+
+  // Server actions return the updated lead; the parent refreshes the drawer from it,
+  // so nothing is PATCHed back here (that used to overwrite activity and dates).
+  const applyServerLead = (updated) => {
+    if (!updated) return
+    if (updated.activity) setActivities(updated.activity)
+    if (updated.upcomingFollowUps) setFollowUps(updated.upcomingFollowUps)
+    if (updated.stage) setStage(updated.stage)
   }
 
   // Handle Add Note
   const handleAddNote = async (e) => {
     e.preventDefault()
-    if (!noteInput.trim()) return
     const noteText = noteInput.trim()
+    if (!noteText || !onAddNote) return
     setNoteInput('')
-
     try {
-      if (onAddNote) {
-        const updated = await onAddNote(lead.id, noteText)
-        if (updated) {
-          if (updated.activity) setActivities(updated.activity)
-          if (onUpdate) await onUpdate(lead.id, updated)
-          return
-        }
-      }
-
-      const newAct = {
-        id: `act-${Date.now()}`,
-        text: `Note added: "${noteText}"`,
-        time: 'Just now',
-      }
-      const updatedActs = [newAct, ...activities]
-      const updatedNotes = lead.notes
-        ? `${lead.notes}\n• ${noteText}`
-        : noteText
-      setActivities(updatedActs)
-
-      await onUpdate(lead.id, {
-        notes: updatedNotes,
-        activity: updatedActs,
-      })
+      applyServerLead(await onAddNote(lead.id, noteText))
     } catch (err) {
-      console.error('Failed to add note:', err)
+      setNoteInput(noteText)
+      alert?.({ title: 'Could not add note', message: err.message || 'Please try again.' })
     }
   }
 
-  // Handle Schedule Follow-up submit
+  // Handle Schedule Follow-up submit (errors surface in the follow-up modal)
   const handleScheduleFollowUp = async ({ type, when, note }) => {
-    try {
-      if (onScheduleFollowUp) {
-        const updated = await onScheduleFollowUp(lead.id, { type, when, note })
-        if (updated) {
-          if (updated.upcomingFollowUps) setFollowUps(updated.upcomingFollowUps)
-          if (updated.activity) setActivities(updated.activity)
-          if (onUpdate) await onUpdate(lead.id, updated)
-          return
-        }
-      }
-
-      const newFollowUp = {
-        id: `fu-${Date.now()}`,
-        type,
-        title: note,
-        when,
-        completed: false,
-      }
-      const updatedFollowUps = [newFollowUp, ...followUps]
-      setFollowUps(updatedFollowUps)
-
-      const newAct = {
-        id: `act-${Date.now()}`,
-        text: `Follow-up scheduled: ${type} for ${when}`,
-        time: 'Just now',
-      }
-      const updatedActs = [newAct, ...activities]
-      setActivities(updatedActs)
-
-      await onUpdate(lead.id, {
-        upcomingFollowUps: updatedFollowUps,
-        followUpDate: when,
-        activity: updatedActs,
-      })
-    } catch (err) {
-      console.error('Failed to save follow-up:', err)
-    }
+    if (!onScheduleFollowUp) return
+    applyServerLead(await onScheduleFollowUp(lead.id, { type, when, note }))
   }
 
   // Toggle complete on follow-up
   const handleToggleFollowUp = async (fuId) => {
+    if (!onToggleFollowUp) return
     try {
-      if (onToggleFollowUp) {
-        const updated = await onToggleFollowUp(lead.id, fuId)
-        if (updated) {
-          if (updated.upcomingFollowUps) setFollowUps(updated.upcomingFollowUps)
-          if (onUpdate) await onUpdate(lead.id, updated)
-          return
-        }
-      }
-
-      const updated = followUps.map((fu) =>
-        fu.id === fuId ? { ...fu, completed: !fu.completed } : fu
-      )
-      setFollowUps(updated)
-      await onUpdate(lead.id, { upcomingFollowUps: updated })
+      applyServerLead(await onToggleFollowUp(lead.id, fuId))
     } catch (err) {
-      console.error('Failed to update follow-up:', err)
+      alert?.({ title: 'Could not update follow-up', message: err.message || 'Please try again.' })
     }
   }
 
-  // Record Payment
+  // Record Payment — errors propagate so the payment modal stays open and shows them
   const handleSavePayment = async (paymentData) => {
-    try {
-      if (onRecordPayment) {
-        const updated = await onRecordPayment(lead.id, paymentData)
-        if (updated) {
-          if (updated.activity) setActivities(updated.activity)
-          if (updated.stage) setStage(updated.stage)
-          if (onUpdate) await onUpdate(lead.id, updated)
-          return
-        }
-      }
-
-      const {
-        paymentFor,
-        amount,
-        amountFormatted,
-        mode,
-        referenceNo,
-        unitAllotted,
-        moveLeadToWon,
-      } = paymentData
-
-      const newAct = {
-        id: `act-${Date.now()}`,
-        text: `${paymentFor} of ${amountFormatted} recorded via ${mode}${
-          referenceNo ? ` (Ref: ${referenceNo})` : ''
-        }`,
-        time: 'Just now',
-      }
-      const updatedActs = [newAct, ...activities]
-      setActivities(updatedActs)
-
-      const updates = {
-        advanceReceived: amountFormatted,
-        unit: unitAllotted || lead.unit || 'Not allotted',
-        activity: updatedActs,
-      }
-
-      if (moveLeadToWon) {
-        updates.stage = 'won'
-        setStage('won')
-      }
-
-      await onUpdate(lead.id, updates)
-    } catch (err) {
-      console.error('Failed to record payment:', err)
-    }
+    if (!onRecordPayment) throw new Error('Payments cannot be recorded here.')
+    const updated = await onRecordPayment(lead.id, paymentData)
+    applyServerLead(updated)
+    const payments = Array.isArray(updated?.payments) ? updated.payments : []
+    return { lead: updated, payment: payments[payments.length - 1] }
   }
 
   // Send WhatsApp Direct
@@ -449,6 +340,14 @@ export default function LeadDrawer({
                     Added {createdDateStr}{lead.property ? ` · ${lead.property}` : ''}
                   </span>
                 </div>
+                {lead.customerId && (
+                  <Link
+                    to={`/customers/${encodeURIComponent(lead.customerId)}`}
+                    className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-bold text-[#0F3D2E] hover:underline"
+                  >
+                    <UserCircle2 className="w-3.5 h-3.5" /> Customer profile
+                  </Link>
+                )}
               </div>
             </div>
 
@@ -851,9 +750,8 @@ export default function LeadDrawer({
       <RecordPaymentModal
         isOpen={isRecordPaymentModalOpen}
         lead={lead}
-        paymentForOptions={meta?.paymentForOptions}
-        paymentModes={meta?.paymentModes}
         onClose={() => setIsRecordPaymentModalOpen(false)}
+        properties={properties}
         onSavePayment={handleSavePayment}
       />
     </div>

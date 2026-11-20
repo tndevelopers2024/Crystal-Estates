@@ -2694,3 +2694,68 @@
   .ch-project-detail-page .project-3d-link { font-size: 13px; }
   .ch-project-detail-page .project-3d-link a { width: 100%; justify-content: center; }
 }
+
+/* ── Simplified project header (name, status, three facts, two actions) ── */
+.ch-project-detail-page .project-detail-editorial-hero {
+  padding: clamp(40px, 5.5vw, 72px) 0 0;
+  border-bottom: 0;
+}
+.ch-project-detail-page .project-hero-simple {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px clamp(28px, 4vw, 56px);
+}
+.ch-project-detail-page .project-hero-simple__main { min-width: 0; }
+.ch-project-detail-page .project-hero-simple__main .ce-projects-editorial-header__headline { margin-bottom: 14px; }
+.ch-project-detail-page .project-hero-simple__side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 16px;
+}
+.ch-project-detail-page .project-hero-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 32px;
+  margin: 0;
+}
+.ch-project-detail-page .project-hero-facts > div { min-width: 0; }
+.ch-project-detail-page .project-hero-facts dt {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+.ch-project-detail-page .project-hero-facts dd {
+  margin: 3px 0 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+}
+.ch-project-detail-page .project-hero-facts__price { color: var(--ch-green, #0f3d2e) !important; }
+.ch-project-detail-page .project-hero-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
+
+/* Phase tabs now live in the plot layout header */
+.ch-project-detail-page .project-plot-section--full { padding-top: clamp(14px, 2vw, 22px); }
+
+@media (max-width: 1023px) {
+  .ch-project-detail-page .project-hero-simple { align-items: flex-start; flex-direction: column; }
+  .ch-project-detail-page .project-hero-simple__side { align-items: flex-start; width: 100%; }
+}
+@media (max-width: 640px) {
+  .ch-project-detail-page .project-hero-facts { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+  .ch-project-detail-page .project-hero-facts > div:first-child { grid-column: 1 / -1; }
+  .ch-project-detail-page .project-hero-actions { width: 100%; }
+  .ch-project-detail-page .project-hero-actions .ch-pill { flex: 1; justify-content: center; }
+}
+@media (max-width: 420px) {
+  .ch-project-detail-page .project-hero-simple__main .ce-projects-editorial-header__headline {
+    font-size: clamp(26px, 9vw, 38px);
+    overflow-wrap: normal;
+    word-break: normal;
+    hyphens: manual;
+  }
+}
