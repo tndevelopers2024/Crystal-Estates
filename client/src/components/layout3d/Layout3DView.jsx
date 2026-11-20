@@ -114,14 +114,38 @@ export default function Layout3DView({ project: initialProject }) {
   const phaseKey = `${phase?.id || ''}|${phase?.layoutUrl || ''}`
   useEffect(() => {
     let cancelled = false
-    const url = phase?.layoutUrl
+    const rawUrl = phase?.layoutUrl
     const done = (text) => !cancelled && setSvgSource({ key: phaseKey, text })
-    if (!url) done(null)
-    else
-      fetch(url)
-        .then((r) => (r.ok ? r.text() : null))
-        .then(done)
-        .catch(() => done(null))
+    if (!rawUrl) {
+      done(null)
+      return
+    }
+    const loadSvg = async () => {
+      try {
+        const res = await fetch(rawUrl)
+        if (res.ok) {
+          const text = await res.text()
+          if (!cancelled) done(text)
+          return
+        }
+      } catch {
+        /* try fallback below */
+      }
+      if (rawUrl.startsWith('/')) {
+        try {
+          const res = await fetch(`https://crystal-estates.onrender.com${rawUrl}`)
+          if (res.ok) {
+            const text = await res.text()
+            if (!cancelled) done(text)
+            return
+          }
+        } catch {
+          /* fallback failed */
+        }
+      }
+      if (!cancelled) done(null)
+    }
+    loadSvg()
     return () => {
       cancelled = true
     }

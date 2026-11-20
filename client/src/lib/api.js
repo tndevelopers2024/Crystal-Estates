@@ -6,7 +6,7 @@
 const SERVER_BASE =
   process.env.SERVER_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
-  'http://localhost:5000'
+  (process.env.NODE_ENV === 'production' ? 'https://crystal-estates.onrender.com' : 'http://localhost:5000')
 
 /**
  * Format currency number to Indian format (e.g. ₹ 78.0 Lakhs, ₹ 1.25 Cr, ₹ 40,000)

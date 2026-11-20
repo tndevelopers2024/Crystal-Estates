@@ -53,6 +53,7 @@ import {
 import { useAuth } from '../../context/AuthContext'
 import { useDialog } from '../../context/DialogContext'
 import NearbyPlacesPanel from './NearbyPlacesPanel'
+import Layout3DView from '../layout3d/Layout3DView'
 
 const STATUSES = [
   { id: 'Available', fill: '#67E8F9', stroke: '#0284C7', chip: 'bg-sky-50 text-sky-700 border-sky-200' },
@@ -1052,6 +1053,7 @@ export default function PlotsPage({ property, onPropertyUpdated, onShowToast, on
   const publicLink = getClientUrl(`/projects/${property.slug || property.id}`)
   const view3dLink = getClientUrl(`/projects/${property.slug || property.id}/3d?phase=${phaseIdx + 1}`)
   const [placesOpen, setPlacesOpen] = useState(false)
+  const [view3dOpen, setView3dOpen] = useState(false)
 
   /** Save this phase's list while keeping every other phase untouched. */
   const persist = useCallback(
@@ -1144,9 +1146,14 @@ export default function PlotsPage({ property, onPropertyUpdated, onShowToast, on
           <a href={publicLink} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-white border border-slate-200 hover:border-slate-400 text-slate-700 text-xs font-bold rounded-xl shadow-2xs">
             <ExternalLink className="w-3.5 h-3.5" /> View on website
           </a>
-          <a href={view3dLink} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-white border border-slate-200 hover:border-slate-400 text-slate-700 text-xs font-bold rounded-xl shadow-2xs">
-            <Box className="w-3.5 h-3.5" /> 3D view
-          </a>
+          <button
+            type="button"
+            onClick={() => setView3dOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-white border border-slate-200 hover:border-[#0F3D2E] text-slate-700 hover:text-[#0F3D2E] text-xs font-bold rounded-xl shadow-2xs transition cursor-pointer"
+            title="Open Interactive 3D Layout"
+          >
+            <Box className="w-3.5 h-3.5 text-[#0F3D2E]" /> 3D view
+          </button>
           <button
             type="button"
             onClick={() => setPlacesOpen(true)}
@@ -1305,6 +1312,43 @@ export default function PlotsPage({ property, onPropertyUpdated, onShowToast, on
         onChanged={(list) => onPropertyUpdated?.({ ...property, nearbyPlaces: list })}
         onShowToast={onShowToast}
       />
+
+      {view3dOpen && (
+        <div className="fixed inset-0 z-[80] bg-slate-900/80 backdrop-blur-sm flex flex-col p-2 sm:p-4" role="dialog" aria-modal="true" aria-label="3D Layout View">
+          <div className="flex items-center justify-between gap-3 bg-white rounded-t-2xl px-4 py-3 shadow-xs border-b border-slate-100">
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-slate-900">{property.name} &mdash; 3D Layout</p>
+              <p className="text-xs text-slate-500 truncate">{property.location || 'Interactive 3D visualization'}</p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <a
+                href={view3dLink}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 hover:border-[#0F3D2E] text-slate-700 hover:text-[#0F3D2E] text-xs font-bold rounded-xl transition"
+                title="Open Website 3D View"
+              >
+                <ExternalLink className="w-3.5 h-3.5" /> Open in tab
+              </a>
+              <button
+                type="button"
+                onClick={() => setView3dOpen(false)}
+                className="p-2 rounded-xl text-slate-500 hover:bg-slate-100 cursor-pointer"
+                aria-label="Close 3D view"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+          <div className="flex-1 w-full relative overflow-hidden rounded-b-2xl bg-[#0d1421]">
+            <Layout3DView
+              project={property}
+              initialPhase={phaseIdx + 1}
+              onClose={() => setView3dOpen(false)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

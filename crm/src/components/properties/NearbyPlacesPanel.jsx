@@ -5,6 +5,7 @@ import EditableSelect from '../common/EditableSelect'
 import { useOptions } from '../../hooks/useOptions'
 import { useDialog } from '../../context/DialogContext'
 import { getApiUrl, getClientUrl } from '../../lib/api'
+import Layout3DView from '../layout3d/Layout3DView'
 
 /* Starter categories; the list is editable in the form and stored server-side */
 const DEFAULT_CATEGORIES = ['Temple', 'School', 'College', 'Hospital', 'Railway station', 'Bus stop', 'Market', 'Bank / ATM', 'Park', 'Landmark']
@@ -22,19 +23,8 @@ async function call(path, options) {
 
 const EMPTY = { name: '', category: '', distance: '', description: '', phase: '', x: null, y: null }
 
-/** Full-screen picker: the website's 3D view in pick mode, embedded here. */
-function PositionPicker({ src, clientOrigin, onPick, onClose, value }) {
-  useEffect(() => {
-    const onMessage = (e) => {
-      if (e.origin !== clientOrigin) return
-      const d = e.data
-      if (!d || d.source !== 'ce-3d-layout' || d.type !== 'pick') return
-      if (Number.isFinite(d.x) && Number.isFinite(d.y)) onPick({ x: d.x, y: d.y, phase: d.phase || '' })
-    }
-    window.addEventListener('message', onMessage)
-    return () => window.removeEventListener('message', onMessage)
-  }, [clientOrigin, onPick])
-
+/** Full-screen picker: native 3D layout view in pick mode. */
+function PositionPicker({ property, phase, draft, onPick, onClose, value }) {
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose()
     window.addEventListener('keydown', onKey)
@@ -43,8 +33,8 @@ function PositionPicker({ src, clientOrigin, onPick, onClose, value }) {
 
   const has = Number.isFinite(value?.x) && Number.isFinite(value?.y)
   return (
-    <div className="fixed inset-0 z-[80] bg-slate-900/70 backdrop-blur-sm flex flex-col p-2 sm:p-4" role="dialog" aria-modal="true" aria-label="Pick position on 3D layout">
-      <div className="flex items-center justify-between gap-3 bg-white rounded-t-2xl px-4 py-3">
+    <div className="fixed inset-0 z-[80] bg-slate-900/80 backdrop-blur-sm flex flex-col p-2 sm:p-4" role="dialog" aria-modal="true" aria-label="Pick position on 3D layout">
+      <div className="flex items-center justify-between gap-3 bg-white rounded-t-2xl px-4 py-3 shadow-xs border-b border-slate-100">
         <div className="min-w-0">
           <p className="text-sm font-bold text-slate-900">Pick the position on the 3D layout</p>
           <p className="text-xs text-slate-500 truncate">Drag to look around, then click where the place is. Click again to move it.</p>
@@ -54,16 +44,25 @@ function PositionPicker({ src, clientOrigin, onPick, onClose, value }) {
             type="button"
             onClick={onClose}
             disabled={!has}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#0F3D2E] hover:bg-[#16533D] text-white text-xs font-bold rounded-xl disabled:opacity-40"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#0F3D2E] hover:bg-[#16533D] text-white text-xs font-bold rounded-xl disabled:opacity-40 transition cursor-pointer"
           >
             <Check className="w-4 h-4" /> Use this position
           </button>
-          <button type="button" onClick={onClose} className="p-2 rounded-xl text-slate-500 hover:bg-slate-100" aria-label="Close picker">
+          <button type="button" onClick={onClose} className="p-2 rounded-xl text-slate-500 hover:bg-slate-100 cursor-pointer" aria-label="Close picker">
             <X className="w-4 h-4" />
           </button>
         </div>
       </div>
-      <iframe title="3D layout position picker" src={src} className="flex-1 w-full bg-slate-100 rounded-b-2xl border-0" allow="fullscreen" />
+      <div className="flex-1 w-full relative overflow-hidden rounded-b-2xl bg-[#0d1421]">
+        <Layout3DView
+          project={property}
+          initialPhase={phase}
+          pickMode={true}
+          draft={draft}
+          onPick={onPick}
+          onClose={onClose}
+        />
+      </div>
     </div>
   )
 }
@@ -327,7 +326,16 @@ export default function NearbyPlacesPanel({ open, onClose, property, phases = []
         )}
       </SidePanel>
 
-      {picking && <PositionPicker src={pickerSrc} clientOrigin={clientOrigin} value={form} onPick={onPick} onClose={() => setPicking(false)} />}
+      {picking && (
+        <PositionPicker
+          property={property}
+          phase={form.phase || phaseNames[phaseIndex] || 'Phase 1'}
+          draft={form}
+          value={form}
+          onPick={onPick}
+          onClose={() => setPicking(false)}
+        />
+      )}
     </>
   )
 }

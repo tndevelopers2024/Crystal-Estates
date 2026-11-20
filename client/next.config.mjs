@@ -11,7 +11,10 @@ const nextConfig = {
     ]
   },
   async rewrites() {
-    const serverUrl = process.env.SERVER_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+    const serverUrl =
+      process.env.SERVER_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      (process.env.NODE_ENV === 'production' ? 'https://crystal-estates.onrender.com' : 'http://localhost:5000')
     return [
       {
         source: '/api/:path*',
