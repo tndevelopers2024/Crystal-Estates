@@ -334,8 +334,8 @@ function HistoryTimeline({ entries }) {
 
 /* ─────────────────────────── Plot detail panel ─────────────────────────── */
 const TABS = [
-  { id: 'overview', label: 'Overview', icon: Info },
   { id: 'edit', label: 'Edit details', icon: Pencil },
+  { id: 'overview', label: 'Overview', icon: Info },
   { id: 'booking', label: 'Booking', icon: User },
   { id: 'payments', label: 'Payments', icon: Wallet },
   { id: 'history', label: 'History', icon: History },
@@ -356,7 +356,7 @@ const EMPTY_DETAILS = {
 
 function PlotPanel({ property, plot, isNew, phaseName, existingPlots, onSavePlot, onDeletePlot, onBookingSaved, onClose, actor, onShowToast }) {
   const { confirm } = useDialog()
-  const [tab, setTab] = useState(isNew ? 'edit' : 'overview')
+  const [tab, setTab] = useState('edit')
   const [details, setDetails] = useState(EMPTY_DETAILS)
   const [booking, setBooking] = useState({})
   const [payment, setPayment] = useState({ amount: '', mode: 'Bank transfer', referenceNo: '', paidOn: new Date().toISOString().slice(0, 10), note: '' })
@@ -370,7 +370,7 @@ function PlotPanel({ property, plot, isNew, phaseName, existingPlots, onSavePlot
 
   // Set tab when switching between plots or creating new plot
   useEffect(() => {
-    setTab(isNew ? 'edit' : 'overview')
+    setTab('edit')
     setError(null)
   }, [plot?.uid, isNew])
 
@@ -651,6 +651,90 @@ function PlotPanel({ property, plot, isNew, phaseName, existingPlots, onSavePlot
           </div>
         )}
 
+        {/* Edit details */}
+        {tab === 'edit' && (
+          <div className="space-y-6">
+            <form onSubmit={handleDetailsSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="pp-no" className={labelCls}>Plot number *</label>
+                  <input id="pp-no" className={inputCls} value={details.plotNo} onChange={setD('plotNo')} required placeholder="e.g. 24" />
+                </div>
+                <div>
+                  <label htmlFor="pp-status" className={labelCls}>Status</label>
+                  <select id="pp-status" className={inputCls} value={statusGroup(details.status)} onChange={setD('status')}>
+                    {STATUSES.map((s) => <option key={s.id} value={s.id}>{s.id}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="pp-area" className={labelCls}>Area</label>
+                  <input id="pp-area" className={inputCls} value={details.area} onChange={setD('area')} placeholder="e.g. 1200 sq.ft" />
+                </div>
+                <div>
+                  <label htmlFor="pp-dims" className={labelCls}>Dimensions</label>
+                  <input id="pp-dims" className={inputCls} value={details.dimensions} onChange={setD('dimensions')} placeholder={'e.g. 30\' x 40\''} />
+                </div>
+                <div>
+                  <label htmlFor="pp-facing" className={labelCls}>Facing</label>
+                  <select id="pp-facing" className={inputCls} value={details.facing} onChange={setD('facing')}>
+                    {FACINGS.map((f) => <option key={f} value={f}>{f}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="pp-price" className={labelCls}>List price</label>
+                  <input id="pp-price" className={inputCls} value={details.price} onChange={setD('price')} placeholder="e.g. ₹ 42 Lakhs" />
+                </div>
+                <div>
+                  <label htmlFor="pp-road" className={labelCls}>Road width</label>
+                  <input id="pp-road" className={inputCls} value={details.roadWidth} onChange={setD('roadWidth')} placeholder="e.g. 30 ft" />
+                </div>
+                <div>
+                  <label htmlFor="pp-type" className={labelCls}>Plot type</label>
+                  <select id="pp-type" className={inputCls} value={details.type} onChange={setD('type')}>
+                    {(PLOT_TYPES.includes(details.type) ? PLOT_TYPES : [details.type, ...PLOT_TYPES]).map((t) => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div className="sm:col-span-2">
+                  <label htmlFor="pp-survey" className={labelCls}>Survey number</label>
+                  <input id="pp-survey" className={inputCls} value={details.surveyNo} onChange={setD('surveyNo')} />
+                </div>
+                <div className="sm:col-span-2">
+                  <label htmlFor="pp-path" className={labelCls}>Boundary on layout (SVG path, optional)</label>
+                  <textarea id="pp-path" rows={3} className={`${inputCls} font-mono text-xs`} value={details.svgPath} onChange={setD('svgPath')} placeholder='Paste the d="…" value or a full <path> tag' />
+                  {!cleanPathData(details.svgPath) && <p className="mt-1 text-[11px] text-amber-700">Without a boundary the plot is saved but not drawn on the map.</p>}
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                {!isNew ? (
+                  <button type="button" onClick={handleDelete} disabled={saving} className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl disabled:opacity-50">
+                    <Trash2 className="w-4 h-4" /> Delete plot
+                  </button>
+                ) : <span />}
+                <button type="submit" disabled={saving} className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-[#0F3D2E] hover:bg-[#16533D] text-white text-sm font-bold rounded-xl disabled:opacity-50">
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                  {isNew ? 'Add plot' : 'Save changes'}
+                </button>
+              </div>
+            </form>
+
+            {!isNew && (
+              <div className="pt-4 border-t border-slate-100">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs font-bold text-slate-800 uppercase tracking-wider">Recent activity</p>
+                  <button type="button" onClick={() => setTab('history')} className="text-xs font-bold text-[#0F3D2E] hover:underline">
+                    Full history
+                  </button>
+                </div>
+                {historyLoading ? (
+                  <p className="text-xs text-slate-400 flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading…</p>
+                ) : (
+                  <HistoryTimeline entries={history.activities.slice(0, 3)} />
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Overview */}
         {tab === 'overview' && !isNew && (
           <>
@@ -696,72 +780,6 @@ function PlotPanel({ property, plot, isNew, phaseName, existingPlots, onSavePlot
               )}
             </div>
           </>
-        )}
-
-        {/* Edit details */}
-        {tab === 'edit' && (
-          <form onSubmit={handleDetailsSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="pp-no" className={labelCls}>Plot number *</label>
-                <input id="pp-no" className={inputCls} value={details.plotNo} onChange={setD('plotNo')} required placeholder="e.g. 24" />
-              </div>
-              <div>
-                <label htmlFor="pp-status" className={labelCls}>Status</label>
-                <select id="pp-status" className={inputCls} value={statusGroup(details.status)} onChange={setD('status')}>
-                  {STATUSES.map((s) => <option key={s.id} value={s.id}>{s.id}</option>)}
-                </select>
-              </div>
-              <div>
-                <label htmlFor="pp-area" className={labelCls}>Area</label>
-                <input id="pp-area" className={inputCls} value={details.area} onChange={setD('area')} placeholder="e.g. 1200 sq.ft" />
-              </div>
-              <div>
-                <label htmlFor="pp-dims" className={labelCls}>Dimensions</label>
-                <input id="pp-dims" className={inputCls} value={details.dimensions} onChange={setD('dimensions')} placeholder={'e.g. 30\' x 40\''} />
-              </div>
-              <div>
-                <label htmlFor="pp-facing" className={labelCls}>Facing</label>
-                <select id="pp-facing" className={inputCls} value={details.facing} onChange={setD('facing')}>
-                  {FACINGS.map((f) => <option key={f} value={f}>{f}</option>)}
-                </select>
-              </div>
-              <div>
-                <label htmlFor="pp-price" className={labelCls}>List price</label>
-                <input id="pp-price" className={inputCls} value={details.price} onChange={setD('price')} placeholder="e.g. ₹ 42 Lakhs" />
-              </div>
-              <div>
-                <label htmlFor="pp-road" className={labelCls}>Road width</label>
-                <input id="pp-road" className={inputCls} value={details.roadWidth} onChange={setD('roadWidth')} placeholder="e.g. 30 ft" />
-              </div>
-              <div>
-                <label htmlFor="pp-type" className={labelCls}>Plot type</label>
-                <select id="pp-type" className={inputCls} value={details.type} onChange={setD('type')}>
-                  {(PLOT_TYPES.includes(details.type) ? PLOT_TYPES : [details.type, ...PLOT_TYPES]).map((t) => <option key={t} value={t}>{t}</option>)}
-                </select>
-              </div>
-              <div className="sm:col-span-2">
-                <label htmlFor="pp-survey" className={labelCls}>Survey number</label>
-                <input id="pp-survey" className={inputCls} value={details.surveyNo} onChange={setD('surveyNo')} />
-              </div>
-              <div className="sm:col-span-2">
-                <label htmlFor="pp-path" className={labelCls}>Boundary on layout (SVG path, optional)</label>
-                <textarea id="pp-path" rows={3} className={`${inputCls} font-mono text-xs`} value={details.svgPath} onChange={setD('svgPath')} placeholder='Paste the d="…" value or a full <path> tag' />
-                {!cleanPathData(details.svgPath) && <p className="mt-1 text-[11px] text-amber-700">Without a boundary the plot is saved but not drawn on the map.</p>}
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-              {!isNew ? (
-                <button type="button" onClick={handleDelete} disabled={saving} className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl disabled:opacity-50">
-                  <Trash2 className="w-4 h-4" /> Delete plot
-                </button>
-              ) : <span />}
-              <button type="submit" disabled={saving} className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-[#0F3D2E] hover:bg-[#16533D] text-white text-sm font-bold rounded-xl disabled:opacity-50">
-                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                {isNew ? 'Add plot' : 'Save changes'}
-              </button>
-            </div>
-          </form>
         )}
 
         {/* Booking */}
