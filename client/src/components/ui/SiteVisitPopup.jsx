@@ -202,6 +202,13 @@ export default function SiteVisitPopup() {
   const openModal = () => setIsOpen(true)
   const closeModal = () => setIsOpen(false)
 
+  // Other components open the popup with window.dispatchEvent(new CustomEvent('open-site-visit'))
+  useEffect(() => {
+    const onOpen = () => setIsOpen(true)
+    window.addEventListener('open-site-visit', onOpen)
+    return () => window.removeEventListener('open-site-visit', onOpen)
+  }, [])
+
   // ESC key listener
   useEffect(() => {
     const onKey = (e) => {

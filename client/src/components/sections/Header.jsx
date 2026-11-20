@@ -61,7 +61,7 @@ export default function Header() {
   }, [])
 
   // Dedicated full-page layout viewer renders clean without global navigation menu
-  if (pathname?.startsWith('/layout-viewer')) {
+  if (pathname?.startsWith('/layout-viewer') || /^\/projects\/[^/]+\/3d(\/|$)/.test(pathname || '')) {
     return null
   }
 

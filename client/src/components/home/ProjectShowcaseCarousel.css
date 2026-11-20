@@ -6,7 +6,7 @@
 .ps-slider-section {
   position: relative;
   width: 100%;
-  padding: clamp(60px, 7vw, 100px) 0 clamp(70px, 8vw, 110px);
+  padding: clamp(70px, 8vw, 110px) 0;
   background: var(--ch-paper, #F8F9FA);
   overflow: hidden;
 }
@@ -125,7 +125,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 18px;
+  margin-bottom: 26px;
 }
 
 .ps-slider__drag-pill {
@@ -162,9 +162,7 @@
   overflow-x: auto;
   scroll-behavior: smooth;
   scroll-snap-type: x mandatory;
-  padding: 12px 0 28px;
-  padding-left: clamp(20px, 4vw, calc((100vw - var(--container-max, 1600px)) / 2 + 32px));
-  padding-right: clamp(24px, 6vw, 100px);
+  padding: 16px 6px 36px 6px;
   width: 100%;
   scrollbar-width: none;
   -ms-overflow-style: none;

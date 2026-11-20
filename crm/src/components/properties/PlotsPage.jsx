@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
   Plus,
@@ -990,6 +990,41 @@ export default function PlotsPage({ property, onPropertyUpdated, onShowToast, on
     setSelectedUid(null)
     setCreating(false)
   }, [phaseIdx])
+
+  // Deep link from the website's 3D layout: ?plot=<uid>&plotNo=<no>&phase=<name>
+  const [searchParams, setSearchParams] = useSearchParams()
+  const pendingUid = useRef(null)
+  useEffect(() => {
+    const uid = searchParams.get('plot')
+    const no = searchParams.get('plotNo')
+    if (!uid && !no) return
+    const norm = (v) => String(v ?? '').trim().toLowerCase().replace(/\s+/g, '')
+    const wantPhase = norm(searchParams.get('phase'))
+    const order = phaseLists.map((_, i) => i)
+    if (wantPhase && layoutPhases) {
+      const pi = layoutPhases.findIndex((ph, i) => norm(ph.name || `Phase ${i + 1}`) === wantPhase)
+      if (pi > 0) order.unshift(order.splice(pi, 1)[0])
+    }
+    for (const i of order) {
+      const list = phaseLists[i] || []
+      const hit = (uid && list.find((p) => p.uid === uid)) || (no && list.find((p) => norm(p.plotNo) === norm(no)))
+      if (hit) {
+        pendingUid.current = hit.uid
+        setPhaseIdx(i)
+        break
+      }
+    }
+    const next = new URLSearchParams(searchParams)
+    ;['plot', 'plotNo', 'phase'].forEach((k) => next.delete(k))
+    setSearchParams(next, { replace: true })
+  }, [searchParams, setSearchParams, phaseLists, layoutPhases])
+
+  // Runs after the phase reset above, so the deep-linked plot stays selected
+  useEffect(() => {
+    if (!pendingUid.current || !plots.some((p) => p.uid === pendingUid.current)) return
+    setSelectedUid(pendingUid.current)
+    pendingUid.current = null
+  }, [plots, phaseIdx])
 
   const selected = plots.find((p) => p.uid === selectedUid) || null
   const summary = summarizePlotStatuses(plots)

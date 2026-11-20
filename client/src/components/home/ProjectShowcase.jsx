@@ -260,13 +260,12 @@ export default function ProjectShowcase({ projects = [] }) {
             {items.length} Verified Projects
           </div>
         </div>
-      </div>
 
-      {/* ── 3. Horizontal Scroll / Drag Slider Rail ── */}
-      <div className="ps-slider__viewport">
-        <div
-          ref={trackRef}
-          className="ps-slider__track"
+        {/* ── 3. Horizontal Scroll / Drag Slider Rail ── */}
+        <div className="ps-slider__viewport">
+          <div
+            ref={trackRef}
+            className="ps-slider__track"
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
@@ -404,16 +403,15 @@ export default function ProjectShowcase({ projects = [] }) {
       </div>
 
       {/* ── 4. Bottom Social Proof ── */}
-      <div className="ch-wrap">
-        <div className="ps-slider__foot">
-          <div className="ps-slider__social-proof">
-            <p className="ps-slider__social-text">
-              <strong>1500+</strong> families are <em>satisfied</em> with our verified titles
-              and have created their own dream spaces <em>with us</em>.
-            </p>
-          </div>
+      <div className="ps-slider__foot">
+        <div className="ps-slider__social-proof">
+          <p className="ps-slider__social-text">
+            <strong>1500+</strong> families are <em>satisfied</em> with our verified titles
+            and have created their own dream spaces <em>with us</em>.
+          </p>
         </div>
       </div>
-    </section>
+    </div>
+  </section>
   )
 }

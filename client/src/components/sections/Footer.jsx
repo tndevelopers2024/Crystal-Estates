@@ -84,7 +84,7 @@ export default function Footer() {
   }, [])
 
   // The full-page layout viewer renders without the global footer.
-  if (pathname?.startsWith('/layout-viewer')) return null
+  if (pathname?.startsWith('/layout-viewer') || /^\/projects\/[^/]+\/3d(\/|$)/.test(pathname || '')) return null
 
   const scrollToTop = () => {
     if (window.__lenis) window.__lenis.scrollTo(0)

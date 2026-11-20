@@ -1,0 +1,314 @@
+/* ─────────────────────────────────────────────────────────────
+   Crystal Estates — Six Promises, Kept on Every Plot
+   Staggered Process Flowchart UI inspired by reference image
+   ───────────────────────────────────────────────────────────── */
+
+.sp-section {
+  position: relative;
+  width: 100%;
+  padding: clamp(70px, 8vw, 120px) 0;
+  background: var(--ch-paper, #F8F9FA);
+  overflow: hidden;
+}
+
+/* ── 1. Section Header ── */
+.sp-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 32px;
+  flex-wrap: wrap;
+  margin-bottom: clamp(48px, 6vw, 76px);
+}
+
+.sp-header__left {
+  max-width: 680px;
+}
+
+.sp-header__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #0F3D2E;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+.sp-header__pill-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+}
+
+.sp-header__title {
+  font-family: var(--font-body, 'Montserrat', sans-serif);
+  font-size: clamp(32px, 4.2vw, 54px);
+  font-weight: 800;
+  color: #111827;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  margin: 0 0 16px 0;
+}
+
+.sp-header__desc {
+  font-size: clamp(14px, 1.4vw, 16px);
+  line-height: 1.65;
+  color: #4b5563;
+  margin: 0;
+}
+
+/* Header Right: Timeline / Milestone Indicator (matches reference image) */
+.sp-header__timeline {
+  display: flex;
+  align-items: stretch;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  align-self: center;
+  margin-top: 12px;
+}
+
+.sp-header__time-prev {
+  background: #ffffff;
+  color: #475569;
+  padding: 12px 22px;
+  font-size: 13.5px;
+  font-weight: 600;
+  border: 1px solid #e2e8f0;
+  border-right: none;
+  border-radius: 12px 0 0 12px;
+  display: flex;
+  align-items: center;
+}
+
+.sp-header__time-curr {
+  background: #86efac;
+  color: #0F3D2E;
+  padding: 12px 24px;
+  font-size: 13.5px;
+  font-weight: 800;
+  border-radius: 0 12px 12px 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  letter-spacing: 0.02em;
+}
+
+/* ── 2. Staggered Process Flow ── */
+.sp-flow {
+  position: relative;
+  width: 100%;
+  max-width: 1140px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.sp-row {
+  display: flex;
+  width: 100%;
+  position: relative;
+}
+
+.sp-row--left {
+  justify-content: flex-start;
+}
+
+.sp-row--right {
+  justify-content: flex-end;
+}
+
+/* Connector Path SVG between staggered rows */
+.sp-connector-wrap {
+  width: 100%;
+  height: 52px;
+  position: relative;
+  pointer-events: none;
+}
+
+.sp-connector {
+  position: absolute;
+  top: -12px;
+  height: 74px;
+  width: 180px;
+}
+
+.sp-connector--ltr {
+  left: calc(46% - 50px);
+}
+
+.sp-connector--rtl {
+  right: calc(46% - 50px);
+}
+
+/* ── 3. Step Card Design (matches reference image) ── */
+.sp-card {
+  width: 100%;
+  max-width: 480px;
+  border-radius: 26px;
+  display: flex;
+  align-items: stretch;
+  gap: 20px;
+  padding: 24px;
+  position: relative;
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  box-sizing: border-box;
+}
+
+.sp-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 40px -10px rgba(15, 61, 46, 0.12);
+}
+
+/* Soft sage mint tint card */
+.sp-card--tint {
+  background: #EEF7F2;
+  border: 1px solid rgba(15, 61, 46, 0.1);
+  box-shadow: 0 4px 18px rgba(15, 61, 46, 0.03);
+}
+
+/* Crisp white card */
+.sp-card--white {
+  background: #FFFFFF;
+  border: 1px solid rgba(15, 61, 46, 0.09);
+  box-shadow: 0 6px 24px rgba(15, 61, 46, 0.04);
+}
+
+/* Vertical Capsule Badge on the left of each card */
+.sp-card__capsule {
+  width: 42px;
+  min-width: 42px;
+  background: #0F3D2E;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 16px 0;
+  box-shadow: 0 4px 12px rgba(15, 61, 46, 0.2);
+}
+
+.sp-card__capsule-text {
+  writing-mode: vertical-lr;
+  transform: rotate(180deg);
+  font-family: var(--font-body, 'Montserrat', sans-serif);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #a7f3d0;
+  text-transform: uppercase;
+  white-space: nowrap;
+  user-select: none;
+}
+
+/* Card Content */
+.sp-card__content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.sp-card__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sp-card__icon-box {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(15, 61, 46, 0.07);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0F3D2E;
+  flex-shrink: 0;
+}
+
+.sp-card__title {
+  font-family: var(--font-body, 'Montserrat', sans-serif);
+  font-size: clamp(19px, 2vw, 23px);
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: -0.02em;
+  margin: 0;
+  line-height: 1.25;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.sp-card__num {
+  font-weight: 700;
+  color: #111827;
+}
+
+.sp-card__name {
+  color: #111827;
+}
+
+.sp-card__desc {
+  font-size: 14px;
+  line-height: 1.65;
+  color: #4b5563;
+  margin: 12px 0 0 0;
+}
+
+/* ── 4. Responsive Adaptations ── */
+@media (max-width: 992px) {
+  .sp-flow {
+    gap: 24px;
+  }
+  .sp-row {
+    justify-content: center !important;
+  }
+  .sp-card {
+    max-width: 100%;
+  }
+  .sp-connector-wrap {
+    display: none;
+  }
+  .sp-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+  }
+  .sp-header__timeline {
+    align-self: flex-start;
+  }
+}
+
+@media (max-width: 600px) {
+  .sp-section {
+    padding: 60px 0;
+  }
+  .sp-card {
+    padding: 20px 16px;
+    gap: 14px;
+    border-radius: 20px;
+  }
+  .sp-card__capsule {
+    width: 36px;
+    min-width: 36px;
+    padding: 12px 0;
+  }
+  .sp-card__capsule-text {
+    font-size: 10px;
+  }
+  .sp-card__title {
+    font-size: 18px;
+  }
+  .sp-card__desc {
+    font-size: 13.5px;
+  }
+}

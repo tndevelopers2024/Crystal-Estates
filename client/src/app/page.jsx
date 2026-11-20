@@ -1,6 +1,7 @@
 import HomeHero from '../components/home/HomeHero'
 import ProjectShowcase from '../components/home/ProjectShowcase'
-import Pillars from '../components/home/Pillars'
+import PlotTransformation from '../components/home/PlotTransformation'
+import SixPromises from '../components/home/SixPromises'
 import Journey from '../components/home/Journey'
 import Voices from '../components/home/Voices'
 import Closing from '../components/home/Closing'
@@ -39,7 +40,8 @@ export default async function HomePage() {
       {/* Kept deliberately short: hero, projects to explore, then trust & contact */}
       <HomeHero />
       <ProjectShowcase projects={featured} />
-      <Pillars />
+      <PlotTransformation />
+      <SixPromises />
       <Journey />
       <Voices />
       <Closing />

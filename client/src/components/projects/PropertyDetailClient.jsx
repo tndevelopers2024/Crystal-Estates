@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import Link from 'next/link'
 import {
   MapPin,
   Layers,
@@ -15,9 +16,9 @@ import {
   FileCheck2,
   ShieldCheck,
   Check,
+  Box,
 } from 'lucide-react'
 import EnquiryForm from '../forms/EnquiryForm'
-import { ProjectCard } from './ProjectCard'
 import PlotViewer from '../plot-viewer/PlotViewer'
 import ProjectGallery3D from './ProjectGallery3D'
 import { resolveMapEmbedUrl, resolveMapDirectUrl } from '../../lib/api'
@@ -76,18 +77,6 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
       })
       .catch(() => { })
   }, [initialProject])
-
-  // Related projects (excluding current)
-  const relatedProjects = useMemo(() => {
-    return allProjects
-      .filter(
-        (p) =>
-          p.id !== project.id &&
-          p._id !== project.id &&
-          (!p.slug || p.slug !== project.slug)
-      )
-      .slice(0, 3)
-  }, [allProjects, project])
 
   // ─────────────────────────────────────────────────────────────
   // 1. DYNAMIC SECTION: PROJECT LAYOUT DATA (SUPPORTS MULTIPLE PHASES)
@@ -167,11 +156,22 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
   // ─────────────────────────────────────────────────────────────
   // 2. DYNAMIC SECTION: PROJECT IMAGES & VIDEOS
   // ─────────────────────────────────────────────────────────────
+  const isCadBlueprint = (url) => {
+    if (typeof url !== 'string') return true
+    const lower = url.toLowerCase()
+    return (
+      lower.includes('/plots/plot-') ||
+      lower.endsWith('.svg') ||
+      lower.includes('blueprint') ||
+      lower.includes('cad')
+    )
+  }
+
   const rawImages = [
     ...(Array.isArray(project.images) ? project.images : []),
     ...(Array.isArray(project.gallery) ? project.gallery : []),
     ...(typeof project.image === 'string' ? [project.image] : []),
-  ].filter((img) => typeof img === 'string' && img.trim().length > 0)
+  ].filter((img) => typeof img === 'string' && img.trim().length > 0 && !isCadBlueprint(img))
 
   const projectImages = Array.from(new Set(rawImages))
   const hasImages = projectImages.length > 0
@@ -203,7 +203,7 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
     return true
   })
   const hasVideos = projectVideos.length > 0
-  const hasMedia = hasImages || hasVideos || true
+  const hasMedia = hasImages || hasVideos
 
   const getEmbedVideoUrl = (url) => {
     if (!url) return ''
@@ -331,10 +331,204 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
   const displayImage = project.coverImage || project.image || '/images/hero-bg.jpg'
   const displayPreview = project.layoutPreview || project.layoutImage || displayImage
 
+  // Phase 1 and Phase 2 switch buttons connected to dynamic CRM data
+  const phaseButtons = useMemo(() => {
+    if (layoutPhases && layoutPhases.length >= 2) {
+      return layoutPhases.map((lp, idx) => ({
+        id: lp.id || `phase-${idx + 1}`,
+        index: idx,
+        name: lp.name || `Phase ${idx + 1}`,
+        plotCount: Array.isArray(lp.plots) ? lp.plots.length : 0,
+        isUpcoming: false,
+      }))
+    }
+    return [
+      {
+        id: layoutPhases[0]?.id || 'phase-1',
+        index: 0,
+        name: layoutPhases[0]?.name || 'Phase 1',
+        plotCount: (layoutPhases[0]?.plots && layoutPhases[0].plots.length) || inventory.total || 0,
+        isUpcoming: false,
+      },
+      {
+        id: 'phase-2',
+        index: 1,
+        name: 'Phase 2',
+        plotCount: 0,
+        isUpcoming: true,
+      },
+    ]
+  }, [layoutPhases, inventory.total])
+
+  const [phaseNotice, setPhaseNotice] = useState('')
+
+  const handlePhaseSelectWithNotice = (phaseItem) => {
+    if (phaseItem.isUpcoming) {
+      setPhaseNotice(`Phase 2 layout demarcation for ${project.name} is currently in progress. Phase 1 is open for live reservations.`)
+      setTimeout(() => setPhaseNotice(''), 4500)
+      return
+    }
+    setPhaseNotice('')
+    handlePhaseChange(phaseItem.index)
+  }
+
   return (
     <>
       {/* ────────────────────────────────────────────────────────── */}
-      {/* 1. INTERACTIVE PLOT SELECTION (FIRST ON THE PAGE)          */}
+      {/* 1. EDITORIAL HERO & INTERACTIVE PHASE / 3D CONSOLE (TOP)   */}
+      {/* Matches the Projects Page Top Hero Section UI              */}
+      {/* ────────────────────────────────────────────────────────── */}
+      <section className="ce-projects-editorial-header project-detail-editorial-hero" aria-labelledby="project-editorial-title">
+        <div className="ch-wrap">
+          <div className="ce-projects-editorial-header__grid">
+            <div className="ce-projects-editorial-header__left">
+              <div className="ce-projects-editorial-header__bullet-tag">
+                <span className="ce-projects-editorial-header__bullet" />
+                <span>Crystal Estates · {project.propertyType || project.type || 'Residential'}</span>
+              </div>
+              <h1 id="project-editorial-title" className="ce-projects-editorial-header__headline">
+                {project.name}
+              </h1>
+
+              {/* Status and Approval Pills */}
+              <div className="project-editorial-pills">
+                {project.approval && (
+                  <span className="project-editorial-pill project-editorial-pill--gold">
+                    <ShieldCheck size={14} aria-hidden="true" />
+                    <span>{project.approval}</span>
+                  </span>
+                )}
+                <span
+                  className={`project-editorial-pill ${
+                    isSoldOut ? 'project-editorial-pill--sold' : 'project-editorial-pill--available'
+                  }`}
+                >
+                  <span className="project-editorial-pill__dot" aria-hidden="true" />
+                  <span>{isSoldOut ? 'Sold Out' : (project.status || 'Available')}</span>
+                </span>
+                {currentPhase && (
+                  <span className="project-editorial-pill project-editorial-pill--phase">
+                    <Layers size={13} aria-hidden="true" />
+                    <span>Viewing {currentPhase.name || `Phase ${activePhaseIndex + 1}`}</span>
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="ce-projects-editorial-header__right">
+              <p className="ce-projects-editorial-header__desc">
+                {project.description ||
+                  `Verified ${project.propertyType || project.type || 'residential property'} located in ${project.location || 'Chennai, Tamil Nadu'}. 100% legally clear title patta with complete revenue document verification.`}
+              </p>
+
+              {/* Dynamic specs summary row */}
+              <div className="project-editorial-quick-specs">
+                <div className="project-editorial-quick-spec">
+                  <span className="project-editorial-quick-spec__k">
+                    <MapPin size={13} aria-hidden="true" /> Location
+                  </span>
+                  <span className="project-editorial-quick-spec__v">{project.location || 'Chennai, Tamil Nadu'}</span>
+                </div>
+                <div className="project-editorial-quick-spec">
+                  <span className="project-editorial-quick-spec__k">
+                    <Layers size={13} aria-hidden="true" /> Plot Sizes
+                  </span>
+                  <span className="project-editorial-quick-spec__v">{cleanedArea || '1200 Sq.ft.'}</span>
+                </div>
+                <div className="project-editorial-quick-spec">
+                  <span className="project-editorial-quick-spec__k">
+                    <Compass size={13} aria-hidden="true" /> Facing
+                  </span>
+                  <span className="project-editorial-quick-spec__v">{project.facing || 'East / North'}</span>
+                </div>
+                <div className="project-editorial-quick-spec project-editorial-quick-spec--price">
+                  <span className="project-editorial-quick-spec__k">Price</span>
+                  <span className="project-editorial-quick-spec__v">{formattedPrice}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Interactive Phase Switch & 3D Action Console ── */}
+          <div className="project-editorial-console">
+            {/* Phase 1 & Phase 2 switch buttons */}
+            <div className="project-editorial-console__phase-group">
+              <span className="project-editorial-console__label">Project Phase:</span>
+              <div className="project-phase-switcher" role="tablist" aria-label="Select layout phase">
+                {phaseButtons.map((ph) => {
+                  const isActive = activePhaseIndex === ph.index
+                  return (
+                    <button
+                      key={ph.id || `phase-${ph.index}`}
+                      type="button"
+                      role="tab"
+                      aria-selected={isActive}
+                      onClick={() => handlePhaseSelectWithNotice(ph)}
+                      className={`project-phase-btn ${isActive ? 'project-phase-btn--active' : ''} ${
+                        ph.isUpcoming ? 'project-phase-btn--upcoming' : ''
+                      }`}
+                      title={ph.isUpcoming ? 'Phase 2 layout demarcation underway' : `Switch to ${ph.name}`}
+                    >
+                      <span className="project-phase-btn__dot" />
+                      <span className="project-phase-btn__name">{ph.name}</span>
+                      {ph.plotCount > 0 ? (
+                        <span className="project-phase-btn__count">({ph.plotCount} plots)</span>
+                      ) : ph.isUpcoming ? (
+                        <span className="project-phase-btn__tag">Upcoming</span>
+                      ) : null}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* View in 3D Button (Prominently Highlighted) + Book Visit + WhatsApp */}
+            <div className="project-editorial-console__action-group">
+              <Link
+                href={`/projects/${project.slug || project.id}/3d?phase=${activePhaseIndex + 1}`}
+                className="project-view-3d-btn"
+                title={`Explore ${project.name} ${currentPhase?.name || `Phase ${activePhaseIndex + 1}`} in interactive 3D`}
+              >
+                <span className="project-view-3d-btn__icon-box">
+                  <Box size={17} aria-hidden="true" />
+                </span>
+                <span className="project-view-3d-btn__text-wrap">
+                  <span className="project-view-3d-btn__label">View in 3D</span>
+                  <span className="project-view-3d-btn__badge">Live Walkthrough</span>
+                </span>
+                <ArrowUpRight size={16} className="project-view-3d-btn__arrow" aria-hidden="true" />
+              </Link>
+
+              <PillLink variant="cream" onClick={openSiteVisit} className="project-site-visit-pill">
+                Book a site visit
+              </PillLink>
+
+              <a
+                href={`https://wa.me/${business?.whatsapp || '919444000000'}?text=${encodeURIComponent(
+                  `Hi Crystal Estates, I'm interested in ${project.name} (${currentPhase?.name || `Phase ${activePhaseIndex + 1}`}). Please share availability and pricing.`
+                )}`}
+                target="_blank"
+                rel="noreferrer"
+                className="project-whatsapp-link"
+              >
+                Enquire on WhatsApp
+                <ArrowUpRight size={14} aria-hidden="true" />
+              </a>
+            </div>
+          </div>
+
+          {/* Phase Notice (if Phase 2 is upcoming) */}
+          {phaseNotice && (
+            <div className="project-phase-notice" role="status">
+              <CheckCircle2 size={15} aria-hidden="true" />
+              <span>{phaseNotice}</span>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ────────────────────────────────────────────────────────── */}
+      {/* 2. INTERACTIVE PLOT SELECTION (2D FULL-WIDTH LAYOUT)       */}
       {/* ────────────────────────────────────────────────────────── */}
       <section
         className="project-plot-section project-plot-section--full"
@@ -410,113 +604,6 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
               </div>
             </div>
           )}
-        </div>
-      </section>
-
-      {/* ────────────────────────────────────────────────────────── */}
-      {/* 2. PROJECT OVERVIEW (name, badges, key facts, CTAs)        */}
-      {/* ────────────────────────────────────────────────────────── */}
-      <section className="project-overview" aria-labelledby="project-overview-title">
-        <div className="project-overview__inner">
-          <div className="project-overview__intro">
-            <Eyebrow className="ch-eyebrow--light">
-              Assets Creator · {project.type || 'Project'}
-            </Eyebrow>
-
-            <h1 id="project-overview-title" className="project-overview__title">
-              {project.name}
-            </h1>
-
-            <div className="project-overview__badges">
-              {project.approval && (
-                <span className="project-overview__badge project-overview__badge--gold">
-                  <ShieldCheck size={14} aria-hidden="true" />
-                  {project.approval}
-                </span>
-              )}
-              <span
-                className={`project-overview__badge ${
-                  isSoldOut ? 'project-overview__badge--sold' : 'project-overview__badge--live'
-                }`}
-              >
-                <span className="project-overview__dot" aria-hidden="true" />
-                {isSoldOut ? 'Sold Out' : project.status || 'Available'}
-              </span>
-            </div>
-
-            <p className="project-overview__desc">
-              {project.description ||
-                `Verified ${project.type || 'property'} located in ${project.location || 'Chennai'}. 100% legally clear title patta with complete revenue document verification.`}
-            </p>
-
-            <div className="project-overview__actions">
-              <PillLink variant="cream" onClick={openSiteVisit}>
-                Book a site visit
-              </PillLink>
-              <a
-                href={`https://wa.me/${business?.whatsapp || '919444000000'}?text=${encodeURIComponent(
-                  `Hi, I'm interested in ${project.name}. Please share plot availability and pricing.`,
-                )}`}
-                target="_blank"
-                rel="noreferrer"
-                className="ch-textlink ch-textlink--light"
-              >
-                Enquire on WhatsApp
-                <ArrowUpRight size={16} aria-hidden="true" />
-              </a>
-            </div>
-          </div>
-
-          <aside className="project-overview__card" aria-label={`${project.name} key facts`}>
-            <dl className="project-overview__facts">
-              <div className="project-overview__fact">
-                <dt>
-                  <MapPin size={15} aria-hidden="true" />
-                  Location
-                </dt>
-                <dd>{project.location || 'Chennai, Tamil Nadu'}</dd>
-              </div>
-              <div className="project-overview__fact">
-                <dt>
-                  <Layers size={15} aria-hidden="true" />
-                  Plot sizes
-                </dt>
-                <dd>{project.area || project.plotSizes || 'On request'}</dd>
-              </div>
-              <div className="project-overview__fact">
-                <dt>
-                  <Compass size={15} aria-hidden="true" />
-                  Facing
-                </dt>
-                <dd>{project.facing || 'Multiple'}</dd>
-              </div>
-              <div className="project-overview__fact project-overview__fact--price">
-                <dt>Price</dt>
-                <dd>{formattedPrice}</dd>
-              </div>
-            </dl>
-
-            {inventory.total > 0 && (
-              <div className="project-overview__stock">
-                <div className="project-overview__stock-head">
-                  <span>
-                    <strong>{inventory.available}</strong> of {inventory.total} plots available
-                  </span>
-                  <span>{Math.round((inventory.available / inventory.total) * 100)}%</span>
-                </div>
-                <div
-                  className="project-overview__stock-bar"
-                  role="progressbar"
-                  aria-label="Plots available"
-                  aria-valuemin={0}
-                  aria-valuemax={inventory.total}
-                  aria-valuenow={inventory.available}
-                >
-                  <span style={{ width: `${(inventory.available / inventory.total) * 100}%` }} />
-                </div>
-              </div>
-            )}
-          </aside>
         </div>
       </section>
 
@@ -875,33 +962,6 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
           </div>
         </div>
       </section>
-
-      {/* ────────────────────────────────────────────────────────── */}
-      {/* 6. SIMILAR LAND OPPORTUNITIES (DEDICATED SECTION)          */}
-      {/* ────────────────────────────────────────────────────────── */}
-      {relatedProjects.length > 0 && (
-        <section className="project-detail-section project-detail-section--warm">
-          <div className="project-detail-container">
-            <div className="project-section-header">
-              <span className="project-section-eyebrow">
-                SIMILAR LAND OPPORTUNITIES
-              </span>
-              <h2 className="project-section-title">
-                Other Approved Plots &amp; Farmland in Chennai
-              </h2>
-              <p className="project-section-subtitle">
-                Explore more verified residential plotted developments and managed agro-forestry farmland across Chennai growth corridors.
-              </p>
-            </div>
-
-            <div className="project-similar-grid">
-              {relatedProjects.map((rel, relIdx) => (
-                <ProjectCard key={rel.id || rel._id || rel.slug || `rel-${relIdx}`} project={rel} />
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* ────────────────────────────────────────────────────────── */}
       {/* IMAGE LIGHTBOX MODAL                                       */}

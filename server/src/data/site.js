@@ -49,7 +49,7 @@ export const searchOptions = {
   locations: [],
   types: ['All Types', 'Farm Land', 'Residential Plot', 'Agricultural', 'Bulk land'],
   ],
-  types: ['All Types', 'Farm Land', 'Residential Plot'],
+types: ['All Types', 'Farm Land', 'Residential Plot'],
   budgets: [
     { label: 'Any budget', max: Infinity },
     { label: 'Under ₹50 Lakh', max: 5000000 },
@@ -57,12 +57,12 @@ export const searchOptions = {
     { label: 'Under ₹1 Crore', max: 10000000 },
     { label: 'Above ₹1 Crore', max: Infinity, min: 10000000 },
   ],
-  sizes: [
-    { label: 'Any size', min: 0, max: Infinity },
-    { label: 'Quarter Acre / 1000 sq.ft', min: 0, max: 11000 },
-    { label: 'Half Acre / 20000 sq.ft', min: 11000, max: 22000 },
-    { label: '1 Acre+ / Farm Plot', min: 22000, max: Infinity },
-  ],
+    sizes: [
+      { label: 'Any size', min: 0, max: Infinity },
+      { label: 'Quarter Acre / 1000 sq.ft', min: 0, max: 11000 },
+      { label: 'Half Acre / 20000 sq.ft', min: 11000, max: 22000 },
+      { label: '1 Acre+ / Farm Plot', min: 22000, max: Infinity },
+    ],
 }
 
 // Why Sandalwood & Farm Land (Section 3 & 4 of Brief)
