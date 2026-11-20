@@ -191,6 +191,8 @@ app.get('/api/health', async (req, res) => {
     res.json({
       status: 'ok',
       database: 'connected',
+      version: '1.2.0',
+      routes: ['documents', 'customers', 'crm-options', 'plot-activity', 'users', 'auth'],
       timestamp: new Date().toISOString(),
     })
   } catch (err) {

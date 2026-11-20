@@ -416,6 +416,8 @@ export default function DocumentsPage({ leads = [], properties = [], onShowToast
   const [documents, setDocuments] = useState([])
   const [payments, setPayments] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [serverNeedsUpdate, setServerNeedsUpdate] = useState(false)
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
   const [projectFilter, setProjectFilter] = useState('')
@@ -423,11 +425,17 @@ export default function DocumentsPage({ leads = [], properties = [], onShowToast
 
   const load = useCallback(async () => {
     setLoading(true)
+    setError(null)
+    setServerNeedsUpdate(false)
     try {
       const [d, p] = await Promise.all([fetchDocuments(), fetchAllPayments()])
-      setDocuments(d.documents || [])
-      setPayments(p.payments || [])
+      if (d?.serverNeedsUpdate) {
+        setServerNeedsUpdate(true)
+      }
+      setDocuments(d?.documents || [])
+      setPayments(p?.payments || [])
     } catch (err) {
+      setError(err.message || 'Failed to load documents')
       onShowToast?.(err.message, 'error')
     } finally {
       setLoading(false)
@@ -527,6 +535,25 @@ export default function DocumentsPage({ leads = [], properties = [], onShowToast
           </button>
         ))}
       </div>
+
+      {serverNeedsUpdate && (
+        <div role="alert" className="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-sm text-amber-900 flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 shrink-0 text-amber-600 mt-0.5" />
+          <div className="space-y-1">
+            <p className="font-semibold text-amber-900">API Server Redeploy Required</p>
+            <p className="text-amber-700 text-xs leading-relaxed">
+              The live backend on Render (<code>https://crystal-estates.onrender.com</code>) is running a previous deployment without the <code>/api/documents</code> route. Please redeploy the latest commit on Render to enable live document saving and sharing.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {error && !serverNeedsUpdate && (
+        <div role="alert" className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-700 flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
 
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
         <div className="p-3 border-b border-slate-100 grid grid-cols-1 md:grid-cols-[1fr_220px_220px] gap-2">

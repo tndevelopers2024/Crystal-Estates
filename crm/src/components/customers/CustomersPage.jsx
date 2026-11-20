@@ -204,8 +204,16 @@ export default function CustomersPage({ onShowToast }) {
         </div>
 
         {error && (
-          <div role="alert" className="m-4 p-3 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-700 flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0" /> {error}
+          <div role="alert" className="m-4 p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-700 flex items-start gap-2.5">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <div className="font-semibold">{error}</div>
+              {/redeploy the server/i.test(error) && (
+                <div className="text-xs text-rose-600 leading-relaxed">
+                  The backend service on Render needs to be updated with the latest code. In Render dashboard: open <strong>crystal-estates-server</strong> &rarr; click <strong>Manual Deploy</strong> &rarr; <strong>Deploy latest commit</strong>.
+                </div>
+              )}
+            </div>
           </div>
         )}
 

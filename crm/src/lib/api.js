@@ -598,8 +598,14 @@ export async function fetchDocuments(filters = {}) {
   const params = new URLSearchParams()
   Object.entries(filters).forEach(([k, v]) => v && params.set(k, v))
   const res = await fetch(getApiUrl(`/api/documents?${params.toString()}`))
-  if (!res.ok) throw new Error(`Failed to load documents: HTTP ${res.status}`)
-  return await res.json()
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    if (res.status === 404 && /route not found/i.test(String(data?.error || ''))) {
+      return { success: true, documents: [], serverNeedsUpdate: true }
+    }
+    throw apiError(res, data, 'Failed to load documents')
+  }
+  return data
 }
 
 export async function renderDocumentPreview(draft) {
@@ -627,7 +633,7 @@ export async function createDocument(draft) {
 export async function deleteDocument(id) {
   const res = await fetch(getApiUrl(`/api/documents/${encodeURIComponent(id)}`), { method: 'DELETE' })
   const data = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error(data.error || `Failed to delete document: HTTP ${res.status}`)
+  if (!res.ok) throw apiError(res, data, 'Failed to delete document')
   return data
 }
 
