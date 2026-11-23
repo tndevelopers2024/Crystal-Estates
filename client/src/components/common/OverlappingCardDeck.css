@@ -1,0 +1,324 @@
+/* ─────────────────────────────────────────────────────────────
+   OverlappingCardDeck.css — Modern Layered Card Deck & Fan
+   Inspired by Aave Labs with Crystal Estates Luxury Aesthetics
+   ───────────────────────────────────────────────────────────── */
+
+.ocd-wrapper {
+  position: relative;
+  width: 100%;
+  padding: 20px 0 30px;
+  overflow: visible;
+}
+
+/* ── Desktop Deck Container ─────────────────────────────────── */
+.ocd-deck {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  min-height: 480px;
+  padding: 40px 20px;
+  overflow: visible;
+  perspective: 1200px;
+}
+
+/* ── Individual Card ────────────────────────────────────────── */
+.ocd-card {
+  position: relative;
+  flex: 0 0 clamp(270px, 23vw, 320px);
+  width: clamp(270px, 23vw, 320px);
+  min-height: clamp(390px, 32vw, 440px);
+  background: #ffffff;
+  border-radius: 28px;
+  border: 1px solid rgba(15, 61, 46, 0.08);
+  box-shadow: 
+    0 16px 36px -12px rgba(10, 38, 29, 0.08),
+    0 4px 16px rgba(0, 0, 0, 0.02);
+  padding: clamp(26px, 2.4vw, 32px) clamp(22px, 2vw, 28px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  cursor: pointer;
+  user-select: none;
+  transform-origin: center bottom;
+  will-change: transform, box-shadow, z-index;
+  transition: 
+    transform 0.45s cubic-bezier(0.2, 0.9, 0.3, 1),
+    box-shadow 0.45s cubic-bezier(0.2, 0.9, 0.3, 1),
+    border-color 0.35s ease,
+    opacity 0.35s ease;
+}
+
+/* Negative overlap between cards in desktop view */
+.ocd-card + .ocd-card {
+  margin-left: clamp(-72px, -5.2vw, -45px);
+}
+
+/* ── Top Ambient Aura Glow ──────────────────────────────────── */
+.ocd-card__aura {
+  position: absolute;
+  top: -40px;
+  left: -20px;
+  right: -20px;
+  height: 180px;
+  border-radius: 50%;
+  filter: blur(36px);
+  opacity: 0.7;
+  pointer-events: none;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.ocd-card:hover .ocd-card__aura,
+.ocd-card.is-active .ocd-card__aura {
+  opacity: 1;
+  transform: scale(1.15);
+}
+
+/* ── Header: Icon Box & Number ──────────────────────────────── */
+.ocd-card__header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  z-index: 2;
+}
+
+.ocd-card__icon-box {
+  width: 52px;
+  height: 52px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 8px 20px -6px rgba(15, 61, 46, 0.1);
+  transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1), box-shadow 0.4s ease;
+}
+
+.ocd-card:hover .ocd-card__icon-box,
+.ocd-card.is-active .ocd-card__icon-box {
+  transform: scale(1.1) translateY(-2px);
+  box-shadow: 0 12px 24px -6px rgba(15, 61, 46, 0.18);
+}
+
+.ocd-card__num {
+  font-family: inherit;
+  font-size: 38px;
+  font-weight: 300;
+  line-height: 1;
+  color: var(--ch-gold, #C5A880);
+  letter-spacing: -0.03em;
+  opacity: 0.9;
+  transition: transform 0.35s ease, opacity 0.35s ease;
+}
+
+.ocd-card:hover .ocd-card__num,
+.ocd-card.is-active .ocd-card__num {
+  opacity: 1;
+  transform: scale(1.06);
+}
+
+/* ── Middle Body: Title, Hairline & Description ─────────────── */
+.ocd-card__body {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  z-index: 2;
+}
+
+.ocd-card__title {
+  font-size: clamp(18px, 1.4vw, 21px);
+  font-weight: 700;
+  line-height: 1.25;
+  color: #0A261D;
+  margin: 0 0 12px;
+  letter-spacing: -0.02em;
+  transition: color 0.3s ease;
+}
+
+.ocd-card:hover .ocd-card__title,
+.ocd-card.is-active .ocd-card__title {
+  color: #0F3D2E;
+}
+
+.ocd-card__hairline {
+  width: 28px;
+  height: 2px;
+  background: var(--ch-gold, #C5A880);
+  border-radius: 2px;
+  margin-bottom: 14px;
+  transition: width 0.4s cubic-bezier(0.2, 0.9, 0.3, 1), background-color 0.3s ease;
+}
+
+.ocd-card:hover .ocd-card__hairline,
+.ocd-card.is-active .ocd-card__hairline {
+  width: 48px;
+  background: #0F3D2E;
+}
+
+.ocd-card__text {
+  font-size: clamp(13px, 1.05vw, 14.2px);
+  line-height: 1.65;
+  color: #4A6358;
+  margin: 0;
+  letter-spacing: -0.005em;
+  transition: color 0.3s ease;
+}
+
+.ocd-card:hover .ocd-card__text,
+.ocd-card.is-active .ocd-card__text {
+  color: #2D433A;
+}
+
+/* ── Footer: Trust Badge / Pill ─────────────────────────────── */
+.ocd-card__footer {
+  position: relative;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px dashed rgba(15, 61, 46, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 2;
+}
+
+.ocd-card__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #0F3D2E;
+  background: rgba(15, 61, 46, 0.04);
+  padding: 5px 12px;
+  border-radius: 9999px;
+  border: 1px solid rgba(15, 61, 46, 0.06);
+  transition: all 0.35s ease;
+}
+
+.ocd-card:hover .ocd-card__pill,
+.ocd-card.is-active .ocd-card__pill {
+  background: #0F3D2E;
+  color: #ffffff;
+  border-color: #0F3D2E;
+}
+
+.ocd-card__arrow {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(15, 61, 46, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0F3D2E;
+  opacity: 0.6;
+  transform: translateX(-4px);
+  transition: all 0.35s ease;
+}
+
+.ocd-card:hover .ocd-card__arrow,
+.ocd-card.is-active .ocd-card__arrow {
+  opacity: 1;
+  transform: translateX(0);
+  background: var(--ch-gold, #C5A880);
+  color: #ffffff;
+}
+
+/* ── Hovered Card Elevation ─────────────────────────────────── */
+.ocd-card.is-hovered {
+  border-color: rgba(197, 168, 128, 0.6) !important;
+  box-shadow: 
+    0 32px 64px -16px rgba(10, 38, 29, 0.2),
+    0 12px 28px -6px rgba(197, 168, 128, 0.28),
+    0 0 0 1px rgba(197, 168, 128, 0.5) !important;
+}
+
+/* ── Mobile Snap Carousel Indicators ───────────────────────── */
+.ocd-dots {
+  display: none;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.ocd-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: rgba(15, 61, 46, 0.2);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.ocd-dot.is-active {
+  width: 24px;
+  background: #0F3D2E;
+}
+
+/* ── Tablet Adjustments (769px - 1024px) ────────────────────── */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .ocd-deck {
+    min-height: 440px;
+    padding: 30px 10px;
+  }
+  .ocd-card {
+    flex: 0 0 250px;
+    width: 250px;
+    min-height: 380px;
+    padding: 22px 18px;
+  }
+  .ocd-card + .ocd-card {
+    margin-left: -40px;
+  }
+}
+
+/* ── Mobile Adjustments (<= 768px) ─────────────────────────── */
+@media (max-width: 768px) {
+  .ocd-deck {
+    display: flex;
+    justify-content: flex-start;
+    align-items: stretch;
+    min-height: auto;
+    padding: 16px 20px 24px;
+    overflow-x: auto;
+    overflow-y: visible;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    gap: 16px;
+    scrollbar-width: none;
+  }
+  .ocd-deck::-webkit-scrollbar {
+    display: none;
+  }
+  .ocd-card {
+    flex: 0 0 min(82vw, 320px) !important;
+    width: min(82vw, 320px) !important;
+    min-height: 370px !important;
+    scroll-snap-align: center;
+    margin-left: 0 !important;
+    transform: none !important;
+    opacity: 1 !important;
+    box-shadow: 0 12px 28px -10px rgba(10, 38, 29, 0.12) !important;
+  }
+  .ocd-card:active {
+    transform: scale(0.98) !important;
+  }
+  .ocd-dots {
+    display: flex;
+  }
+}

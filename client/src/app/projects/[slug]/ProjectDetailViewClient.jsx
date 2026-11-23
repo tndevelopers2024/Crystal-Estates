@@ -9,6 +9,7 @@ import {
 import { LocationsMarquee } from '../../../components/home/Manifesto'
 import Voices from '../../../components/home/Voices'
 import Closing from '../../../components/home/Closing'
+import OverlappingCardDeck from '../../../components/common/OverlappingCardDeck'
 import '../../../components/home/home.css'
 import './project-detail.css'
 
@@ -57,15 +58,7 @@ export default function ProjectDetailViewClient({ initialProject, staticAllProje
             </h2>
           </div>
 
-          <div className="ch-about-shield__steps">
-            {GUARANTEES.map((g, idx) => (
-              <Reveal key={`guarantee-${g.num || idx}`} delay={idx * 0.1} className="ch-about-shield-step">
-                <div className="ch-about-shield-step__num">{g.num}</div>
-                <h4>{g.title}</h4>
-                <p>{g.text}</p>
-              </Reveal>
-            ))}
-          </div>
+          <OverlappingCardDeck items={GUARANTEES} />
         </div>
       </section>
 

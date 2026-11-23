@@ -8,6 +8,7 @@ import { Reveal, openSiteVisit } from '../../components/home/motion'
 import { LocationsMarquee } from '../../components/home/Manifesto'
 import Voices from '../../components/home/Voices'
 import Closing from '../../components/home/Closing'
+import OverlappingCardDeck from '../../components/common/OverlappingCardDeck'
 import '../../components/home/home.css'
 import './gallery.css'
 
@@ -103,15 +104,7 @@ export default function GalleryClient({ initialPlots = [] }) {
             </h2>
           </div>
 
-          <div className="ch-about-shield__steps">
-            {QUALITY_PILLARS.map((p, idx) => (
-              <Reveal key={p.num} delay={idx * 0.1} className="ch-about-shield-step">
-                <div className="ch-about-shield-step__num">{p.num}</div>
-                <h4>{p.title}</h4>
-                <p>{p.text}</p>
-              </Reveal>
-            ))}
-          </div>
+          <OverlappingCardDeck items={QUALITY_PILLARS} />
         </div>
       </section>
 

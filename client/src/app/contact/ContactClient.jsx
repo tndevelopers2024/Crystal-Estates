@@ -24,6 +24,7 @@ import { LocationsMarquee } from '../../components/home/Manifesto'
 import Voices from '../../components/home/Voices'
 import Closing from '../../components/home/Closing'
 import EnquiryForm from '../../components/forms/EnquiryForm'
+import OverlappingCardDeck from '../../components/common/OverlappingCardDeck'
 import { business } from '../../data/site'
 import '../../components/home/home.css'
 import './contact.css'
@@ -304,15 +305,7 @@ export default function ContactClient() {
             </h2>
           </div>
 
-          <div className="ch-about-shield__steps">
-            {VISIT_PROMISES.map((p, idx) => (
-              <Reveal key={p.num} delay={idx * 0.1} className="ch-about-shield-step">
-                <div className="ch-about-shield-step__num">{p.num}</div>
-                <h4>{p.title}</h4>
-                <p>{p.text}</p>
-              </Reveal>
-            ))}
-          </div>
+          <OverlappingCardDeck items={VISIT_PROMISES} />
         </div>
       </section>
 

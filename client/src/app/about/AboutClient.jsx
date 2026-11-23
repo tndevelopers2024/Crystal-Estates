@@ -26,6 +26,7 @@ import {
 import { LocationsMarquee } from '../../components/home/Manifesto'
 import Voices from '../../components/home/Voices'
 import Closing from '../../components/home/Closing'
+import OverlappingCardDeck from '../../components/common/OverlappingCardDeck'
 import { CountUp } from '../../components/ui'
 import '../../components/home/home.css'
 import './about.css'
@@ -462,15 +463,7 @@ export default function AboutClient() {
               Four steps kept on <span className="ch-accent">every plot.</span>
             </h2>
           </div>
-          <div className="ch-about-shield__steps">
-            {SHIELD_STEPS.map((step, idx) => (
-              <Reveal key={step.num} delay={idx * 0.1} className="ch-about-shield-step">
-                <div className="ch-about-shield-step__num">{step.num}</div>
-                <h4>{step.title}</h4>
-                <p>{step.text}</p>
-              </Reveal>
-            ))}
-          </div>
+          <OverlappingCardDeck items={SHIELD_STEPS} />
         </div>
       </section>
 

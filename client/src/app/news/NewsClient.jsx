@@ -28,6 +28,7 @@ import {
 import { LocationsMarquee } from '../../components/home/Manifesto'
 import Voices from '../../components/home/Voices'
 import Closing from '../../components/home/Closing'
+import OverlappingCardDeck from '../../components/common/OverlappingCardDeck'
 import '../../components/home/home.css'
 import './news.css'
 
@@ -404,15 +405,7 @@ export default function NewsClient({ initialArticles = [] }) {
             </h2>
           </div>
 
-          <div className="ch-about-shield__steps">
-            {EDITORIAL_PRINCIPLES.map((p, idx) => (
-              <Reveal key={p.num} delay={idx * 0.1} className="ch-about-shield-step">
-                <div className="ch-about-shield-step__num">{p.num}</div>
-                <h4>{p.title}</h4>
-                <p>{p.text}</p>
-              </Reveal>
-            ))}
-          </div>
+          <OverlappingCardDeck items={EDITORIAL_PRINCIPLES} />
         </div>
       </section>
 
