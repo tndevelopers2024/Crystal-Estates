@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useRef, useEffect, useState, useCallback } from 'react'
+import React, { useRef, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { ArrowRight, MapPin, Layers, Trees, ShieldCheck, Compass } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { openSiteVisit } from './motion'
 
 const TOTAL_FRAMES = 150
@@ -118,7 +118,7 @@ export default function HomeHero() {
       renderFrame(0)
     }
 
-    // Background progressive loading
+    // Background progressive loading in batches
     let nextIdx = 1
     const loadBatch = (batchSize = 8) => {
       if (cancelled || nextIdx >= TOTAL_FRAMES) return
@@ -188,7 +188,7 @@ export default function HomeHero() {
       )
       renderFrame(frameIdx)
 
-      // Drive content cards transitions smoothly
+      // Drive content blocks transitions smoothly
       STAGE_CONFIGS.forEach((cfg, idx) => {
         const el = stageRefs.current[idx]
         if (!el) return
@@ -260,13 +260,13 @@ export default function HomeHero() {
         {/* 10% subtle dark overlay */}
         <div className="ch-hero__overlay-10" aria-hidden="true" />
 
-        {/* Dynamic Vignette Shades for optimal contrast */}
+        {/* Subtle Vignette Shades for optimal contrast over scenery */}
         <div className="ch-hero__shade" aria-hidden="true" />
         <div className="ch-hero__shade-top" aria-hidden="true" />
 
         {/* ─────────────────────────────────────────────────────────────
-            STAGE 1 (Bottom-Left) — Primary Minimal Hero Statement
-            Matches Reference Image 2
+            STAGE 1 (Bottom-Left) — Building the future that you can own
+            Matches Reference Image 1 exactly
             ───────────────────────────────────────────────────────────── */}
         <div
           ref={(el) => {
@@ -274,7 +274,7 @@ export default function HomeHero() {
           }}
           className="ch-hero__stage ch-hero__stage--bottom-left"
         >
-          <div className="ch-hero__left-content">
+          <div className="ch-hero__block">
             <h1 className="ch-hero__headline">
               Building the future<br />that you can own.
             </h1>
@@ -299,8 +299,8 @@ export default function HomeHero() {
         </div>
 
         {/* ─────────────────────────────────────────────────────────────
-            STAGE 2 (Top-Right) — Connectivity & Access
-            Matches Reference Image 1
+            STAGE 2 (Top-Right) — Demarcated roads & direct highway reach
+            Clean, minimal typography directly over background
             ───────────────────────────────────────────────────────────── */}
         <div
           ref={(el) => {
@@ -309,33 +309,33 @@ export default function HomeHero() {
           className="ch-hero__stage ch-hero__stage--top-right"
           style={{ opacity: 0, visibility: 'hidden' }}
         >
-          <div className="ch-hero__glass-card">
-            <div className="ch-hero__card-top">
-              <span className="ch-hero__card-step">02</span>
-              <span className="ch-hero__card-badge">Connectivity &amp; Access</span>
-            </div>
-            <h2 className="ch-hero__card-title">
-              Demarcated Roads &amp; Direct Highway Reach
+          <div className="ch-hero__block">
+            <h2 className="ch-hero__headline">
+              Demarcated roads &amp;<br />direct highway reach.
             </h2>
-            <p className="ch-hero__card-desc">
-              Motorable 40-ft and 30-ft blacktop avenues branching directly through mature tree canopies, providing instant access to growth corridors.
+            <p className="ch-hero__lead">
+              Motorable 40-ft and 30-ft blacktop avenues branching through mature tree canopies with instant corridor access.
             </p>
-            <div className="ch-hero__card-pills">
-              <span className="ch-hero__pill">
-                <MapPin size={13} className="ch-hero__pill-icon" />
-                <span>40ft &amp; 30ft Blacktop Roads</span>
-              </span>
-              <span className="ch-hero__pill">
-                <Layers size={13} className="ch-hero__pill-icon" />
-                <span>CMDA &amp; DTCP Norms</span>
-              </span>
+            <div className="ch-hero__actions">
+              <button
+                type="button"
+                onClick={openSiteVisit}
+                className="ch-hero__cta-primary"
+                aria-label="Get In Touch"
+              >
+                Get In Touch
+              </button>
+              <Link href="/projects" className="ch-hero__cta-secondary" aria-label="Explore Plots">
+                <span>Explore plots</span>
+                <ArrowRight size={15} />
+              </Link>
             </div>
           </div>
         </div>
 
         {/* ─────────────────────────────────────────────────────────────
-            STAGE 3 (Bottom-Left) — Topography & Sweet Water
-            Alternates back to Bottom-Left
+            STAGE 3 (Bottom-Left) — Fertile ground & abundant sweet water
+            Clean, minimal typography directly over background
             ───────────────────────────────────────────────────────────── */}
         <div
           ref={(el) => {
@@ -344,33 +344,33 @@ export default function HomeHero() {
           className="ch-hero__stage ch-hero__stage--bottom-left"
           style={{ opacity: 0, visibility: 'hidden' }}
         >
-          <div className="ch-hero__glass-card">
-            <div className="ch-hero__card-top">
-              <span className="ch-hero__card-step">03</span>
-              <span className="ch-hero__card-badge">Topography &amp; Ecology</span>
-            </div>
-            <h2 className="ch-hero__card-title">
-              Fertile Ground &amp; Abundant Potable Water
+          <div className="ch-hero__block">
+            <h2 className="ch-hero__headline">
+              Fertile ground &amp;<br />abundant sweet water.
             </h2>
-            <p className="ch-hero__card-desc">
-              Naturally elevated, flood-resilient terrain blessed with sweet groundwater tables, surrounded by permanent green buffer zones.
+            <p className="ch-hero__lead">
+              Naturally elevated, flood-resilient terrain with sweet groundwater tables, rich soil, and green buffer zones.
             </p>
-            <div className="ch-hero__card-pills">
-              <span className="ch-hero__pill">
-                <Trees size={13} className="ch-hero__pill-icon" />
-                <span>Sweet Water Table</span>
-              </span>
-              <span className="ch-hero__pill">
-                <ShieldCheck size={13} className="ch-hero__pill-icon" />
-                <span>Flood-Free Natural Elevation</span>
-              </span>
+            <div className="ch-hero__actions">
+              <button
+                type="button"
+                onClick={openSiteVisit}
+                className="ch-hero__cta-primary"
+                aria-label="Get In Touch"
+              >
+                Get In Touch
+              </button>
+              <Link href="/projects" className="ch-hero__cta-secondary" aria-label="Explore Plots">
+                <span>Explore plots</span>
+                <ArrowRight size={15} />
+              </Link>
             </div>
           </div>
         </div>
 
         {/* ─────────────────────────────────────────────────────────────
-            STAGE 4 (Top-Right) — Asset Creation & Final CTA
-            Alternates back to Top-Right
+            STAGE 4 (Top-Right) — Your legacy demarcated on ground
+            Clean, minimal typography directly over background
             ───────────────────────────────────────────────────────────── */}
         <div
           ref={(el) => {
@@ -379,46 +379,29 @@ export default function HomeHero() {
           className="ch-hero__stage ch-hero__stage--top-right"
           style={{ opacity: 0, visibility: 'hidden' }}
         >
-          <div className="ch-hero__glass-card">
-            <div className="ch-hero__card-top">
-              <span className="ch-hero__card-step">04</span>
-              <span className="ch-hero__card-badge">Asset Creation</span>
-            </div>
-            <h2 className="ch-hero__card-title">
-              Your Legacy Demarcated on Ground
+          <div className="ch-hero__block">
+            <h2 className="ch-hero__headline">
+              Your legacy<br />demarcated on ground.
             </h2>
-            <p className="ch-hero__card-desc">
-              Physically marked boundary stones, transparent developer pricing, on-the-spot registration, and assisted individual patta transfer.
+            <p className="ch-hero__lead">
+              Physically marked boundary stones, transparent developer pricing, spot registration, and assisted patta transfer.
             </p>
-            <div className="ch-hero__card-pills">
-              <span className="ch-hero__pill">
-                <ShieldCheck size={13} className="ch-hero__pill-icon" />
-                <span>Spot Registration Guidance</span>
-              </span>
-              <span className="ch-hero__pill">
-                <Compass size={13} className="ch-hero__pill-icon" />
-                <span>Individual Patta Assistance</span>
-              </span>
-            </div>
-            <div className="ch-hero__card-actions">
-              <Link href="/projects" className="ch-hero__cta-primary" aria-label="Explore All Plots">
-                <span>Explore plots</span>
-                <ArrowRight size={15} style={{ marginLeft: 6 }} />
-              </Link>
+            <div className="ch-hero__actions">
               <button
                 type="button"
                 onClick={openSiteVisit}
-                className="ch-hero__cta-secondary"
+                className="ch-hero__cta-primary"
                 aria-label="Get In Touch"
               >
                 Get In Touch
               </button>
+              <Link href="/projects" className="ch-hero__cta-secondary" aria-label="Explore Plots">
+                <span>Explore plots</span>
+                <ArrowRight size={15} />
+              </Link>
             </div>
           </div>
         </div>
-
-        {/* Subtle Bottom Progress Track */}
-        <div className="ch-hero__track" aria-hidden="true" />
       </div>
     </section>
   )

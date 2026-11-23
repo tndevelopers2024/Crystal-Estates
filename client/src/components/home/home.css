@@ -219,34 +219,45 @@ button.ch-pill {
   pointer-events: none;
 }
 
-/* Subtle bottom gradient to ensure text readability over scenery */
+/* Subtle bottom-left and top-right gradients to ensure high-contrast readability directly over scenery */
 .ch-hero__shade {
   position: absolute;
   inset: 0;
   z-index: -1;
-  background: linear-gradient(
-    180deg,
-    transparent 35%,
-    rgba(8, 22, 16, 0.35) 60%,
-    rgba(8, 22, 16, 0.85) 100%
-  );
+  background:
+    radial-gradient(
+      ellipse 65% 55% at 10% 90%,
+      rgba(4, 14, 9, 0.78) 0%,
+      rgba(4, 14, 9, 0.4) 55%,
+      transparent 80%
+    ),
+    linear-gradient(
+      180deg,
+      transparent 50%,
+      rgba(4, 14, 9, 0.45) 75%,
+      rgba(4, 14, 9, 0.85) 100%
+    );
   pointer-events: none;
 }
 
-/* Top shade for top-right cards */
+/* Top shade for top-right stages */
 .ch-hero__shade-top {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 48%;
+  inset: 0;
   z-index: -1;
-  background: linear-gradient(
-    180deg,
-    rgba(8, 22, 16, 0.65) 0%,
-    rgba(8, 22, 16, 0.2) 65%,
-    transparent 100%
-  );
+  background:
+    radial-gradient(
+      ellipse 65% 55% at 90% 12%,
+      rgba(4, 14, 9, 0.78) 0%,
+      rgba(4, 14, 9, 0.38) 55%,
+      transparent 80%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(4, 14, 9, 0.6) 0%,
+      rgba(4, 14, 9, 0.2) 35%,
+      transparent 60%
+    );
   pointer-events: none;
 }
 
@@ -260,142 +271,39 @@ button.ch-pill {
 }
 
 .ch-hero__stage--bottom-left {
-  bottom: clamp(36px, 5.5vh, 76px);
-  left: clamp(20px, 4.5vw, 64px);
+  bottom: clamp(36px, 6vh, 80px);
+  left: clamp(24px, 5vw, 72px);
   top: auto;
   right: auto;
 }
 
 .ch-hero__stage--top-right {
-  top: clamp(80px, 11vh, 120px);
-  right: clamp(20px, 4.5vw, 64px);
+  top: clamp(96px, 12vh, 130px);
+  right: clamp(24px, 5vw, 72px);
   bottom: auto;
   left: auto;
 }
 
-.ch-hero__content {
-  position: relative;
-  z-index: 10;
-  width: 100%;
-  max-width: var(--container-max, 1600px);
-  margin: 0 auto;
-  padding: 0 clamp(20px, 4.5vw, 64px) clamp(44px, 6vw, 84px);
-}
-
-.ch-hero__left-content {
-  max-width: 780px;
-}
-
-/* Glass card matching user Reference Image 1 */
-.ch-hero__glass-card {
-  width: clamp(340px, 32vw, 470px);
-  padding: clamp(22px, 2.4vw, 32px);
-  background: rgba(13, 38, 28, 0.88);
-  backdrop-filter: blur(28px) saturate(180%);
-  -webkit-backdrop-filter: blur(28px) saturate(180%);
-  border: 1px solid rgba(184, 150, 78, 0.28);
-  border-radius: 24px;
-  box-shadow:
-    0 24px 60px -15px rgba(0, 0, 0, 0.75),
-    0 0 35px -8px rgba(184, 150, 78, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+.ch-hero__block {
+  max-width: clamp(320px, 46vw, 740px);
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  color: #ffffff;
-}
-
-.ch-hero__card-top {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.ch-hero__card-step {
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  color: var(--ch-gold, #b8964e);
-  background: rgba(184, 150, 78, 0.12);
-  border: 1px solid rgba(184, 150, 78, 0.35);
-  padding: 3px 10px;
-  border-radius: 8px;
-}
-
-.ch-hero__card-badge {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: #c9dbd1;
-}
-
-.ch-hero__card-title {
-  margin: 0;
-  font-size: clamp(22px, 2vw, 28px);
-  font-weight: 700;
-  line-height: 1.25;
-  color: #ffffff;
-  letter-spacing: -0.015em;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
-}
-
-.ch-hero__card-desc {
-  margin: 0;
-  font-size: clamp(14px, 1.05vw, 15px);
-  line-height: 1.58;
-  color: #d1ddd6;
-  font-weight: 400;
-}
-
-.ch-hero__card-pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 4px;
-}
-
-.ch-hero__pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 6px 13px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(184, 150, 78, 0.22);
-  border-radius: 999px;
-  color: #f3efe4;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-}
-
-.ch-hero__pill-icon {
-  color: var(--ch-gold, #b8964e);
-}
-
-.ch-hero__card-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 6px;
-  padding-top: 14px;
-  border-top: 1px solid rgba(184, 150, 78, 0.18);
 }
 
 .ch-hero__headline {
   font-family: var(--font-montserrat, Montserrat, system-ui, sans-serif);
-  font-size: clamp(38px, 5.5vw, 76px);
+  font-size: clamp(38px, 5.2vw, 74px);
   font-weight: 700;
-  line-height: 1.05;
+  line-height: 1.06;
   letter-spacing: -0.035em;
   color: #ffffff;
   margin: 0 0 16px;
-  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.35);
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.45);
 }
 
 .ch-hero__lead {
-  font-size: clamp(15px, 1.35vw, 19px);
+  font-family: var(--font-outfit, Outfit, system-ui, sans-serif);
+  font-size: clamp(15px, 1.3vw, 19px);
   line-height: 1.55;
   color: rgba(255, 255, 255, 0.92);
   margin: 0 0 28px;
@@ -423,14 +331,16 @@ button.ch-pill {
   font-weight: 700;
   border: none;
   cursor: pointer;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.22);
   transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  text-decoration: none;
 }
 
 .ch-hero__cta-primary:hover {
   background: #f8fafc;
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32);
+  color: #111827;
 }
 
 .ch-hero__cta-secondary {
@@ -449,12 +359,51 @@ button.ch-pill {
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   transition: background 0.2s, transform 0.2s;
+  cursor: pointer;
 }
 
 .ch-hero__cta-secondary:hover {
   background: rgba(255, 255, 255, 0.22);
   transform: translateY(-2px);
   color: #ffffff;
+}
+
+@media (max-width: 860px) {
+  .ch-hero__stage--bottom-left {
+    bottom: clamp(24px, 4vh, 44px);
+    left: clamp(16px, 4vw, 24px);
+    right: clamp(16px, 4vw, 24px);
+  }
+
+  .ch-hero__stage--top-right {
+    top: clamp(86px, 11vh, 100px);
+    left: clamp(16px, 4vw, 24px);
+    right: clamp(16px, 4vw, 24px);
+  }
+
+  .ch-hero__block {
+    max-width: 100%;
+  }
+
+  .ch-hero__headline {
+    font-size: clamp(30px, 7vw, 44px);
+    margin-bottom: 12px;
+  }
+
+  .ch-hero__lead {
+    font-size: clamp(14px, 3.5vw, 16px);
+    margin-bottom: 20px;
+  }
+
+  .ch-hero__actions {
+    gap: 12px;
+  }
+
+  .ch-hero__cta-primary,
+  .ch-hero__cta-secondary {
+    padding: 10px 20px;
+    font-size: 13.5px;
+  }
 }
 
 /* ── 2. Manifesto ─────────────────────────────────────────── */
