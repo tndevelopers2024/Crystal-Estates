@@ -1,9 +1,6 @@
 'use client'
 
 import React, { useRef, useEffect, useCallback } from 'react'
-import Link from 'next/link'
-import { ArrowRight } from 'lucide-react'
-import { openSiteVisit } from './motion'
 
 const TOTAL_FRAMES = 150
 
@@ -266,7 +263,7 @@ export default function HomeHero() {
 
         {/* ─────────────────────────────────────────────────────────────
             STAGE 1 (Bottom-Left) — Building the future that you can own
-            Matches Reference Image 1 exactly
+            Clean, minimal text-only UI
             ───────────────────────────────────────────────────────────── */}
         <div
           ref={(el) => {
@@ -281,26 +278,12 @@ export default function HomeHero() {
             <p className="ch-hero__lead">
               We create CMDA &amp; DTCP approved plotted communities and clear-title lands across Chennai.
             </p>
-            <div className="ch-hero__actions">
-              <button
-                type="button"
-                onClick={openSiteVisit}
-                className="ch-hero__cta-primary"
-                aria-label="Get In Touch"
-              >
-                Get In Touch
-              </button>
-              <Link href="/projects" className="ch-hero__cta-secondary" aria-label="Explore Plots">
-                <span>Explore plots</span>
-                <ArrowRight size={15} />
-              </Link>
-            </div>
           </div>
         </div>
 
         {/* ─────────────────────────────────────────────────────────────
             STAGE 2 (Top-Right) — Demarcated roads & direct highway reach
-            Clean, minimal typography directly over background
+            Clean, minimal text-only UI
             ───────────────────────────────────────────────────────────── */}
         <div
           ref={(el) => {
@@ -316,26 +299,12 @@ export default function HomeHero() {
             <p className="ch-hero__lead">
               Motorable 40-ft and 30-ft blacktop avenues branching through mature tree canopies with instant corridor access.
             </p>
-            <div className="ch-hero__actions">
-              <button
-                type="button"
-                onClick={openSiteVisit}
-                className="ch-hero__cta-primary"
-                aria-label="Get In Touch"
-              >
-                Get In Touch
-              </button>
-              <Link href="/projects" className="ch-hero__cta-secondary" aria-label="Explore Plots">
-                <span>Explore plots</span>
-                <ArrowRight size={15} />
-              </Link>
-            </div>
           </div>
         </div>
 
         {/* ─────────────────────────────────────────────────────────────
             STAGE 3 (Bottom-Left) — Fertile ground & abundant sweet water
-            Clean, minimal typography directly over background
+            Clean, minimal text-only UI
             ───────────────────────────────────────────────────────────── */}
         <div
           ref={(el) => {
@@ -351,26 +320,12 @@ export default function HomeHero() {
             <p className="ch-hero__lead">
               Naturally elevated, flood-resilient terrain with sweet groundwater tables, rich soil, and green buffer zones.
             </p>
-            <div className="ch-hero__actions">
-              <button
-                type="button"
-                onClick={openSiteVisit}
-                className="ch-hero__cta-primary"
-                aria-label="Get In Touch"
-              >
-                Get In Touch
-              </button>
-              <Link href="/projects" className="ch-hero__cta-secondary" aria-label="Explore Plots">
-                <span>Explore plots</span>
-                <ArrowRight size={15} />
-              </Link>
-            </div>
           </div>
         </div>
 
         {/* ─────────────────────────────────────────────────────────────
             STAGE 4 (Top-Right) — Your legacy demarcated on ground
-            Clean, minimal typography directly over background
+            Clean, minimal text-only UI
             ───────────────────────────────────────────────────────────── */}
         <div
           ref={(el) => {
@@ -386,20 +341,6 @@ export default function HomeHero() {
             <p className="ch-hero__lead">
               Physically marked boundary stones, transparent developer pricing, spot registration, and assisted patta transfer.
             </p>
-            <div className="ch-hero__actions">
-              <button
-                type="button"
-                onClick={openSiteVisit}
-                className="ch-hero__cta-primary"
-                aria-label="Get In Touch"
-              >
-                Get In Touch
-              </button>
-              <Link href="/projects" className="ch-hero__cta-secondary" aria-label="Explore Plots">
-                <span>Explore plots</span>
-                <ArrowRight size={15} />
-              </Link>
-            </div>
           </div>
         </div>
       </div>
