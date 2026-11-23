@@ -579,8 +579,9 @@ export default class PlotScene {
   /** Framing of the whole globe (apparent radius INTRO_GLOBE_R) for the current screen shape. */
   _idleCamera() {
     const G = INTRO_GLOBE_R
-    const vfov = THREE.MathUtils.degToRad(this.camera.fov)
-    const hfov = 2 * Math.atan(Math.tan(vfov / 2) * this.camera.aspect)
+    const vfov = THREE.MathUtils.degToRad(this.camera?.fov || 38)
+    const aspect = Math.max(this.camera?.aspect || 1.6, 0.2)
+    const hfov = 2 * Math.atan(Math.tan(vfov / 2) * aspect)
     const dist = (G * 1.32) / Math.sin(Math.min(vfov, hfov) / 2)
     const target = new THREE.Vector3(0, -G, 0)
     // Well above the equator so the pin (north pole) faces the viewer
@@ -729,6 +730,7 @@ export default class PlotScene {
 
   _finishIntro() {
     const st = this.introState
+    if (!st) return
     this.globe?.dispose()
     this.globe = null
     this.group.scale.setScalar(1)
@@ -738,8 +740,8 @@ export default class PlotScene {
     })
     if (this.labelPlane) this.labelPlane.material.opacity = 1
     this._applyIntroColors(1)
-    this.camera.position.copy(st.finalPos)
-    this.controls.target.copy(st.finalTarget)
+    if (st.finalPos) this.camera.position.copy(st.finalPos)
+    if (st.finalTarget) this.controls.target.copy(st.finalTarget)
     this.introState = null
     this.controls.enabled = true
     if (this.selected >= 0 && this.selMesh) {

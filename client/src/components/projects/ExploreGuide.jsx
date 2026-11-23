@@ -199,15 +199,18 @@ export default function ExploreGuide({ href, projectName }) {
      down the page so it never sits on top of other sections' content */
   const [away, setAway] = useState(false)
   useEffect(() => {
-    const targets = [stageRef.current?.closest('section'), document.getElementById('plot-section')].filter(Boolean)
+    const heroSection = stageRef.current?.closest('section')
+    const plotSection = document.getElementById('plot-section')
+    const targets = [heroSection, plotSection].filter(Boolean)
     if (!targets.length) return undefined
-    const visible = new Map()
+    // Start visible; only mark away if both sections are scrolled out of view
+    const visible = new Map(targets.map((t) => [t, true]))
     const io = new IntersectionObserver(
       (entries) => {
         entries.forEach((en) => visible.set(en.target, en.isIntersecting))
         setAway(![...visible.values()].some(Boolean))
       },
-      { threshold: 0.05 },
+      { threshold: 0.01 },
     )
     targets.forEach((t) => io.observe(t))
     return () => io.disconnect()
@@ -217,16 +220,27 @@ export default function ExploreGuide({ href, projectName }) {
   useEffect(() => {
     const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
     let t = 0
+    let safety = 0
+    let attempts = 0
     const wait = () => {
       const pre = document.getElementById('pre')
-      if (pre && !pre.classList.contains('done')) {
+      if (pre && !pre.classList.contains('done') && attempts < 8) {
+        attempts += 1
         t = setTimeout(wait, 250)
         return
       }
-      t = setTimeout(() => setPhase(reduce ? 'ready' : 'walking'), reduce ? 0 : 700)
+      t = setTimeout(() => {
+        setPhase(reduce ? 'ready' : 'walking')
+        if (!reduce) {
+          safety = setTimeout(() => setPhase('ready'), 3500)
+        }
+      }, reduce ? 0 : 500)
     }
     wait()
-    return () => clearTimeout(t)
+    return () => {
+      clearTimeout(t)
+      clearTimeout(safety)
+    }
   }, [])
 
   // After the CSS walk finishes, hand position over to the drag transform
