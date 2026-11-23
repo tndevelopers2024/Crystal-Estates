@@ -137,7 +137,7 @@ function GuideCharacter({ mood }) {
 
 const DEFAULT_MSG = (
   <>
-    You can view this project in <b>3D Plot Layout!</b>
+    You can view this project in <b>3D Plot Layout</b>
   </>
 )
 
