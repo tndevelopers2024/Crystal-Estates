@@ -1,5 +1,6 @@
 import HomeHero from '../components/home/HomeHero'
 import ProjectShowcase from '../components/home/ProjectShowcase'
+import FrameScrollSequence from '../components/home/FrameScrollSequence'
 import PlotTransformation from '../components/home/PlotTransformation'
 import SixPromises from '../components/home/SixPromises'
 import Journey from '../components/home/Journey'
@@ -40,6 +41,7 @@ export default async function HomePage() {
       {/* Kept deliberately short: hero, projects to explore, then trust & contact */}
       <HomeHero />
       <ProjectShowcase projects={featured} />
+      <FrameScrollSequence />
       <PlotTransformation />
       <SixPromises />
       <Journey />
