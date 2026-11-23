@@ -3,7 +3,7 @@
    (with a bounce) and tapped to open the 3D layout. */
 .ce-guide {
   --guide-w: 112px;
-  --guide-stop: calc(50% - 200px);
+  --guide-stop: 0px;
   --guide-green: var(--ch-green, #0f3d2e);
   position: relative;
   height: 176px;
@@ -137,7 +137,7 @@
 @keyframes ce-guide-fade { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
 
 @media (max-width: 1023px) {
-  .ce-guide { --guide-stop: 6%; }
+  .ce-guide { --guide-stop: 0px; }
 }
 @media (max-width: 640px) {
   .ce-guide { --guide-w: 88px; --guide-stop: 0px; height: 146px; }
