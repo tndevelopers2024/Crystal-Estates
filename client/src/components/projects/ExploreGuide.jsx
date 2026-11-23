@@ -180,30 +180,53 @@ export default function ExploreGuide({ href, projectName }) {
     setFlip(pos.current.x + charW + bubbleW + 16 > stage.clientWidth)
   }, [])
 
+  // Draggable anywhere on screen: x across the stage, y up to the top of the viewport
   const bounds = useCallback(() => {
     const stage = stageRef.current
-    const el = walkerRef.current
-    const charW = el?.querySelector('.ce-guide__char')?.offsetWidth || 100
-    const section = stage?.closest('section')
-    const lift = section ? stage.getBoundingClientRect().bottom - section.getBoundingClientRect().top - 60 : 200
-    return { minX: 0, maxX: Math.max(0, (stage?.clientWidth || 300) - charW), minY: -Math.max(80, lift), maxY: 0 }
+    const char = walkerRef.current?.querySelector('.ce-guide__char')
+    const charW = char?.offsetWidth || 100
+    const charH = char?.offsetHeight || 130
+    const groundY = stage ? stage.getBoundingClientRect().bottom : window.innerHeight
+    return {
+      minX: 0,
+      maxX: Math.max(0, (stage?.clientWidth || 300) - charW),
+      minY: -Math.max(0, groundY - charH - 8),
+      maxY: 0,
+    }
   }, [])
 
-  /* Walk in when the stage scrolls into view */
+  /* Only around the project header and plot layout: it steps aside further
+     down the page so it never sits on top of other sections' content */
+  const [away, setAway] = useState(false)
   useEffect(() => {
-    const el = stageRef.current
-    if (!el) return undefined
-    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    const targets = [stageRef.current?.closest('section'), document.getElementById('plot-section')].filter(Boolean)
+    if (!targets.length) return undefined
+    const visible = new Map()
     const io = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry.isIntersecting) return
-        io.disconnect()
-        setPhase(reduce ? 'ready' : 'walking')
+      (entries) => {
+        entries.forEach((en) => visible.set(en.target, en.isIntersecting))
+        setAway(![...visible.values()].some(Boolean))
       },
-      { threshold: 0.35 },
+      { threshold: 0.05 },
     )
-    io.observe(el)
+    targets.forEach((t) => io.observe(t))
     return () => io.disconnect()
+  }, [])
+
+  /* Walk into the corner once the site's splash screen (#pre) has gone */
+  useEffect(() => {
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    let t = 0
+    const wait = () => {
+      const pre = document.getElementById('pre')
+      if (pre && !pre.classList.contains('done')) {
+        t = setTimeout(wait, 250)
+        return
+      }
+      t = setTimeout(() => setPhase(reduce ? 'ready' : 'walking'), reduce ? 0 : 700)
+    }
+    wait()
+    return () => clearTimeout(t)
   }, [])
 
   // After the CSS walk finishes, hand position over to the drag transform
@@ -231,24 +254,14 @@ export default function ExploreGuide({ href, projectName }) {
   useEffect(() => {
     const onResize = () => {
       if (phase !== 'ready') return
-      const el = walkerRef.current
-      if (!el) return
-      // If at rest, stay firmly anchored to the bottom-left corner
-      if (state === 'rest' && pos.current.y === 0) {
-        el.style.left = ''
-        const newTarget = el.offsetLeft
-        el.style.left = '0px'
-        pos.current.x = newTarget
-      } else {
-        const b = bounds()
-        pos.current.x = Math.min(Math.max(pos.current.x, b.minX), b.maxX)
-      }
+      const b = bounds()
+      pos.current.x = Math.min(Math.max(pos.current.x, b.minX), b.maxX)
       apply()
       updateFlip()
     }
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
-  }, [phase, apply, bounds, updateFlip, state])
+  }, [phase, apply, bounds, updateFlip])
 
   useEffect(
     () => () => {
@@ -369,7 +382,7 @@ export default function ExploreGuide({ href, projectName }) {
   const message = msg || DEFAULT_MSG
 
   return (
-    <div ref={stageRef} className={`ce-guide ce-guide--${phase} ce-guide--${state}`}>
+    <div ref={stageRef} className={`ce-guide ce-guide--${phase} ce-guide--${state}${away && state === 'rest' ? ' is-away' : ''}`}>
       <div
         ref={walkerRef}
         className={`ce-guide__walker${flip ? ' is-flipped' : ''}`}

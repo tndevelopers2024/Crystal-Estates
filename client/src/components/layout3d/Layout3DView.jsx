@@ -76,7 +76,6 @@ export default function Layout3DView({ project: initialProject }) {
   const markerEls = useRef(new Map())
   const placesRef = useRef([])
   const draftRef = useRef(draft)
-  const viewRef = useRef(null)
   const selectedKeyRef = useRef(null)
   const [svgSource, setSvgSource] = useState(null) // { key, text } — the file is only read, never written
   const [plots, setPlots] = useState([]) // [{no,key}] aligned with scene indices
@@ -168,95 +167,133 @@ export default function Layout3DView({ project: initialProject }) {
   }, [svgSource, phaseKey, geomKey])
   const layoutError = layout && !layout.plots.length ? 'This layout has no plot boundaries yet.' : ''
 
-  /* ───── Build the Three.js scene ───── */
+  /* ───── Build the Three.js scene ─────
+     The scene starts as soon as the page opens: a globe spins while the
+     layout loads, then unfolds into the site and the plots rise. Pick mode
+     (CRM) and reduced-motion visitors go straight to the layout. */
+  const PlotSceneRef = useRef(null)
+  const loadedPhaseRef = useRef(null)
+  const [sceneGen, setSceneGen] = useState(0)
+  // Decided once: the globe intro runs unless the CRM picker or reduced motion is in play
+  const [introWanted] = useState(() => !pickMode && !(typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches))
+  const [intro, setIntro] = useState(() => (introWanted ? 'idle' : 'none')) // none | idle | unfold | done
+  const loadedLayoutRef = useRef(null)
+
+  const createScene = (PlotScene, withIntro) =>
+    new PlotScene(stageRef.current, {
+      intro: withIntro,
+      onIntro: (stage) => setIntro(stage),
+      onHover: (i, pt) => {
+        if (i < 0 || !pt) return setHover(null)
+        const rect = stageRef.current.getBoundingClientRect()
+        setHover({ i, x: pt.x - rect.left, y: pt.y - rect.top })
+      },
+      onSelect: (i) => {
+        setActivePlace(null)
+        setSelected(i)
+      },
+      pickMode,
+      onPick: ({ x, y }) => {
+        const next = { ...(draftRef.current || {}), x: Math.round(x * 100) / 100, y: Math.round(y * 100) / 100 }
+        draftRef.current = next
+        setDraft(next)
+        if (window.parent !== window) {
+          window.parent.postMessage({ source: 'ce-3d-layout', type: 'pick', x: next.x, y: next.y, phase: phase?.name || '' }, pickOrigin)
+        }
+      },
+      onFrame: (s) => {
+        // No pinned label while the globe is unfolding
+        const pt = s.introState ? null : s.selectedScreenPoint()
+        const el = labelRef.current
+        if (el) {
+          // Hide the pin while it would sit under the top panels
+          const top = topRef.current
+          const topSafe = top ? top.getBoundingClientRect().bottom - stageRef.current.getBoundingClientRect().top + 40 : 0
+          if (pt && pt.y > topSafe) {
+            el.style.transform = `translate(${pt.x}px, ${pt.y}px) translate(-50%, -100%)`
+            el.style.opacity = '1'
+          } else el.style.opacity = '0'
+        }
+        // Nearby place markers (and the draft marker in pick mode)
+        const top = topRef.current
+        const safe = top ? top.getBoundingClientRect().bottom - stageRef.current.getBoundingClientRect().top + 8 : 0
+        const place = (el, x, y) => {
+          const at = Number.isFinite(x) && Number.isFinite(y) ? s.projectSvg(x, y, 6) : null
+          if (!at || at.y < safe) {
+            el.style.opacity = '0'
+            el.style.pointerEvents = 'none'
+            return
+          }
+          el.style.transform = `translate(${at.x}px, ${at.y}px) translate(-50%, -100%)`
+          el.style.opacity = '1'
+          el.style.pointerEvents = ''
+        }
+        for (const pl of placesRef.current) {
+          const el = markerEls.current.get(pl.id)
+          if (el) place(el, pl.x, pl.y)
+        }
+        const dEl = markerEls.current.get('__draft')
+        if (dEl && draftRef.current) place(dEl, draftRef.current.x, draftRef.current.y)
+        if (needleRef.current) needleRef.current.style.transform = `rotate(${(-s.getAzimuth() * 180) / Math.PI}deg)`
+        const dot = miniDotRef.current
+        if (dot) {
+          const t = s.cameraTargetSvg()
+          const vb = s.viewBox
+          dot.style.left = `${((t.x - vb.x) / vb.width) * 100}%`
+          dot.style.top = `${((t.y - vb.y) / vb.height) * 100}%`
+        }
+      },
+    })
+
+  // Scene (with the spinning globe) as soon as the page mounts
   useEffect(() => {
-    if (!layout || !layout.plots.length || !stageRef.current) return undefined
-    let scene
     let cancelled = false
+    const withIntro = introWanted
     import('./PlotScene').then(({ default: PlotScene }) => {
       if (cancelled || !stageRef.current) return
-      scene = new PlotScene(stageRef.current, {
-        onHover: (i, pt) => {
-          if (i < 0 || !pt) return setHover(null)
-          const rect = stageRef.current.getBoundingClientRect()
-          setHover({ i, x: pt.x - rect.left, y: pt.y - rect.top })
-        },
-        onSelect: (i) => {
-          setActivePlace(null)
-          setSelected(i)
-        },
-        pickMode,
-        onPick: ({ x, y }) => {
-          const next = { ...(draftRef.current || {}), x: Math.round(x * 100) / 100, y: Math.round(y * 100) / 100 }
-          draftRef.current = next
-          setDraft(next)
-          if (window.parent !== window) {
-            window.parent.postMessage({ source: 'ce-3d-layout', type: 'pick', x: next.x, y: next.y, phase: phase?.name || '' }, pickOrigin)
-          }
-        },
-        onFrame: (s) => {
-          const pt = s.selectedScreenPoint()
-          const el = labelRef.current
-          if (el) {
-            // Hide the pin while it would sit under the top panels
-            const top = topRef.current
-            const topSafe = top ? top.getBoundingClientRect().bottom - stageRef.current.getBoundingClientRect().top + 40 : 0
-            if (pt && pt.y > topSafe) {
-              el.style.transform = `translate(${pt.x}px, ${pt.y}px) translate(-50%, -100%)`
-              el.style.opacity = '1'
-            } else el.style.opacity = '0'
-          }
-          // Nearby place markers (and the draft marker in pick mode)
-          const top = topRef.current
-          const safe = top ? top.getBoundingClientRect().bottom - stageRef.current.getBoundingClientRect().top + 8 : 0
-          const place = (el, x, y) => {
-            const at = Number.isFinite(x) && Number.isFinite(y) ? s.projectSvg(x, y, 6) : null
-            if (!at || at.y < safe) {
-              el.style.opacity = '0'
-              el.style.pointerEvents = 'none'
-              return
-            }
-            el.style.transform = `translate(${at.x}px, ${at.y}px) translate(-50%, -100%)`
-            el.style.opacity = '1'
-            el.style.pointerEvents = ''
-          }
-          for (const pl of placesRef.current) {
-            const el = markerEls.current.get(pl.id)
-            if (el) place(el, pl.x, pl.y)
-          }
-          const dEl = markerEls.current.get('__draft')
-          if (dEl && draftRef.current) place(dEl, draftRef.current.x, draftRef.current.y)
-          if (needleRef.current) needleRef.current.style.transform = `rotate(${(-s.getAzimuth() * 180) / Math.PI}deg)`
-          const dot = miniDotRef.current
-          if (dot) {
-            const t = s.cameraTargetSvg()
-            const vb = s.viewBox
-            dot.style.left = `${((t.x - vb.x) / vb.width) * 100}%`
-            dot.style.top = `${((t.y - vb.y) / vb.height) * 100}%`
-          }
-        },
-      })
-      const built = scene.load(layout)
-      sceneRef.current = scene
-      // Same phase rebuilt with new geometry from the CRM: keep the visitor's view
-      if (viewRef.current?.phaseKey === phaseKey) scene.setView(viewRef.current.view)
-      else if (pickMode && draftRef.current && Number.isFinite(draftRef.current.x)) scene.panToSvg(draftRef.current.x, draftRef.current.y)
-      if (process.env.NODE_ENV !== 'production') window.__plotScene = scene
-      const list = built.map((p) => ({ no: p.no, key: p.key, d: p.d }))
-      setPlots(list)
-      // Keep the open plot selected even if its index moved
-      const keep = selectedKeyRef.current ? list.findIndex((p) => p.key === selectedKeyRef.current) : -1
-      setSelected(keep >= 0 ? keep : null)
-      setLoading(false)
+      PlotSceneRef.current = PlotScene
+      sceneRef.current = createScene(PlotScene, withIntro)
+      setSceneGen((n) => n + 1)
     })
     return () => {
       cancelled = true
-      if (scene?.viewBox) viewRef.current = { phaseKey, view: scene.getView() }
+      sceneRef.current?.dispose()
       sceneRef.current = null
-      scene?.dispose()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [layout])
+  }, [])
+
+  // Load the layout into it (first time: the globe unfolds; later: rebuild in place)
+  useEffect(() => {
+    const PlotScene = PlotSceneRef.current
+    let scene = sceneRef.current
+    if (!layout || !layout.plots.length || !PlotScene || !scene) return
+    if (loadedLayoutRef.current === layout) return
+    // Newer geometry arrived while the globe is unfolding: apply it once the intro ends
+    if (scene.viewBox && scene.introState) return
+    let restore = null
+    if (scene.viewBox) {
+      // Already showing a layout — new geometry from the CRM or another phase.
+      // Same phase keeps the visitor's camera.
+      if (loadedPhaseRef.current === phaseKey) restore = scene.getView()
+      scene.dispose()
+      scene = createScene(PlotScene, false)
+      sceneRef.current = scene
+    }
+    const built = scene.load(layout)
+    loadedLayoutRef.current = layout
+    loadedPhaseRef.current = phaseKey
+    if (restore) scene.setView(restore)
+    else if (pickMode && draftRef.current && Number.isFinite(draftRef.current.x)) scene.panToSvg(draftRef.current.x, draftRef.current.y)
+    if (process.env.NODE_ENV !== 'production') window.__plotScene = scene
+    const list = built.map((p) => ({ no: p.no, key: p.key, d: p.d }))
+    setPlots(list)
+    // Keep the open plot selected even if its index moved
+    const keep = selectedKeyRef.current ? list.findIndex((p) => p.key === selectedKeyRef.current) : -1
+    setSelected(keep >= 0 ? keep : null)
+    setLoading(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layout, sceneGen, intro])
 
   /* ───── Live status: poll the API and refresh on focus ───── */
   const refresh = useCallback(async () => {
@@ -560,8 +597,17 @@ export default function Layout3DView({ project: initialProject }) {
     setFacingFilter('all')
   }
 
+  // While the globe spins (data loading) a quiet caption replaces the old spinner
+  const introCaption =
+    intro === 'idle' && !error && !layoutError ? (
+      <p className="l3d-intro-caption" role="status">
+        <span className="l3d-intro-caption__dot" aria-hidden="true" />
+        Locating {projectName}…
+      </p>
+    ) : null
+
   return (
-    <div ref={rootRef} className={cls('l3d', (sel || placeSel) && 'has-sel', statsOpen && 'stats-open', filtersOpen && 'filters-open', pickMode && 'is-picking')}>
+    <div ref={rootRef} className={cls('l3d', (sel || placeSel) && 'has-sel', statsOpen && 'stats-open', filtersOpen && 'filters-open', pickMode && 'is-picking', (intro === 'idle' || intro === 'unfold') && 'is-intro')}>
       <div ref={stageRef} className="l3d-stage" onPointerDown={() => filtersOpen && setFiltersOpen(false)} />
 
       <PlaceMarkers places={visiblePlaces} activeId={activePlace} onSelect={pickMode ? undefined : openPlace} registerRef={registerMarker} draft={pickMode ? draft : null} />
@@ -718,7 +764,8 @@ export default function Layout3DView({ project: initialProject }) {
 
       {!pickMode && <ActionBar onEnquire={enquire} waUrl={waUrl} telUrl={telUrl} mapUrl={mapUrl} />}
 
-      {(loading || error || layoutError) && (
+      {(introCaption || null)}
+      {((loading && intro === 'none') || error || layoutError) && (
         <div className="l3d-loader" role="status">
           {error || layoutError ? (
             <>

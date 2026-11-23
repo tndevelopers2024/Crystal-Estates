@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
+import { usePathname } from 'next/navigation'
 import './Preloader.css'
 
 /**
@@ -14,8 +15,12 @@ export default function Preloader({ forceShow = false, isSuspense = false }) {
   const [pct, setPct] = useState(0)
   const [scaleX, setScaleX] = useState(0)
   const animFrameRef = useRef(null)
+  // The 3D layout page has its own intro (a globe that unfolds into the site)
+  const pathname = usePathname()
+  const skip = /^\/projects\/[^/]+\/3d(\/|$)/.test(pathname || '')
 
   useEffect(() => {
+    if (skip) return undefined
     // If this is a Suspense/loading fallback, avoid rendering a duplicate if one is already active
     if (isSuspense && typeof document !== 'undefined') {
       const existing = document.getElementById('pre')
@@ -160,9 +165,10 @@ export default function Preloader({ forceShow = false, isSuspense = false }) {
         window.__lenis.scrollTo(0, { immediate: true })
       }
     }
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [skip])
 
-  if (isGone) return null
+  if (isGone || skip) return null
 
   return (
     <div

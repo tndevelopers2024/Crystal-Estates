@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader.js'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { buildEnvironment } from './environment'
+import { createGlobe } from './globe'
 
 /**
  * Reusable Three.js scene for an interactive 3D plot layout.
@@ -16,6 +17,16 @@ import { buildEnvironment } from './environment'
 const PLOT_H = 4
 const LIFT = 3.2
 const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
+const easeOutBack = (t) => {
+  const c1 = 1.4
+  return 1 + (c1 + 1) * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2)
+}
+const clamp01 = (v) => Math.min(1, Math.max(0, v))
+
+/* Intro timing */
+const INTRO_MIN_IDLE = 900 // the globe shows at least this long
+const INTRO_ZOOM_MS = 4200 // orbit → overview
+const INTRO_GLOBE_R = 600 // apparent globe radius while it spins
 
 function escAttr(s) {
   return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')
@@ -36,7 +47,8 @@ function shapesFromPaths(ds) {
 }
 
 export default class PlotScene {
-  constructor(container, { onHover, onSelect, onFrame, onPick, pickMode = false } = {}) {
+  constructor(container, { onHover, onSelect, onFrame, onPick, pickMode = false, intro = false, onIntro } = {}) {
+    this.onIntro = onIntro
     this.onPick = onPick
     this.pickMode = pickMode
     this.container = container
@@ -105,6 +117,8 @@ export default class PlotScene {
     this._ro = new ResizeObserver(() => this.resize())
     this._ro.observe(container)
 
+    if (intro) this._initIntro()
+
     const loop = () => {
       if (this.disposed) return
       this._raf = requestAnimationFrame(loop)
@@ -166,12 +180,12 @@ export default class PlotScene {
       cells.castShadow = !this.small
       cells.receiveShadow = !this.small
       group.add(cells)
-      group.add(
-        new THREE.LineSegments(
-          new THREE.EdgesGeometry(g, 30),
-          new THREE.LineBasicMaterial({ color: '#1c1f24', transparent: true, opacity: 0.22 }),
-        ),
+      this.cellsMesh = cells
+      this.cellEdges = new THREE.LineSegments(
+        new THREE.EdgesGeometry(g, 30),
+        new THREE.LineBasicMaterial({ color: '#1c1f24', transparent: true, opacity: 0.22 }),
       )
+      group.add(this.cellEdges)
     }
 
     // Plots → one merged, vertex-coloured mesh
@@ -220,6 +234,7 @@ export default class PlotScene {
         new THREE.LineBasicMaterial({ color: '#1c1f24', transparent: true, opacity: 0.35 }),
       )
       group.add(edges)
+      this.plotEdges = edges
     }
 
     this._addLabels()
@@ -244,6 +259,7 @@ export default class PlotScene {
     this.controls.minDistance = 40
     this.controls.maxDistance = span * 2.4
     this.reset(false)
+    if (this.introState) this._prepareUnfold()
     return this.plots
   }
 
@@ -359,6 +375,7 @@ export default class PlotScene {
     const d = this._down
     this._down = null
     if (!d || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 6) return
+    if (this.introState) return
     if (this.pickMode) {
       const p = this.groundPointSvg(e.clientX, e.clientY)
       if (p) this.onPick?.(p)
@@ -419,14 +436,19 @@ export default class PlotScene {
     this.selEdges.geometry.dispose()
     this.selEdges.geometry = new THREE.EdgesGeometry(p.geometry, 30)
     this.selMesh.position.y = 0
-    this.selMesh.visible = true
-    this._lift = { t0: performance.now(), dur: 380 }
+    // During the intro the plot doesn't exist yet: lift it once the intro ends
+    this.selMesh.visible = !this.introState
+    if (!this.introState) this._lift = { t0: performance.now(), dur: 380 }
     if (focus) this.focusPlot(this.selected)
   }
 
   /* ───────────── Camera ───────────── */
 
   _animateTo(pos, target, dur = 850) {
+    if (this.introState) {
+      this.pendingTween = { pos, target, dur }
+      return
+    }
     this.tween = {
       t0: performance.now(),
       dur,
@@ -531,8 +553,215 @@ export default class PlotScene {
     this.renderer.setSize(w, h)
   }
 
+  /* ───────────── Intro: one continuous zoom from orbit into the site ─────────────
+     The globe and the landscape share one scale that grows exponentially (a
+     constant-feeling zoom) while the camera glides and turns toward the pin.
+     The landscape is clipped to a soft opening at the pole that widens as we
+     approach, so the site emerges from the globe's surface rather than
+     replacing it. Every shader is compiled before the zoom starts. */
+
+  _initIntro() {
+    this.globe = createGlobe({ small: this.small })
+    this.globe.root.scale.setScalar(INTRO_GLOBE_R)
+    this.scene.add(this.globe.root, this.globe.stars)
+    this.spaceColor = new THREE.Color('#09121f')
+    this.scene.background = this.spaceColor.clone()
+    this.controls.enabled = false
+    this.sun.position.set(900, 1400, 1600)
+    this._introLast = performance.now()
+    const idle = this._idleCamera()
+    this.camera.position.copy(idle.pos)
+    this.controls.target.copy(idle.target)
+    this.camera.lookAt(idle.target)
+    this.introState = { phase: 'idle', t0: performance.now() }
+  }
+
+  /** Framing of the whole globe (apparent radius INTRO_GLOBE_R) for the current screen shape. */
+  _idleCamera() {
+    const G = INTRO_GLOBE_R
+    const vfov = THREE.MathUtils.degToRad(this.camera.fov)
+    const hfov = 2 * Math.atan(Math.tan(vfov / 2) * this.camera.aspect)
+    const dist = (G * 1.32) / Math.sin(Math.min(vfov, hfov) / 2)
+    const target = new THREE.Vector3(0, -G, 0)
+    // Well above the equator so the pin (north pole) faces the viewer
+    const dir = new THREE.Vector3(0.16, 0.62, 0.77).normalize()
+    return { pos: target.clone().addScaledVector(dir, dist), target }
+  }
+
+  _setClip(radius) {
+    for (const p of this._clip) p.constant = radius
+  }
+
+  _prepareUnfold() {
+    const st = this.introState
+    st.finalPos = this.camera.position.clone()
+    st.finalTarget = this.controls.target.clone()
+    const idle = this._idleCamera()
+    this.camera.position.copy(idle.pos)
+    this.controls.target.copy(idle.target)
+    st.fromSph = new THREE.Spherical().setFromVector3(idle.pos.clone().sub(idle.target))
+    st.toSph = new THREE.Spherical().setFromVector3(st.finalPos.clone().sub(st.finalTarget))
+    // Globe radius in landscape units, and the shared starting scale
+    st.R = this.span * 6.5
+    st.s0 = INTRO_GLOBE_R / st.R
+
+    st.finalBg = (this.scene.background?.isColor ? this.scene.background : new THREE.Color('#dfe9ec')).clone()
+    st.fogColor = this.scene.fog ? this.scene.fog.color.clone() : null
+    const sky = this.env?.sky?.material?.uniforms
+    st.sky = sky ? { top: sky.top.value.clone(), bottom: sky.bottom.value.clone() } : null
+    this.scene.background = this.spaceColor.clone()
+
+    // Landscape: clipped to the opening at the pole (16-sided prism ≈ circle)
+    this._clip = Array.from({ length: 16 }, (_, i) => {
+      const a = (i / 16) * Math.PI * 2
+      return new THREE.Plane(new THREE.Vector3(-Math.cos(a), 0, -Math.sin(a)), 0)
+    })
+    this.renderer.localClippingEnabled = true
+    this.group.traverse((o) => {
+      const mats = Array.isArray(o.material) ? o.material : o.material ? [o.material] : []
+      mats.forEach((m) => {
+        m.clippingPlanes = this._clip
+      })
+    })
+    this._setClip(0)
+    this.group.scale.setScalar(st.s0)
+    this._risers = [this.plotMesh, this.plotEdges, this.cellsMesh, this.cellEdges].filter(Boolean)
+    this._risers.forEach((o) => {
+      o.scale.y = 0.001
+    })
+    if (this.labelPlane) this.labelPlane.material.opacity = 0
+    this._applyIntroColors(0)
+
+    // Compile every shader now so nothing stalls mid-zoom
+    try {
+      this.renderer.compile(this.scene, this.camera)
+    } catch {
+      /* compiled lazily instead */
+    }
+    st.phase = 'ready'
+    st.readyAt = Math.max(performance.now(), st.t0 + INTRO_MIN_IDLE)
+  }
+
+  _applyIntroColors(c) {
+    const st = this.introState
+    if (st.finalBg) this.scene.background.lerpColors(this.spaceColor, st.finalBg, c)
+    if (this.scene.fog && st.fogColor) this.scene.fog.color.lerpColors(this.spaceColor, st.fogColor, c)
+    const sky = this.env?.sky?.material?.uniforms
+    if (sky && st.sky) {
+      sky.top.value.lerpColors(this.spaceColor, st.sky.top, c)
+      sky.bottom.value.lerpColors(this.spaceColor, st.sky.bottom, c)
+    }
+  }
+
+  _updateIntro(now) {
+    const st = this.introState
+    const dt = (now - this._introLast) / 1000
+    this._introLast = now
+    if (st.phase !== 'unfold') {
+      this.globe.tick(dt, 1)
+      if (st.phase === 'ready' && now >= st.readyAt) {
+        st.phase = 'unfold'
+        st.u0 = now
+        this.onIntro?.('unfold')
+      }
+      return
+    }
+
+    const k = clamp01((now - st.u0) / INTRO_ZOOM_MS)
+    const seg = (a, b) => clamp01((k - a) / (b - a))
+    const sstep = (a, b) => {
+      const x = seg(a, b)
+      return x * x * (3 - 2 * x)
+    }
+    const z = ease(k)
+    const span = this.span
+
+    // Shared scale grows exponentially → the zoom speed feels constant
+    const s = Math.exp(Math.log(st.s0) * (1 - z))
+    this.group.scale.setScalar(s)
+    this.globe.root.scale.setScalar(st.R * s)
+    // The spin settles so the surface stays put under the arriving site
+    this.globe.tick(dt, 1 - sstep(0, 0.25))
+
+    // Opening at the pin, in landscape units, with a soft edge
+    const hole = span * (0.6 * sstep(0.1, 0.42) + 4.4 * sstep(0.5, 1))
+    const feather = span * 0.24 + hole * 0.35
+    this.globe.set({
+      hole: hole / st.R,
+      feather: feather / st.R,
+      globeOpacity: 1 - sstep(0.84, 1),
+      atmoOpacity: 1 - sstep(0, 0.35),
+      pinOpacity: 1 - sstep(0.06, 0.3),
+      starOpacity: 1 - sstep(0.1, 0.55),
+    })
+    this._setClip((hole + feather) * s)
+
+    // Plots rise once we're close, then their numbers fade in
+    const rise = Math.max(0.001, easeOutBack(seg(0.72, 0.93)))
+    this._risers.forEach((o) => {
+      o.scale.y = rise
+    })
+    if (this.labelPlane) this.labelPlane.material.opacity = sstep(0.88, 1)
+
+    // Night sky until the globe fills the view, then the usual daylight haze
+    const c = sstep(0.35, 0.85)
+    this._applyIntroColors(c)
+    if (this.scene.fog) {
+      const d = this.camera.position.distanceTo(this.controls.target)
+      this.scene.fog.near = THREE.MathUtils.lerp(1e5, d * 0.8, c)
+      this.scene.fog.far = THREE.MathUtils.lerp(2e5, d * 0.8 + span * 3, c)
+    }
+
+    // Camera glides in, turning gently, from the globe view to the overview
+    const lerp = THREE.MathUtils.lerp
+    const sph = new THREE.Spherical(
+      lerp(st.fromSph.radius, st.toSph.radius, z),
+      lerp(st.fromSph.phi, st.toSph.phi, z),
+      lerp(st.fromSph.theta, st.toSph.theta, z) + Math.sin(Math.PI * z) * 0.35,
+    )
+    const globeCentre = new THREE.Vector3(0, -st.R * s, 0)
+    const target = globeCentre.lerp(st.finalTarget, ease(seg(0, 0.6)))
+    this.controls.target.copy(target)
+    this.camera.position.copy(target).add(new THREE.Vector3().setFromSpherical(sph))
+
+    if (k >= 1) this._finishIntro()
+  }
+
+  _finishIntro() {
+    const st = this.introState
+    this.globe?.dispose()
+    this.globe = null
+    this.group.scale.setScalar(1)
+    this._setClip(1e9)
+    this._risers?.forEach((o) => {
+      o.scale.y = 1
+    })
+    if (this.labelPlane) this.labelPlane.material.opacity = 1
+    this._applyIntroColors(1)
+    this.camera.position.copy(st.finalPos)
+    this.controls.target.copy(st.finalTarget)
+    this.introState = null
+    this.controls.enabled = true
+    if (this.selected >= 0 && this.selMesh) {
+      this.selMesh.visible = true
+      this._lift = { t0: performance.now(), dur: 380 }
+    }
+    this.onIntro?.('done')
+    const pending = this.pendingTween
+    this.pendingTween = null
+    if (pending) this._animateTo(pending.pos, pending.target, pending.dur)
+  }
+
   _tick() {
     const now = performance.now()
+    if (this.introState) {
+      this._updateIntro(now)
+      this.controls.update()
+      this.renderer.render(this.scene, this.camera)
+      this.env?.update(now / 1000)
+      if (this.viewBox) this.onFrame?.(this)
+      return
+    }
     if (this.tween) {
       const k = Math.min((now - this.tween.t0) / this.tween.dur, 1)
       const e = ease(k)
@@ -559,6 +788,7 @@ export default class PlotScene {
 
   dispose() {
     this.disposed = true
+    this.globe?.dispose()
     cancelAnimationFrame(this._raf)
     this._ro.disconnect()
     const el = this.renderer.domElement

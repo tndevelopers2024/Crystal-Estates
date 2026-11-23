@@ -6,7 +6,7 @@ import dynamic from 'next/dynamic'
 const Layout3DView = dynamic(() => import('../../../../components/layout3d/Layout3DView'), {
   ssr: false,
   loading: () => (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 40, display: 'grid', placeItems: 'center', background: '#0d1421', color: '#a9b1bf', fontFamily: 'system-ui, sans-serif' }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 40, display: 'grid', placeItems: 'center', background: '#09121f', color: 'rgba(243,244,246,0.7)', fontFamily: 'system-ui, sans-serif' }}>
       Loading 3D layout…
     </div>
   ),

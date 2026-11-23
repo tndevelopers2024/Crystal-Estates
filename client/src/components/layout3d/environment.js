@@ -644,7 +644,7 @@ export function buildEnvironment({ group, scene, viewBox: vb, layoutPaths, small
   }
   update(0)
 
-  return { update, sky, counts: { trees: trees.length, bushes: bushes.length, houses: houses.length, fields: pieces.length } }
+  return { update, sky, base, counts: { trees: trees.length, bushes: bushes.length, houses: houses.length, fields: pieces.length } }
 }
 
 function mergeBoxes(a, b) {
