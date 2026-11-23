@@ -3,7 +3,8 @@
    (with a bounce) and tapped to open the 3D layout. */
 .ce-guide {
   --guide-w: 112px;
-  --guide-stop: 0px;
+  --guide-stop: clamp(16px, 2.5vw, 24px);
+  --guide-bottom: clamp(8px, 1.5vw, 14px);
   --guide-green: var(--ch-green, #0f3d2e);
   position: relative;
   height: 176px;
@@ -15,8 +16,8 @@
 }
 .ce-guide__walker {
   position: absolute;
-  bottom: 0;
-  left: var(--guide-stop);
+  bottom: var(--guide-bottom, 10px);
+  left: var(--guide-stop, 20px);
   z-index: 5;
   display: flex;
   align-items: flex-start;
@@ -137,10 +138,18 @@
 @keyframes ce-guide-fade { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
 
 @media (max-width: 1023px) {
-  .ce-guide { --guide-stop: 0px; }
+  .ce-guide {
+    --guide-stop: clamp(14px, 2vw, 20px);
+    --guide-bottom: 8px;
+  }
 }
 @media (max-width: 640px) {
-  .ce-guide { --guide-w: 88px; --guide-stop: 0px; height: 146px; }
+  .ce-guide {
+    --guide-w: 88px;
+    --guide-stop: 12px;
+    --guide-bottom: 8px;
+    height: 146px;
+  }
   .ce-guide__bubble { padding: 10px 13px; }
   .ce-guide__bubble::before { top: 18px; }
   .ce-guide__msg { font-size: 13px; }

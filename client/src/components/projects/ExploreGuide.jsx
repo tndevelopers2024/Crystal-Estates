@@ -231,14 +231,24 @@ export default function ExploreGuide({ href, projectName }) {
   useEffect(() => {
     const onResize = () => {
       if (phase !== 'ready') return
-      const b = bounds()
-      pos.current.x = Math.min(Math.max(pos.current.x, b.minX), b.maxX)
+      const el = walkerRef.current
+      if (!el) return
+      // If at rest, stay firmly anchored to the bottom-left corner
+      if (state === 'rest' && pos.current.y === 0) {
+        el.style.left = ''
+        const newTarget = el.offsetLeft
+        el.style.left = '0px'
+        pos.current.x = newTarget
+      } else {
+        const b = bounds()
+        pos.current.x = Math.min(Math.max(pos.current.x, b.minX), b.maxX)
+      }
       apply()
       updateFlip()
     }
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
-  }, [phase, apply, bounds, updateFlip])
+  }, [phase, apply, bounds, updateFlip, state])
 
   useEffect(
     () => () => {
