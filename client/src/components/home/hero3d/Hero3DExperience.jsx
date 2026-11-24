@@ -2,7 +2,6 @@
 
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import {
   Calendar,
   CheckCircle2,
@@ -39,32 +38,18 @@ export default function Hero3DExperience({ initialProject }) {
   const [scrollProgress, setScrollProgress] = useState(0)
   const [hoveredPlot, setHoveredPlot] = useState(null)
 
-  // Real Asset Loading & Preloader State
-  const [loadingProgress, setLoadingProgress] = useState(15)
-  const [isReady, setIsReady] = useState(false)
-  const [loaderGone, setLoaderGone] = useState(false)
-
+  // Notify website's default preloader when 3D hero assets and initial frame are ready
   const handleReady = useCallback(() => {
-    setIsReady(true)
-    setLoadingProgress(100)
-    try {
-      sessionStorage.setItem('crystal_hero_ready', 'true')
-    } catch {
-      /* ignore */
-    }
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('crystal-hero-ready'))
     }
-    setTimeout(() => {
-      setLoaderGone(true)
-    }, 700)
   }, [])
 
-  // Safety Timeout: Never hang indefinitely if network is constrained
+  // Safety Timeout: Never hang default preloader if network is constrained
   useEffect(() => {
     const safetyTimer = setTimeout(() => {
       handleReady()
-    }, 3200)
+    }, 2500)
     return () => clearTimeout(safetyTimer)
   }, [handleReady])
 
@@ -136,11 +121,6 @@ export default function Hero3DExperience({ initialProject }) {
       },
       onSceneChange: (idx) => {
         if (!cancelled) setActiveSceneIdx(idx)
-      },
-      onLoadingProgress: (pct) => {
-        if (!cancelled) {
-          setLoadingProgress((prev) => Math.max(prev, pct))
-        }
       },
       onReady: () => {
         if (!cancelled) handleReady()
@@ -320,29 +300,6 @@ export default function Hero3DExperience({ initialProject }) {
 
         {/* Fullscreen 3D WebGL Canvas */}
         <div ref={canvasHolderRef} className="h3d-canvas-container" />
-
-        {/* Architectural Branded Preloader (Zero technical text) */}
-        {!loaderGone && (
-          <div className={`h3d-preloader ${isReady ? 'h3d-preloader--done' : ''}`} aria-hidden={isReady}>
-            <div className="h3d-preloader-brand">
-              <Image
-                src="/logo-white.png"
-                alt="Crystal Estates"
-                width={154}
-                height={52}
-                priority
-                className="h3d-preloader-logo"
-              />
-              <span className="h3d-preloader-tagline">ASSETS CREATOR</span>
-            </div>
-            <div className="h3d-preloader-meter">
-              <div className="h3d-preloader-track">
-                <div className="h3d-preloader-bar" style={{ width: `${loadingProgress}%` }} />
-              </div>
-              <span className="h3d-preloader-pct">{loadingProgress}%</span>
-            </div>
-          </div>
-        )}
 
         {/* Cinematic Vignettes for High Contrast Readability */}
         <div className="h3d-shade-bottom" aria-hidden="true" />
