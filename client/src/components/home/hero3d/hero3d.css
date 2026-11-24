@@ -1,0 +1,771 @@
+/* ─────────────────────────────────────────────────────────────
+   Crystal Estates — Premium 3D Hero Experience Styles
+   Continuous aerial journey with Three.js and scroll synchronization
+   ───────────────────────────────────────────────────────────── */
+
+.h3d-hero {
+  position: relative;
+  width: 100vw;
+  max-width: 100%;
+  height: 520vh;
+  margin: 0;
+  padding: 0;
+  background: #091310;
+  color: #ffffff;
+}
+
+.h3d-frame {
+  position: sticky;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  isolation: isolate;
+  background: #091310;
+}
+
+.h3d-canvas-container {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.h3d-canvas-container canvas {
+  width: 100% !important;
+  height: 100% !important;
+  outline: none;
+}
+
+/* ── Branded 3D Hero Preloader Overlay ── */
+.h3d-preloader {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  background: #081510;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  opacity: 1;
+  pointer-events: auto;
+  transition: opacity 0.65s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.65s;
+  visibility: visible;
+}
+
+.h3d-preloader--done {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+}
+
+.h3d-preloader-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  animation: h3dPulse 2.4s ease-in-out infinite;
+}
+
+@keyframes h3dPulse {
+  0%, 100% { transform: scale(1); opacity: 0.95; }
+  50% { transform: scale(1.02); opacity: 1; }
+}
+
+.h3d-preloader-logo {
+  object-fit: contain;
+  width: auto;
+  height: 52px;
+}
+
+.h3d-preloader-tagline {
+  font-family: var(--font-montserrat, Montserrat, system-ui, sans-serif);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  color: #d4af37;
+  text-transform: uppercase;
+}
+
+.h3d-preloader-meter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 220px;
+}
+
+.h3d-preloader-track {
+  width: 100%;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+}
+
+.h3d-preloader-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #b8964e 0%, #ffd54f 100%);
+  border-radius: 999px;
+  transition: width 0.2s ease-out;
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+}
+
+.h3d-preloader-pct {
+  font-family: var(--font-montserrat, Montserrat, system-ui, sans-serif);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: #d4af37;
+}
+
+/* Fallback background if WebGL is initializing or disabled */
+.h3d-canvas-fallback {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: #081510;
+  background-image: radial-gradient(circle at 50% 50%, #0d261e 0%, #081510 100%);
+}
+
+/* Subtle Vignettes & Overlays for perfect legibility over 3D scenes */
+.h3d-shade-bottom {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: radial-gradient(
+      ellipse 65% 55% at 15% 90%,
+      rgba(6, 17, 13, 0.88) 0%,
+      rgba(6, 17, 13, 0.45) 55%,
+      transparent 80%
+    ),
+    linear-gradient(180deg, transparent 60%, rgba(6, 17, 13, 0.75) 100%);
+}
+
+.h3d-shade-top {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(6, 17, 13, 0.6) 0%,
+    rgba(6, 17, 13, 0.2) 30%,
+    transparent 60%
+  );
+}
+
+/* ── Scene Text & UI Stages ── */
+.h3d-stages {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.h3d-stage {
+  position: absolute;
+  max-width: min(580px, calc(100vw - 48px));
+  transition: opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform, opacity;
+  pointer-events: none;
+}
+
+.h3d-stage--active {
+  pointer-events: auto;
+}
+
+/* Specific scene positioning */
+.h3d-stage--scene-0 {
+  bottom: clamp(48px, 9vh, 96px);
+  left: clamp(24px, 5vw, 84px);
+}
+
+.h3d-stage--scene-1 {
+  bottom: clamp(48px, 9vh, 96px);
+  left: clamp(24px, 5vw, 84px);
+}
+
+.h3d-stage--scene-2 {
+  top: clamp(80px, 12vh, 120px);
+  left: clamp(24px, 5vw, 84px);
+  max-width: min(640px, calc(100vw - 48px));
+}
+
+.h3d-stage--scene-3 {
+  bottom: clamp(48px, 9vh, 96px);
+  left: clamp(24px, 5vw, 84px);
+}
+
+.h3d-stage--scene-4 {
+  top: clamp(75px, 10vh, 110px);
+  right: clamp(20px, 4.5vw, 64px);
+  max-width: min(540px, calc(100vw - 40px));
+}
+
+/* Text elements */
+.h3d-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: rgba(15, 61, 46, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(184, 150, 78, 0.35);
+  color: #d4af37;
+  font-family: var(--font-montserrat, Montserrat, system-ui, sans-serif);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+
+.h3d-badge__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #d4af37;
+  box-shadow: 0 0 8px #d4af37;
+}
+
+.h3d-headline {
+  font-family: var(--font-montserrat, Montserrat, system-ui, sans-serif);
+  font-size: clamp(28px, 3.6vw, 50px);
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.025em;
+  color: #ffffff;
+  margin: 0 0 12px 0;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.7);
+}
+
+.h3d-lead {
+  font-family: var(--font-outfit, Outfit, system-ui, sans-serif);
+  font-size: clamp(14px, 1.2vw, 17px);
+  line-height: 1.6;
+  color: rgba(245, 245, 245, 0.9);
+  margin: 0 0 18px 0;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.6);
+}
+
+.h3d-features-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  border-radius: 12px;
+  background: rgba(8, 24, 18, 0.65);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 13px;
+  color: rgba(240, 240, 240, 0.9);
+  font-weight: 500;
+}
+
+.h3d-features-chip strong {
+  color: #ffd54f;
+  font-weight: 600;
+}
+
+/* ── Scene 03: Plot Layout Legend & Interactive Card ── */
+.h3d-legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 14px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: rgba(6, 17, 13, 0.6);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  width: fit-content;
+}
+
+.h3d-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.h3d-legend__color {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.h3d-legend__color--avail {
+  background: #24ba74;
+}
+
+.h3d-legend__color--booked {
+  background: #e0982d;
+}
+
+.h3d-legend__color--sold {
+  background: #c45a50;
+}
+
+.h3d-plot-card {
+  margin-top: 16px;
+  padding: 16px 20px;
+  border-radius: 16px;
+  background: rgba(11, 31, 23, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: h3dFadeIn 0.3s ease;
+}
+
+@keyframes h3dFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.h3d-plot-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.h3d-plot-card__title {
+  font-family: var(--font-montserrat, Montserrat, system-ui, sans-serif);
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+}
+
+.h3d-plot-card__badge {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.h3d-plot-card__badge--available {
+  background: rgba(36, 186, 116, 0.2);
+  color: #4ade80;
+  border: 1px solid rgba(36, 186, 116, 0.4);
+}
+
+.h3d-plot-card__badge--booked {
+  background: rgba(224, 152, 45, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(224, 152, 45, 0.4);
+}
+
+.h3d-plot-card__badge--sold {
+  background: rgba(196, 90, 80, 0.2);
+  color: #f87171;
+  border: 1px solid rgba(196, 90, 80, 0.4);
+}
+
+.h3d-plot-card__specs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  font-size: 12px;
+}
+
+.h3d-plot-card__spec label {
+  display: block;
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, 0.55);
+  margin-bottom: 2px;
+  text-transform: uppercase;
+}
+
+.h3d-plot-card__spec span {
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.h3d-btn-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.h3d-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #b8964e 0%, #d4af37 100%);
+  color: #081711;
+  font-family: var(--font-montserrat, Montserrat, system-ui, sans-serif);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 16px rgba(184, 150, 78, 0.35);
+}
+
+.h3d-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 22px rgba(212, 175, 55, 0.5);
+}
+
+.h3d-btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  font-family: var(--font-montserrat, Montserrat, system-ui, sans-serif);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.h3d-btn-outline:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: #d4af37;
+  color: #ffd54f;
+}
+
+/* ── Scene 05: Dual-Action Registration Card ── */
+.h3d-booking-card {
+  padding: clamp(20px, 3vw, 32px);
+  border-radius: 24px;
+  background: rgba(10, 28, 20, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(184, 150, 78, 0.35);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+  max-width: 520px;
+}
+
+.h3d-tabs {
+  display: flex;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 4px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  gap: 4px;
+}
+
+.h3d-tab {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  font-family: var(--font-montserrat, Montserrat, system-ui, sans-serif);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.h3d-tab--active {
+  background: rgba(184, 150, 78, 0.25);
+  color: #ffd54f;
+  border: 1px solid rgba(184, 150, 78, 0.45);
+}
+
+.h3d-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.h3d-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.h3d-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.h3d-input-group label {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.75);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.h3d-input {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+  font-size: 13.5px;
+  outline: none;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.h3d-input:focus {
+  border-color: #d4af37;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.h3d-input::placeholder {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.h3d-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  margin-top: 4px;
+}
+
+.h3d-checkbox-label input[type='checkbox'] {
+  accent-color: #b8964e;
+  width: 15px;
+  height: 15px;
+  border-radius: 4px;
+}
+
+.h3d-submit-btn {
+  width: 100%;
+  padding: 12px 20px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #b8964e 0%, #d4af37 100%);
+  color: #081711;
+  font-family: var(--font-montserrat, Montserrat, system-ui, sans-serif);
+  font-size: 14px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  margin-top: 6px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 18px rgba(184, 150, 78, 0.4);
+}
+
+.h3d-submit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(212, 175, 55, 0.55);
+}
+
+.h3d-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.h3d-success-state {
+  text-align: center;
+  padding: 16px 8px;
+}
+
+.h3d-success-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(36, 186, 116, 0.2);
+  color: #4ade80;
+  border: 1px solid rgba(36, 186, 116, 0.4);
+  margin-bottom: 12px;
+}
+
+.h3d-success-title {
+  font-family: var(--font-montserrat, Montserrat, system-ui, sans-serif);
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 8px 0;
+}
+
+.h3d-success-desc {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0 0 16px 0;
+}
+
+/* ── Scene Navigation Dots (Right Edge) ── */
+.h3d-nav {
+  position: absolute;
+  right: clamp(16px, 2.5vw, 36px);
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.h3d-nav-item {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: rgba(255, 255, 255, 0.5);
+  transition: all 0.2s ease;
+}
+
+.h3d-nav-item:hover,
+.h3d-nav-item--active {
+  color: #ffd54f;
+}
+
+.h3d-nav-label {
+  font-family: var(--font-montserrat, Montserrat, system-ui, sans-serif);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0;
+  transform: translateX(10px);
+  transition: all 0.2s ease;
+  pointer-events: none;
+}
+
+.h3d-nav-item:hover .h3d-nav-label,
+.h3d-nav-item--active .h3d-nav-label {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.h3d-nav-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.h3d-nav-item--active .h3d-nav-dot {
+  width: 10px;
+  height: 10px;
+  background: #ffd54f;
+  box-shadow: 0 0 12px #ffd54f;
+}
+
+/* ── Scroll Prompt ── */
+.h3d-scroll-prompt {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: rgba(255, 255, 255, 0.65);
+  font-family: var(--font-montserrat, Montserrat, system-ui, sans-serif);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  pointer-events: none;
+  animation: h3dFloat 2s ease-in-out infinite;
+}
+
+@keyframes h3dFloat {
+  0%,
+  100% {
+    transform: translate(-50%, 0);
+  }
+  50% {
+    transform: translate(-50%, 6px);
+  }
+}
+
+/* ── Responsive Optimizations ── */
+@media (max-width: 860px) {
+  .h3d-stage {
+    left: 16px !important;
+    right: 16px !important;
+    max-width: calc(100vw - 32px) !important;
+  }
+
+  .h3d-stage--scene-0,
+  .h3d-stage--scene-1,
+  .h3d-stage--scene-3 {
+    bottom: clamp(24px, 4vh, 48px);
+    top: auto;
+  }
+
+  .h3d-stage--scene-2 {
+    top: clamp(65px, 8vh, 85px);
+  }
+
+  .h3d-stage--scene-4 {
+    top: auto;
+    bottom: clamp(20px, 3vh, 40px);
+  }
+
+  .h3d-headline {
+    font-size: clamp(24px, 6vw, 34px);
+    line-height: 1.15;
+  }
+
+  .h3d-lead {
+    font-size: 13.5px;
+    margin-bottom: 12px;
+  }
+
+  .h3d-form-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .h3d-nav {
+    display: none;
+  }
+
+  .h3d-booking-card {
+    padding: 18px;
+  }
+}

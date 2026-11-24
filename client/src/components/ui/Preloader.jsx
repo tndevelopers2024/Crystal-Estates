@@ -62,8 +62,13 @@ export default function Preloader({ forceShow = false, isSuspense = false }) {
       loaded = true
     }
 
+    const onHeroReady = () => {
+      loaded = true
+    }
+
     if (!loaded && typeof window !== 'undefined') {
       window.addEventListener('load', onLoad, { once: true })
+      window.addEventListener('crystal-hero-ready', onHeroReady, { once: true })
     }
 
     // Safety timeout: Never get stuck waiting if an asset or third-party script hangs
@@ -158,6 +163,7 @@ export default function Preloader({ forceShow = false, isSuspense = false }) {
       clearTimeout(doneTimer)
       clearTimeout(goneTimer)
       window.removeEventListener('load', onLoad)
+      window.removeEventListener('crystal-hero-ready', onHeroReady)
       window.removeEventListener('crystal-replay-preloader', handleReplay)
       document.body.style.overflow = originalOverflow
       window.scrollTo(0, 0)

@@ -5,7 +5,7 @@ import SixPromises from '../components/home/SixPromises'
 import Journey from '../components/home/Journey'
 import Voices from '../components/home/Voices'
 import Closing from '../components/home/Closing'
-import { fetchPlots } from '../lib/api'
+import { fetchPlots, fetchPlotBySlugOrId } from '../lib/api'
 import '../components/home/home.css'
 
 export const dynamic = 'force-dynamic'
@@ -34,11 +34,12 @@ export const metadata = {
 export default async function HomePage() {
   const plots = await fetchPlots()
   const featured = Array.isArray(plots) ? plots.filter((p) => p && p.featured !== false) : []
+  const somamangalam = await fetchPlotBySlugOrId('somamangalam')
 
   return (
     <div className="ch-home">
-      {/* Kept deliberately short: hero, projects to explore, then trust & contact */}
-      <HomeHero />
+      {/* Premium 3D Aerial Scroll Journey */}
+      <HomeHero initialProject={somamangalam} />
       <ProjectShowcase projects={featured} />
       <PlotTransformation />
       <SixPromises />
