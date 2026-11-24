@@ -16,6 +16,8 @@ import visitsRouter from './routes/visits.js'
 import authRouter from './routes/auth.js'
 import customersRouter from './routes/customers.js'
 import usersRouter from './routes/users.js'
+import plotDocumentsRouter, { ensurePlotDocumentIndexes } from './routes/plotDocuments.js'
+import documentSharesRouter, { ensureDocumentShareIndexes } from './routes/documentShares.js'
 import { apiPolicy } from './lib/auth.js'
 import { ensureRoles } from './lib/roles.js'
 import { testimonials } from './data/testimonials.js'
@@ -212,6 +214,8 @@ app.use('/api', apiPolicy)
 app.use('/api/upload', uploadRouter)
 app.use('/api/plot-activity', plotActivityRouter)
 app.use('/api/documents', documentsRouter)
+app.use('/api/plot-documents', plotDocumentsRouter)
+app.use('/api/document-shares', documentSharesRouter)
 app.use('/api/crm-options', optionsRouter)
 app.use('/api/plots', layoutRouter)
 app.use('/api/plots/kolapakkam', kolapakkamRouter)
@@ -466,6 +470,9 @@ getDb()
     await ensureRoles()
     await db.collection('users').createIndex({ 'sessions.hash': 1 }, { sparse: true })
     await db.collection('users').createIndex({ setupTokenHash: 1 }, { sparse: true })
+    await ensurePlotDocumentIndexes(db)
+    await ensureDocumentShareIndexes(db)
+    await db.collection('payments').createIndex({ clientRequestId: 1 }, { sparse: true })
   })
   .catch((err) => console.error('Auth setup failed:', err.message))
 

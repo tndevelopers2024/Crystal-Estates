@@ -35,6 +35,7 @@ import SearchSelect from '../common/SearchSelect'
 import CustomerPlotPicker from '../common/CustomerPlotPicker'
 import SidePanel from '../common/SidePanel'
 import { formatRupees } from '../../lib/plotUtils'
+import SendPlotDocuments from './SendPlotDocuments'
 
 const inputCls =
   'w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:ring-2 focus:ring-[#0F3D2E]/10 transition'
@@ -422,6 +423,8 @@ export default function DocumentsPage({ leads = [], properties = [], onShowToast
   const [typeFilter, setTypeFilter] = useState('')
   const [projectFilter, setProjectFilter] = useState('')
   const [shareInit, setShareInit] = useState(null)
+  // Plot documents first; links that open a receipt/statement share land on the second tab
+  const [view, setView] = useState(() => (params.get('share') ? 'generated' : 'plot'))
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -450,6 +453,7 @@ export default function DocumentsPage({ leads = [], properties = [], onShowToast
   useEffect(() => {
     const share = params.get('share')
     if (!share) return
+    setView('generated')
     setShareInit({
       type: share,
       leadId: params.get('leadId') || '',
@@ -512,13 +516,39 @@ export default function DocumentsPage({ leads = [], properties = [], onShowToast
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Documents</h1>
-          <p className="text-sm text-slate-500">Receipts, booking confirmations, statements and files shared with customers.</p>
+          <p className="text-sm text-slate-500">
+            {view === 'plot' ? 'Upload plot documents and send them to the customer by WhatsApp or email.' : 'Receipts, booking confirmations, statements and files shared with customers.'}
+          </p>
         </div>
-        <button type="button" onClick={() => setShareInit({})} className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-[#0F3D2E] hover:bg-[#16533D] text-white text-sm font-bold rounded-xl">
-          <Share2 className="w-4 h-4" /> Share document
-        </button>
+        {view === 'generated' && (
+          <button type="button" onClick={() => setShareInit({})} className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-[#0F3D2E] hover:bg-[#16533D] text-white text-sm font-bold rounded-xl">
+            <Share2 className="w-4 h-4" /> Share document
+          </button>
+        )}
       </div>
 
+      <div className="inline-flex p-1 rounded-xl bg-slate-100 border border-slate-200" role="tablist" aria-label="Document type">
+        {[
+          ['plot', 'Plot documents'],
+          ['generated', 'Receipts & statements'],
+        ].map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={view === id}
+            onClick={() => setView(id)}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition ${view === id ? 'bg-white text-[#0F3D2E] shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {view === 'plot' ? (
+        <SendPlotDocuments properties={properties} onShowToast={onShowToast} />
+      ) : (
+      <>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {['Payment receipt', 'Booking confirmation', 'Payment statement'].map((t) => (
           <button
@@ -625,6 +655,8 @@ export default function DocumentsPage({ leads = [], properties = [], onShowToast
           </ul>
         )}
       </div>
+      </>
+      )}
 
       <SidePanel open={Boolean(shareInit)} onClose={() => setShareInit(null)} title="Share document" subtitle="Customer gets a secure link on WhatsApp, email or any app" icon={Share2} width="max-w-6xl">
         {shareInit && (

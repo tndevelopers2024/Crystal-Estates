@@ -399,7 +399,7 @@ export default function Layout3DView({ project: initialProject }) {
     if (!pl) return
     setSelected(null)
     setActivePlace(id)
-    sceneRef.current?.panToSvg(pl.x, pl.y)
+    sceneRef.current?.focusPlace(pl.x, pl.y)
   }
 
   /* ───── Push colours to the scene ───── */
@@ -421,6 +421,11 @@ export default function Layout3DView({ project: initialProject }) {
     else url.searchParams.delete('plot')
     window.history.replaceState(window.history.state, '', url)
   }, [selected, plots])
+
+  // Place card closed: the camera returns (runs after the selection effect, so a plot opened from a place keeps its own return)
+  useEffect(() => {
+    if (!activePlace) sceneRef.current?.closePlace()
+  }, [activePlace])
 
   // Deep link: ?plot=214A selects it once the scene is ready
   useEffect(() => {

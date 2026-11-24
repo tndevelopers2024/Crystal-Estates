@@ -141,3 +141,22 @@ export function statusGroup(status) {
   if (s === 'blocked') return 'Blocked'
   return 'Available'
 }
+
+/**
+ * Every plot of a property, phase-tagged with the same uids the Plots page
+ * uses (uids are made per phase), so documents uploaded from any screen line
+ * up with the plot's own details.
+ */
+export function plotsOfProperty(property) {
+  const phases =
+    Array.isArray(property?.layouts) && property.layouts.length > 0
+      ? property.layouts
+      : Array.isArray(property?.phases) && property.phases.length > 0
+        ? property.phases
+        : null
+  if (!phases) return ensurePlotUids(Array.isArray(property?.plots) ? property.plots : [])
+  return phases.flatMap((ph, i) => {
+    const name = (ph.name || `Phase ${i + 1}`).trim()
+    return ensurePlotUids(plotsForPhase(property, ph, i, phases.length).map((p) => ({ ...p, phase: name })))
+  })
+}

@@ -4,6 +4,8 @@ import SearchSelect from '../common/SearchSelect'
 import { guessFromLead } from '../common/CustomerPlotPicker'
 import { useOptions } from '../../hooks/useOptions'
 import { ensurePlotUids, formatRupees, parseRupees, statusGroup } from '../../lib/plotUtils'
+import { PaymentDocumentSection, ShareResults, useDocumentSender } from '../documents/PlotDocumentSharing'
+import { newRequestKey } from '../../lib/plotDocumentsApi'
 
 const DEFAULT_FOR = ['Token advance', 'Booking advance', 'Part payment', 'Full payment', 'Registration advance']
 const DEFAULT_MODES = ['UPI', 'Bank Transfer / RTGS / NEFT', 'Cheque', 'Cash', 'Credit / Debit Card']
@@ -58,6 +60,11 @@ function RecordPaymentForm({ lead, properties = [], onClose, onSavePayment }) {
   const [submitting, setSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [saved, setSaved] = useState(null) // { payment, whatsapp, email } after a successful save
+  // Plot documents to send with the confirmation (only when the user ticks a channel)
+  const [docIds, setDocIds] = useState([])
+  const [shareChannels, setShareChannels] = useState([])
+  const [requestId] = useState(() => newRequestKey('pay'))
+  const sender = useDocumentSender()
 
   // Server-managed option lists may not contain the default; fall back to their first entry
   const paymentFor = forList.options.includes(paymentForChoice) ? paymentForChoice : forList.options[0] || ''
@@ -82,11 +89,21 @@ function RecordPaymentForm({ lead, properties = [], onClose, onSavePayment }) {
 
   const parsedAmount = parseRupees(amount)
 
-  const setProject = (propertyId) => setTarget({ propertyId: propertyId || '', plotUid: '', plotNo: '', phase: '' })
+  // A different plot has different documents: clear what was picked
+  const clearDocs = () => {
+    setDocIds([])
+    setShareChannels([])
+  }
+  const setProject = (propertyId) => {
+    setTarget({ propertyId: propertyId || '', plotUid: '', plotNo: '', phase: '' })
+    clearDocs()
+  }
   const setPlot = (uid) => {
     const p = plots.find((x) => x.uid === uid)
     setTarget((t) => ({ ...t, plotUid: uid || '', plotNo: p?.plotNo ? String(p.plotNo) : '', phase: p?.phase || '' }))
+    clearDocs()
   }
+  const sharing = Boolean(target.plotNo && docIds.length && shareChannels.length)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -120,15 +137,37 @@ function RecordPaymentForm({ lead, properties = [], onClose, onSavePayment }) {
         sendWhatsApp: false,
         sendEmail: false,
         moveLeadToWon,
+        // Same id on a repeated submit: the server returns the first payment instead of a second one
+        clientRequestId: requestId,
+        documentIds: target.plotNo ? docIds : [],
       })
+      const savedLead = result?.lead
+      const savedPayment =
+        (Array.isArray(savedLead?.payments) && savedLead.payments.find((p) => p.clientRequestId === requestId)) || result?.payment || null
+
+      // Only after the payment is saved, and only through the channels the user ticked
+      let shareResults = null
+      if (sharing && savedPayment?.id) {
+        shareResults = await sender.send({
+          documentIds: docIds,
+          channels: shareChannels,
+          recipient: { type: 'lead', leadId: lead.id },
+          propertyId: target.propertyId,
+          plotUid: target.plotUid,
+          plotNo: target.plotNo,
+          phase: target.phase,
+          paymentId: savedPayment.id,
+          idempotencyKey: `payment:${savedPayment.id}`,
+        })
+      }
 
       const wantsWa = sendWhatsApp && lead.phone
       const wantsEmail = sendEmail && lead.email
-      if (!wantsWa && !wantsEmail) {
+      if (!wantsWa && !wantsEmail && !sharing) {
         onClose()
         return
       }
-      const payment = result?.payment || {
+      const payment = savedPayment || {
         paymentFor,
         amountFormatted,
         mode,
@@ -137,7 +176,7 @@ function RecordPaymentForm({ lead, properties = [], onClose, onSavePayment }) {
         unitAllotted: unit,
         paidOn,
       }
-      setSaved({ payment, whatsapp: Boolean(wantsWa), email: Boolean(wantsEmail) })
+      setSaved({ payment, whatsapp: Boolean(wantsWa), email: Boolean(wantsEmail), shared: sharing, shareResults })
     } catch (err) {
       setErrorMessage(err?.message || 'Error recording payment. Please verify the details and try again.')
     } finally {
@@ -177,6 +216,19 @@ function RecordPaymentForm({ lead, properties = [], onClose, onSavePayment }) {
             <div className="p-3.5 bg-emerald-50/70 border border-emerald-200 rounded-2xl text-xs text-emerald-900 font-semibold">
               {saved.payment.paymentFor} of {saved.payment.amountFormatted} saved for {lead.name}.
             </div>
+            {saved.shared && (
+              <div className="space-y-2">
+                <p className="text-xs font-bold text-slate-700">Documents</p>
+                {sender.sending ? (
+                  <p className="text-xs text-slate-500">Sending…</p>
+                ) : sender.error ? (
+                  <p className="text-xs text-rose-600">{sender.error}</p>
+                ) : (
+                  <ShareResults results={sender.results || saved.shareResults} onRetry={sender.retry} retrying={sender.sending} />
+                )}
+              </div>
+            )}
+            {(saved.whatsapp || saved.email) && <p className="text-xs font-bold text-slate-700">Receipt</p>}
             <div className="flex flex-wrap gap-2.5">
               {saved.whatsapp && (
                 <a
@@ -261,6 +313,21 @@ function RecordPaymentForm({ lead, properties = [], onClose, onSavePayment }) {
               clearable
             />
           </div>
+
+          {/* Documents of the selected plot */}
+          {target.propertyId && (
+            <div className="rounded-2xl border border-slate-200 p-3.5 space-y-2">
+              <p className="text-xs font-bold text-slate-700">Plot documents{target.plotNo ? ` · Plot ${target.plotNo}` : ''}</p>
+              <PaymentDocumentSection
+                plotRef={{ propertyId: target.propertyId, plotUid: target.plotUid, plotNo: target.plotNo, phase: target.phase }}
+                recipient={{ name: lead.name, phone: lead.phone, email: lead.email }}
+                docIds={docIds}
+                onDocIds={setDocIds}
+                channels={shareChannels}
+                onChannels={setShareChannels}
+              />
+            </div>
+          )}
 
           {/* Payment for & Amount */}
           <div className="grid grid-cols-2 gap-3">
@@ -398,7 +465,7 @@ function RecordPaymentForm({ lead, properties = [], onClose, onSavePayment }) {
               className="inline-flex items-center gap-1.5 px-5 py-2 bg-[#0F3D2E] hover:bg-[#16533D] text-white font-bold rounded-xl text-xs shadow-sm transition active:scale-[0.98] disabled:opacity-50"
             >
               <Check className="w-3.5 h-3.5" />
-              <span>{submitting ? 'Saving...' : 'Save payment'}</span>
+              <span>{submitting ? (sender.sending ? 'Sending documents…' : 'Saving...') : sharing ? 'Save & send' : 'Save payment'}</span>
             </button>
           </div>
         </form>

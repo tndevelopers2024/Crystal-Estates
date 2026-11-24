@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { MapPin, Trash2, Edit2, FileCode2, ImageOff, Video, FileText, Layers } from 'lucide-react'
+import { MapPin, Trash2, FileCode2, ImageOff, Video, FileText, Layers } from 'lucide-react'
 import { getClientUrl } from '../../lib/api'
 import { canonicalLayoutSlug, resolveMediaUrl } from '../../lib/plotUtils'
 
@@ -17,7 +17,11 @@ const STATUS_STYLES = {
   'Sold': { dot: 'bg-slate-500', text: 'text-slate-800' },
 }
 
-export default function PropertyCard({ property, onEdit, onDelete, onAddPlot }) {
+/**
+ * Property card. Clicking anywhere on it opens the property's Plots page
+ * (editing stays available there via "Edit project"). Inner controls stop the click.
+ */
+export default function PropertyCard({ property, onOpen, onDelete }) {
   const [imgError, setImgError] = useState(false)
 
   // Status badge config
@@ -74,17 +78,20 @@ export default function PropertyCard({ property, onEdit, onDelete, onAddPlot }) 
 
   return (
     <div
-      onClick={() => onEdit && onEdit(property)}
-      className="bg-white rounded-2xl border border-slate-200/90 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-xl hover:border-[#0F3D2E]/40 transition-all duration-300 overflow-hidden flex flex-col group cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#0F3D2E]/20"
-      role="button"
+      onClick={() => onOpen && onOpen(property)}
+      className="bg-white rounded-2xl border border-slate-200/90 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-xl hover:-translate-y-0.5 hover:border-[#0F3D2E]/40 active:translate-y-0 active:shadow-md transition-all duration-300 overflow-hidden flex flex-col group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0F3D2E]/30"
+      role="link"
       tabIndex={0}
       onKeyDown={(e) => {
+        // Only the card itself: Enter/Space on an inner button or link must not navigate
+        if (e.target !== e.currentTarget) return
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
-          if (onEdit) onEdit(property)
+          if (onOpen) onOpen(property)
         }
       }}
-      title={`Click to edit ${property.name}`}
+      aria-label={`Open plots for ${property.name}`}
+      title={`View plots of ${property.name}`}
     >
       {/* ── 1. Top Photo Banner ── */}
       <div className="relative h-48 w-full bg-slate-900 overflow-hidden flex items-end justify-center">
@@ -155,21 +162,6 @@ export default function PropertyCard({ property, onEdit, onDelete, onAddPlot }) 
         {/* Action buttons on bottom right of banner */}
         {/* Always visible on touch screens; reveal on hover/focus with a mouse */}
         <div className="absolute bottom-3 right-3 z-10 flex items-center gap-1.5 transition duration-200 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-focus-within:opacity-100">
-          {onEdit && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation()
-                onEdit(property)
-              }}
-              className="py-1 px-2.5 rounded-lg bg-white/95 text-[#0F3D2E] hover:bg-white text-xs shadow-md font-bold flex items-center gap-1 transition"
-              title="Edit Property"
-            >
-              <Edit2 className="w-3.5 h-3.5" />
-              <span>Edit</span>
-            </button>
-          )}
-
           {onDelete && (
             <button
               type="button"
@@ -287,8 +279,7 @@ export default function PropertyCard({ property, onEdit, onDelete, onAddPlot }) 
               type="button"
               onClick={(e) => {
                 e.stopPropagation()
-                if (onAddPlot) onAddPlot(property)
-                else if (onEdit) onEdit(property)
+                if (onOpen) onOpen(property)
               }}
               className="inline-flex items-center gap-1 text-[11px] font-bold text-[#0F3D2E] hover:text-[#0b2e22] bg-[#E2EDE8] hover:bg-[#d1e4dc] px-2 py-0.5 rounded-md transition cursor-pointer"
               title="Add & Manage Plot Details"

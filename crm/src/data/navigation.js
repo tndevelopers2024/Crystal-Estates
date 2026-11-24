@@ -21,9 +21,9 @@ export const NAVIGATION_SECTIONS = [
     title: 'WORKSPACE',
     items: [
       { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
-      { id: 'leads', label: 'Leads pipeline', icon: GitBranch, badge: '12', path: '/leads' },
+      { id: 'leads', label: 'Leads pipeline', icon: GitBranch, path: '/leads' },
       { id: 'customers', label: 'Customers', icon: Contact, path: '/customers' },
-      { id: 'followups', label: 'Follow-ups', icon: Clock, badge: '5', path: '/followups' },
+      { id: 'followups', label: 'Follow-ups', icon: Clock, path: '/followups' },
       { id: 'visits', label: 'Site visits', icon: Compass, path: '/visits' },
     ],
   },
@@ -38,8 +38,8 @@ export const NAVIGATION_SECTIONS = [
     title: 'SALES',
     items: [
       { id: 'properties', label: 'Properties', icon: Building2, path: '/properties' },
-      { id: 'payments', label: 'Payments', icon: CreditCard, badge: '1', path: '/payments' },
-      { id: 'documents', label: 'Documents', icon: FileText, badge: '2', path: '/documents' },
+      { id: 'payments', label: 'Payments', icon: CreditCard, path: '/payments' },
+      { id: 'documents', label: 'Documents', icon: FileText, path: '/documents' },
       { id: 'whatsapp', label: 'WhatsApp', icon: MessageSquare, badge: '3', path: '/whatsapp' },
     ],
   },

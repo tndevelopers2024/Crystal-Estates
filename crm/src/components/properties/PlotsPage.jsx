@@ -53,6 +53,9 @@ import {
 import { useAuth } from '../../context/AuthContext'
 import { useDialog } from '../../context/DialogContext'
 import NearbyPlacesPanel from './NearbyPlacesPanel'
+import { usePlotDocuments, PlotDocumentsManager } from './PlotDocuments'
+import { PlotDocumentChecklist, ShareChannelPicker, ShareResults, ConsentNote, useDocumentSender, useShareConfig } from '../documents/PlotDocumentSharing'
+import { newRequestKey } from '../../lib/plotDocumentsApi'
 import Layout3DView from '../layout3d/Layout3DView'
 
 const STATUSES = [
@@ -367,11 +370,29 @@ function PlotPanel({ property, plot, isNew, phaseName, existingPlots, onSavePlot
   const [saving, setSaving] = useState(false)
 
   const propId = property.id || property.projectId
+  const { can } = useAuth()
+
+  // Documents stored against this plot (Edit details) and chosen with a payment
+  const docsState = usePlotDocuments({ propertyId: propId, plotUid: plot?.uid, plotNo: plot?.plotNo, phase: plot?.phase, enabled: !isNew })
+  const plotRef = useMemo(
+    () => ({ propertyId: propId, propertyName: property.name, plotUid: plot?.uid, plotNo: plot?.plotNo, phase: plot?.phase }),
+    [propId, property.name, plot?.uid, plot?.plotNo, plot?.phase],
+  )
+  const [payDocs, setPayDocs] = useState([])
+  const [payChannels, setPayChannels] = useState([])
+  const [payRequestId, setPayRequestId] = useState(() => newRequestKey('plotpay'))
+  const sender = useDocumentSender()
+  const { config: shareConfig } = useShareConfig()
+  const canShareDocs = can('payments', 'edit') || can('documents', 'edit')
 
   // Set tab when switching between plots or creating new plot
   useEffect(() => {
     setTab('edit')
     setError(null)
+    setPayDocs([])
+    setPayChannels([])
+    sender.reset()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [plot?.uid, isNew])
 
   // Populate form state only when a different plot is selected or on new plot init
@@ -425,7 +446,7 @@ function PlotPanel({ property, plot, isNew, phaseName, existingPlots, onSavePlot
   const payments = useMemo(() => {
     const logged = history.activities
       .filter((a) => a.type === 'payment')
-      .map((a) => ({ id: a.id, amount: Number(a.amount) || 0, mode: a.mode, ref: a.referenceNo, date: a.paidOn || a.createdAt, by: a.actor?.name, note: a.note, source: 'Plot log' }))
+      .map((a) => ({ id: a.id, amount: Number(a.amount) || 0, mode: a.mode, ref: a.referenceNo, date: a.paidOn || a.createdAt, by: a.actor?.name, note: a.note, source: 'Plot log', documentIds: a.documentIds || [] }))
     const legacy = history.legacyPayments.map((p) => ({
       id: p.id,
       amount: Number(p.amount) || 0,
@@ -524,9 +545,11 @@ function PlotPanel({ property, plot, isNew, phaseName, existingPlots, onSavePlot
     setError(null)
     const amount = parseRupees(payment.amount)
     if (!amount || amount <= 0) return setError('Enter a valid payment amount.')
+    const sharing = payDocs.length > 0 && payChannels.length > 0
     setSaving(true)
+    sender.reset()
     try {
-      await addPlotActivity({
+      const saved = await addPlotActivity({
         propertyId: propId,
         propertyName: property.name,
         phase: plot.phase,
@@ -538,9 +561,30 @@ function PlotPanel({ property, plot, isNew, phaseName, existingPlots, onSavePlot
         referenceNo: payment.referenceNo,
         paidOn: payment.paidOn,
         note: payment.note,
+        documentIds: payDocs,
+        // Same id on a repeated submit: the server returns the first entry instead of a second one
+        clientRequestId: payRequestId,
         actor,
       })
+      const paymentId = saved?.activity?.id
+      // Only after the payment is saved, and only through the channels the user ticked
+      if (sharing && paymentId) {
+        await sender.send({
+          documentIds: payDocs,
+          channels: payChannels,
+          recipient: { type: 'booking' },
+          propertyId: propId,
+          plotUid: plot.uid,
+          plotNo: plot.plotNo,
+          phase: plot.phase,
+          paymentId,
+          idempotencyKey: `payment:${paymentId}`,
+        })
+      }
       setPayment((p) => ({ ...p, amount: '', referenceNo: '', note: '' }))
+      setPayDocs([])
+      setPayChannels([])
+      setPayRequestId(newRequestKey('plotpay'))
       onShowToast?.(`Payment of ${formatRupees(amount)} recorded`, 'success')
       await loadHistory()
     } catch (err) {
@@ -716,6 +760,16 @@ function PlotPanel({ property, plot, isNew, phaseName, existingPlots, onSavePlot
                 </button>
               </div>
             </form>
+
+            {!isNew && (
+              <PlotDocumentsManager
+                plotRef={plotRef}
+                docsState={docsState}
+                canEdit={can('properties', 'edit')}
+                onShowToast={onShowToast}
+                onChanged={() => loadHistory(false)}
+              />
+            )}
 
             {!isNew && (
               <div className="pt-4 border-t border-slate-100">
@@ -903,13 +957,53 @@ function PlotPanel({ property, plot, isNew, phaseName, existingPlots, onSavePlot
                   <input id="pm-note" className={inputCls} value={payment.note} onChange={setP('note')} placeholder="e.g. Token advance" />
                 </div>
               </div>
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-slate-600">Plot documents (optional)</p>
+                <PlotDocumentChecklist
+                  documents={docsState.documents}
+                  loading={docsState.loading}
+                  error={docsState.error}
+                  onRetry={docsState.reload}
+                  selected={payDocs}
+                  onChange={(ids) => {
+                    setPayDocs(ids)
+                    if (!ids.length) setPayChannels([])
+                  }}
+                  emptyHint="Upload documents in Edit details."
+                />
+                {payDocs.length > 0 && canShareDocs && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold text-slate-600">Send with the payment confirmation to {booking.buyerName || plot?.booking?.buyerName || 'the buyer'}</p>
+                    {booking.buyerName || plot?.booking?.buyerName ? (
+                      <>
+                        <ShareChannelPicker
+                          config={shareConfig}
+                          recipient={{ name: booking.buyerName || plot?.booking?.buyerName, phone: booking.phone || plot?.booking?.phone, email: booking.email || plot?.booking?.email }}
+                          channels={payChannels}
+                          onChange={setPayChannels}
+                        />
+                        <ConsentNote />
+                      </>
+                    ) : (
+                      <p className="text-[11px] text-amber-700">Save the buyer in the Booking tab to send documents. The selected documents are still saved with the payment.</p>
+                    )}
+                  </div>
+                )}
+              </div>
               <div className="flex justify-end">
                 <button type="submit" disabled={saving} className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-[#0F3D2E] hover:bg-[#16533D] text-white text-sm font-bold rounded-xl disabled:opacity-50">
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                  Add payment
+                  {saving && sender.sending ? 'Sending documents…' : payDocs.length && payChannels.length ? 'Add payment & send' : 'Add payment'}
                 </button>
               </div>
             </form>
+
+            {(sender.results || sender.error) && (
+              <div className="rounded-xl border border-slate-200 p-3 space-y-2">
+                <p className="text-xs font-bold text-slate-800 uppercase tracking-wider">Documents sent with the last payment</p>
+                {sender.error ? <p className="text-xs text-rose-600">{sender.error}</p> : <ShareResults results={sender.results} onRetry={sender.retry} retrying={sender.sending} />}
+              </div>
+            )}
 
             <div>
               <p className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2">Payments received ({payments.length})</p>
@@ -922,6 +1016,11 @@ function PlotPanel({ property, plot, isNew, phaseName, existingPlots, onSavePlot
                       <div className="min-w-0">
                         <p className="text-sm font-bold text-slate-900">{formatRupees(p.amount)}</p>
                         <p className="text-xs text-slate-500">{[p.mode, p.ref && `Ref ${p.ref}`, p.note].filter(Boolean).join(' · ')}</p>
+                        {p.documentIds?.length > 0 && (
+                          <p className="text-[11px] text-[#0F3D2E] font-semibold mt-0.5 truncate">
+                            Attached: {p.documentIds.map((id) => docsState.documents.find((d) => d.id === id)?.label || 'Deleted document').join(', ')}
+                          </p>
+                        )}
                       </div>
                       <div className="text-right shrink-0">
                         <p className="text-xs text-slate-600">{typeof p.date === 'string' && p.date.length <= 12 ? p.date : formatDateTime(p.date)}</p>

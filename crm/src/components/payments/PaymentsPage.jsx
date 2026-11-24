@@ -24,6 +24,8 @@ import CustomerPlotPicker from '../common/CustomerPlotPicker'
 import CustomerHistoryDrawer from '../common/CustomerHistoryDrawer'
 import SidePanel from '../common/SidePanel'
 import { formatRupees, parseRupees } from '../../lib/plotUtils'
+import { PaymentDocumentSection, ShareResults, useDocumentSender } from '../documents/PlotDocumentSharing'
+import { newRequestKey } from '../../lib/plotDocumentsApi'
 
 const inputCls =
   'w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:ring-2 focus:ring-[#0F3D2E]/10 transition'
@@ -42,7 +44,22 @@ const fmtDate = (d) => {
 function RecordPaymentForm({ leads, properties, onSaved, onCancel, actor }) {
   const forList = useOptions('paymentFor', DEFAULT_FOR)
   const modeList = useOptions('paymentMode', DEFAULT_MODES)
-  const [target, setTarget] = useState({ leadId: '', propertyId: '', plotUid: '', plotNo: '', phase: '' })
+  const [target, setTargetRaw] = useState({ leadId: '', propertyId: '', plotUid: '', plotNo: '', phase: '' })
+  // Plot documents to send with the confirmation (only when the user ticks a channel)
+  const [docIds, setDocIds] = useState([])
+  const [shareChannels, setShareChannels] = useState([])
+  const [requestId] = useState(() => newRequestKey('pay'))
+  const sender = useDocumentSender()
+  const setTarget = (next) => {
+    // A different plot has different documents: clear what was picked
+    if (next.plotUid !== target.plotUid || next.plotNo !== target.plotNo || next.propertyId !== target.propertyId) {
+      setDocIds([])
+      setShareChannels([])
+    }
+    setTargetRaw(next)
+  }
+  const lead = leads.find((l) => l.id === target.leadId)
+  const sharing = Boolean(target.leadId && target.plotNo && docIds.length && shareChannels.length)
   const [form, setForm] = useState({
     paymentFor: DEFAULT_FOR[0],
     amount: '',
@@ -83,8 +100,28 @@ function RecordPaymentForm({ leads, properties, onSaved, onCancel, actor }) {
         sendWhatsApp: false,
         sendEmail: false,
         actor,
+        // Same id on a repeated submit: the server returns the first payment instead of a second one
+        clientRequestId: requestId,
+        documentIds: target.plotNo ? docIds : [],
       })
-      onSaved(res.payment, { ...target, propertyName: property?.name })
+      // Only after the payment is saved, and only through the channels the user ticked
+      let shareResults = null
+      let shareError = null
+      if (sharing && res.payment?.id) {
+        shareResults = await sender.send({
+          documentIds: docIds,
+          channels: shareChannels,
+          recipient: { type: 'lead', leadId: target.leadId },
+          propertyId: target.propertyId,
+          plotUid: target.plotUid,
+          plotNo: target.plotNo,
+          phase: target.phase,
+          paymentId: res.payment.id,
+          idempotencyKey: `payment:${res.payment.id}`,
+        })
+        if (!shareResults) shareError = 'The payment is saved, but the documents could not be sent. Try again from Send Document.'
+      }
+      onSaved(res.payment, { ...target, propertyName: property?.name }, { shareResults, shareError, request: sender.request })
     } catch (err) {
       setError(err.message || 'Could not save the payment.')
     } finally {
@@ -105,6 +142,21 @@ function RecordPaymentForm({ leads, properties, onSaved, onCancel, actor }) {
           <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Customer &amp; plot</h3>
           <CustomerPlotPicker leads={leads} properties={properties} value={target} onChange={setTarget} plotLabel="Plot (optional)" />
         </section>
+
+        {target.propertyId && (
+          <section className="space-y-3">
+            <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Plot documents{target.plotNo ? ` · Plot ${target.plotNo}` : ''}</h3>
+            <PaymentDocumentSection
+              plotRef={{ propertyId: target.propertyId, plotUid: target.plotUid, plotNo: target.plotNo, phase: target.phase }}
+              recipient={lead ? { name: lead.name, phone: lead.phone, email: lead.email } : null}
+              docIds={docIds}
+              onDocIds={setDocIds}
+              channels={shareChannels}
+              onChannels={setShareChannels}
+            />
+            {docIds.length > 0 && !target.leadId && <p className="text-[11px] text-amber-700">Select the customer to send documents.</p>}
+          </section>
+        )}
 
         <section className="space-y-4">
           <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Payment</h3>
@@ -163,7 +215,7 @@ function RecordPaymentForm({ leads, properties, onSaved, onCancel, actor }) {
         </button>
         <button type="submit" disabled={saving} className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-[#0F3D2E] hover:bg-[#16533D] text-white font-bold rounded-xl text-sm disabled:opacity-50">
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-          Save payment
+          {saving && sender.sending ? 'Sending documents…' : sharing ? 'Save & send' : 'Save payment'}
         </button>
       </div>
     </form>
@@ -228,9 +280,9 @@ export default function PaymentsPage({ leads = [], properties = [], onShowToast,
     return { total, month, count: payments.length, customers: new Set(payments.map((p) => p.leadId)).size }
   }, [payments])
 
-  const handleSaved = async (payment, target) => {
+  const handleSaved = async (payment, target, share = {}) => {
     setFormOpen(false)
-    setJustSaved({ payment, target })
+    setJustSaved({ payment, target, ...share })
     onShowToast?.(`Payment of ${formatRupees(payment.amount)} recorded`, 'success')
     await load()
     onLeadsChanged?.()
@@ -279,7 +331,8 @@ export default function PaymentsPage({ leads = [], properties = [], onShowToast,
       </div>
 
       {justSaved && (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl border border-emerald-200 bg-emerald-50">
+        <div className="p-4 rounded-2xl border border-emerald-200 bg-emerald-50 space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <p className="text-sm text-emerald-900">
             <strong>{formatRupees(justSaved.payment.amount)}</strong> recorded for {justSaved.payment.leadName}
             {justSaved.target.plotNo ? ` · Plot ${justSaved.target.plotNo}` : ''}.
@@ -292,6 +345,9 @@ export default function PaymentsPage({ leads = [], properties = [], onShowToast,
               <X className="w-4 h-4" />
             </button>
           </div>
+        </div>
+        {justSaved.shareResults && <ShareResults results={justSaved.shareResults} />}
+        {justSaved.shareError && <p className="text-xs text-rose-700">{justSaved.shareError}</p>}
         </div>
       )}
 

@@ -6,7 +6,10 @@ import { useAuth } from '../../context/AuthContext'
 
 export default function Sidebar({ onOpenUpload, dynamicBadges = {}, isOpen = false, onClose }) {
   const location = useLocation()
-  const { user, logout } = useAuth()
+  const { user, logout, can, isSuperAdmin } = useAuth()
+  // Only pages this role may open (Team & roles: Super Admin; Settings: everyone, for profile & password)
+  const allowed = (id) => (id === 'team' ? isSuperAdmin : id === 'settings' ? true : can(id))
+  const sections = NAVIGATION_SECTIONS.map((sec) => ({ ...sec, items: sec.items.filter((it) => allowed(it.id)) })).filter((sec) => sec.items.length)
 
   return (
     <>
@@ -58,7 +61,7 @@ export default function Sidebar({ onOpenUpload, dynamicBadges = {}, isOpen = fal
 
         {/* Navigation Sections - Independently Scrollable Menu Items */}
         <nav className="flex-1 min-h-0 py-3 pl-3 pr-2.5 space-y-4 overflow-y-auto crm-sidebar-menu overscroll-contain">
-          {NAVIGATION_SECTIONS.map((section) => (
+          {sections.map((section) => (
             <div key={section.title}>
               <div className="px-3 text-[10px] font-bold tracking-wider text-emerald-200/70 uppercase mb-1">
                 {section.title}

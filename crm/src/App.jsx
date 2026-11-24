@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import {
   Routes,
   Route,
@@ -18,6 +18,14 @@ import DocumentsPage from './components/documents/DocumentsPage'
 import DashboardView from './components/dashboard/DashboardView'
 import LeadsPipelineView from './components/leads/LeadsPipelineView'
 import PlaceholderView from './components/views/PlaceholderView'
+import ManagementView from './components/views/ManagementView'
+import ReportsView from './components/views/ReportsView'
+import TeamView from './components/views/TeamView'
+import SettingsView from './components/views/SettingsView'
+import { Lock } from 'lucide-react'
+import { useAuth } from './context/AuthContext'
+import { openFollowUps, inRange } from './lib/analytics'
+import { fetchTeam } from './lib/teamApi'
 import FollowUpsView from './components/followups/FollowUpsView'
 import SiteVisitsView from './components/visits/SiteVisitsView'
 import ScheduleFollowUpModal from './components/leads/ScheduleFollowUpModal'
@@ -139,6 +147,7 @@ export default function App() {
   const location = useLocation()
   const navigate = useNavigate()
   const { confirm } = useDialog()
+  const { can, isSuperAdmin, home } = useAuth()
 
   const [toast, setToast] = useState(null)
   const [isAddLeadModalOpen, setIsAddLeadModalOpen] = useState(false)
@@ -163,6 +172,23 @@ export default function App() {
 
   // Centralized hook managing live MongoDB site visits
   const visitsState = useSiteVisits()
+
+  // Registrations waiting for approval (Super Admin bell item)
+  const [pendingUsers, setPendingUsers] = useState(0)
+  useEffect(() => {
+    if (!isSuperAdmin) return undefined
+    let active = true
+    const load = () =>
+      fetchTeam()
+        .then((d) => active && setPendingUsers((d.users || []).filter((u) => u.status === 'pending').length))
+        .catch(() => {})
+    load()
+    const id = setInterval(load, 60000)
+    return () => {
+      active = false
+      clearInterval(id)
+    }
+  }, [isSuperAdmin])
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type })
@@ -363,6 +389,32 @@ export default function App() {
     followups: String(openFollowUpsCount),
   }
 
+  // Header bell: live items that need someone's attention
+  const notifications = useMemo(() => {
+    const leads = leadsState.allLeads || []
+    const visits = visitsState.visits || []
+    const items = []
+    if (can('leads')) {
+      const fresh = leads.filter((l) => inRange(l.createdAt, 1) && (l.stage || 'new') === 'new')
+      items.push({ id: 'new-leads', label: 'New enquiries today', detail: fresh.slice(0, 2).map((l) => l.name).join(', '), count: fresh.length, path: '/leads' })
+    }
+    if (can('visits')) {
+      const pending = visits.filter((v) => /pending/i.test(v.status || ''))
+      items.push({ id: 'pending-visits', label: 'Site-visit requests to confirm', detail: pending.slice(0, 2).map((v) => v.leadName).join(', '), count: pending.length, path: '/visits' })
+    }
+    if (can('followups')) {
+      const open = openFollowUps(leads)
+      items.push({ id: 'followups', label: 'Open follow-ups', detail: open.slice(0, 2).map((f) => f.leadName).join(', '), count: open.length, path: '/followups' })
+    }
+    if (isSuperAdmin) items.push({ id: 'approvals', label: 'Accounts waiting for approval', count: pendingUsers, path: '/team' })
+    return items
+  }, [leadsState.allLeads, visitsState.visits, pendingUsers, can, isSuperAdmin])
+
+  // Pages this role may open (Settings is for everyone: profile & password)
+  const sectionAllowed = (nav) => (nav === 'team' ? isSuperAdmin : nav === 'settings' ? true : can(nav))
+  const pageAllowed =
+    isAddOrEditPage ? can('properties', 'edit') : location.pathname === '/' ? true : sectionAllowed(activeNav)
+
   // Check if current URL is an auth route
   const isAuthRoute =
     ['/login', '/forgot-password', '/register', '/set-password'].includes(location.pathname)
@@ -407,10 +459,23 @@ export default function App() {
         onSearchChange={handleCurrentSearchChange}
         searchPlaceholder={currentSearchPlaceholder}
         dynamicBadges={dynamicBadges}
+        notifications={notifications}
       >
+        {!pageAllowed ? (
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_8px_rgba(0,0,0,0.04)] p-10 text-center max-w-lg mx-auto mt-10">
+            <div className="w-14 h-14 rounded-2xl bg-slate-100 text-slate-500 flex items-center justify-center mx-auto mb-4">
+              <Lock className="w-7 h-7" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-900">You don't have access to this page</h3>
+            <p className="text-xs text-slate-500 mt-2">Your role doesn't include it. Ask a Super Admin if you need access.</p>
+            <button type="button" onClick={() => navigate(home)} className="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-[#0F3D2E] hover:bg-[#16533D] text-white text-xs font-bold rounded-xl shadow-sm transition">
+              Go to my workspace
+            </button>
+          </div>
+        ) : (
         <Routes>
-          {/* Default Route -> /properties */}
-          <Route path="/" element={<Navigate to="/properties" replace />} />
+          {/* Default Route -> this role's home page */}
+          <Route path="/" element={<Navigate to={home} replace />} />
 
           {/* Properties List */}
           <Route
@@ -512,8 +577,18 @@ export default function App() {
             path="/dashboard"
             element={
               <DashboardView
-                totalProperties={totalCount}
-                onNavigateToProperties={() => navigate('/properties')}
+                properties={properties}
+                leads={leadsState.allLeads || []}
+                visits={visitsState.visits || []}
+                loading={leadsState.loading}
+                onAddLead={() => {
+                  navigate('/leads')
+                  setIsAddLeadModalOpen(true)
+                }}
+                onScheduleVisit={() => {
+                  navigate('/visits')
+                  setIsScheduleVisitModalOpen(true)
+                }}
               />
             }
           />
@@ -539,13 +614,26 @@ export default function App() {
             element={<DocumentsPage leads={leadsState.allLeads || []} properties={properties} onShowToast={showToast} />}
           />
           <Route
+            path="/management"
+            element={<ManagementView properties={properties} leads={leadsState.allLeads || []} visits={visitsState.visits || []} loading={leadsState.loading} />}
+          />
+          <Route
+            path="/reports"
+            element={<ReportsView leads={leadsState.allLeads || []} visits={visitsState.visits || []} loading={leadsState.loading} />}
+          />
+          <Route path="/team" element={<TeamView onShowToast={showToast} />} />
+          <Route path="/settings" element={<SettingsView onShowToast={showToast} />} />
+
+          {/* WhatsApp and land modules keep their current pages */}
+          <Route
             path="/:sectionId"
-            element={<SectionPlaceholderRouteWrapper onBack={() => navigate('/properties')} />}
+            element={<SectionPlaceholderRouteWrapper onBack={() => navigate(home)} />}
           />
 
           {/* Fallback unknown route */}
-          <Route path="*" element={<Navigate to="/properties" replace />} />
+          <Route path="*" element={<Navigate to={home} replace />} />
         </Routes>
+        )}
       </MainLayout>
 
       {/* ── Schedule Follow-up Modal for Workspace ── */}

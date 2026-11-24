@@ -17,7 +17,7 @@ export default function MainLayout({
   searchTerm,
   onSearchChange,
   searchPlaceholder,
-  notificationCount = 3,
+  notifications = [],
   dynamicBadges = {},
   children,
 }) {
@@ -51,7 +51,7 @@ export default function MainLayout({
           onScheduleVisit={onScheduleVisit}
           onSimulateEnquiry={onSimulateEnquiry}
           isSimulating={isSimulating}
-          notificationCount={notificationCount}
+          notifications={notifications}
           onToggleMobileMenu={() => setIsMobileMenuOpen((prev) => !prev)}
         />
 

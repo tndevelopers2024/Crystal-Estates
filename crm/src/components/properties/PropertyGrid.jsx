@@ -42,9 +42,8 @@ export default function PropertyGrid({
           <PropertyCard
             key={property.id}
             property={property}
-            onEdit={onEdit}
             onDelete={onDelete}
-            onAddPlot={(prop) => navigate(`/properties/${encodeURIComponent(prop.id)}/plots`)}
+            onOpen={(prop) => navigate(`/properties/${encodeURIComponent(prop.id || prop.projectId)}/plots`)}
           />
         ))}
       </div>

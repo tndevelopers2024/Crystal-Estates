@@ -411,12 +411,15 @@ export default class PlotScene {
 
   /** Current camera pose, so a rebuild (new geometry from the CRM) can keep the view. */
   getView() {
-    return { pos: this.camera.position.clone(), target: this.controls.target.clone() }
+    const pre = this._preSelectView
+    return { pos: this.camera.position.clone(), target: this.controls.target.clone(), preSelect: pre ? { pos: pre.pos.clone(), target: pre.target.clone() } : null, placeOpen: Boolean(this._placeOpen) }
   }
 
   setView(view) {
     if (!view) return
     this.tween = null
+    this._preSelectView = view.preSelect || null
+    this._placeOpen = Boolean(view.placeOpen)
     this.camera.position.copy(view.pos)
     this.controls.target.copy(view.target)
     this.controls.update()
@@ -429,7 +432,30 @@ export default class PlotScene {
     if (this.colorAttr) this.colorAttr.needsUpdate = true
     if (this.selected < 0) {
       this.selMesh.visible = false
+      this._lift = null
+      // Closing a plot: glide back to the view from before it was opened
+      if (prev >= 0) {
+        const back = this._preSelectView
+        const moved = this._cameraMoved
+        this._preSelectView = null
+        this._cameraMoved = false
+        if (this._placeOpen) {
+          // a place card took over (opened from this plot): it owns the way back
+          this._preSelectView = back
+        } else if (moved) {
+          // the camera was already sent somewhere else
+        } else if (this.introState) this.pendingTween = null
+        else if (back) this._animateTo(back.pos, back.target)
+        else this.reset()
+      } else this._preSelectView = null
       return
+    }
+    // Opening a plot from the normal view: remember that view (where the camera is heading, if it is moving)
+    if (prev < 0) this._cameraMoved = false
+    if (prev < 0 && !this.introState && !this._preSelectView) {
+      this._preSelectView = this.tween
+        ? { pos: this.tween.pos.clone(), target: this.tween.target.clone() }
+        : { pos: this.camera.position.clone(), target: this.controls.target.clone() }
     }
     const p = this.plots[this.selected]
     this.selMesh.geometry = p.geometry
@@ -476,6 +502,10 @@ export default class PlotScene {
   }
 
   reset(animate = true) {
+    if (this.selected >= 0 || this._placeOpen) {
+      this._preSelectView = null
+      this._cameraMoved = true
+    }
     // Fit the whole site to the current aspect ratio, viewed from ~52° above the ground
     const vb = this.viewBox || { width: 1000, height: 1000 }
     const fit = Math.max(vb.height, vb.width / Math.max(this.camera.aspect, 0.1))
@@ -491,6 +521,10 @@ export default class PlotScene {
   }
 
   topView() {
+    if (this.selected >= 0 || this._placeOpen) {
+      this._preSelectView = null
+      this._cameraMoved = true
+    }
     const dist = (this.span || 1000) * 1.12
     const t = this.controls.target.clone()
     this._animateTo(new THREE.Vector3(t.x, dist, t.z + 0.01), t)
@@ -505,9 +539,39 @@ export default class PlotScene {
 
   /** Move the camera target to SVG coordinates (minimap click). */
   panToSvg(x, y) {
+    if (this.selected >= 0 || this._placeOpen) {
+      this._preSelectView = null
+      this._cameraMoved = true
+    }
     const target = new THREE.Vector3(x - this.center.cx, 0, y - this.center.cz)
     const offset = this.camera.position.clone().sub(this.controls.target)
     this._animateTo(target.clone().add(offset), target, 600)
+  }
+
+  /** Where the camera rests: the end of a running move, or where it is now. */
+  _restingView() {
+    return this.tween
+      ? { pos: this.tween.pos.clone(), target: this.tween.target.clone() }
+      : { pos: this.camera.position.clone(), target: this.controls.target.clone() }
+  }
+
+  /** Open a place card: pan to it and remember the view to come back to. */
+  focusPlace(x, y) {
+    if (!this._preSelectView && !this.introState) this._preSelectView = this._restingView()
+    this._placeOpen = true
+    const target = new THREE.Vector3(x - this.center.cx, 0, y - this.center.cz)
+    const offset = this.camera.position.clone().sub(this.controls.target)
+    this._animateTo(target.clone().add(offset), target, 600)
+  }
+
+  /** Place card closed: go back, unless a plot was opened from it (the plot's close returns). */
+  closePlace() {
+    if (!this._placeOpen) return
+    this._placeOpen = false
+    if (this.selected >= 0) return
+    const back = this._preSelectView
+    this._preSelectView = null
+    if (back && !this.introState) this._animateTo(back.pos, back.target)
   }
 
   setAutoRotate(on) {

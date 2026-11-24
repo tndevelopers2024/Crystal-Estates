@@ -320,7 +320,7 @@ router.put('/booking', async (req, res) => {
  */
 router.post('/', async (req, res) => {
   try {
-    const { propertyId, propertyName, phase, plotUid, plotNo, type = 'note', title, amount, mode, referenceNo, paidOn, note, actor } = req.body || {}
+    const { propertyId, propertyName, phase, plotUid, plotNo, type = 'note', title, amount, mode, referenceNo, paidOn, note, actor, documentIds, clientRequestId } = req.body || {}
 
     if (!propertyId || !norm(plotNo)) {
       return res.status(400).json({ success: false, error: 'propertyId and plotNo are required' })
@@ -329,8 +329,16 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Only payment and note entries can be added manually' })
     }
 
+    const requestId = norm(clientRequestId).slice(0, 80)
+    if (requestId) {
+      const db0 = await getDb()
+      const existing = await db0.collection(COLLECTION).findOne({ clientRequestId: requestId }, { projection: { _id: 0 } })
+      if (existing) return res.json({ success: true, activity: existing, duplicate: true })
+    }
+
     const record = {
       id: `pa-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      ...(requestId ? { clientRequestId: requestId } : {}),
       propertyId,
       propertyName: norm(propertyName),
       phase: phase || null,
@@ -353,6 +361,11 @@ router.post('/', async (req, res) => {
       record.paidOn = norm(paidOn) || new Date().toISOString().slice(0, 10)
       record.note = norm(note).slice(0, 500)
       record.title = norm(title) || `Payment of ₹${num.toLocaleString('en-IN')} received`
+      // Plot documents chosen to go with this payment (ids from plot_documents)
+      if (Array.isArray(documentIds)) {
+        const ids = documentIds.map((d) => norm(d).slice(0, 60)).filter(Boolean).slice(0, 20)
+        if (ids.length) record.documentIds = ids
+      }
     } else {
       const text = norm(note || title).slice(0, 1000)
       if (!text) return res.status(400).json({ success: false, error: 'Note text is required' })

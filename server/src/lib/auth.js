@@ -143,6 +143,7 @@ export function ruleFor(method, p) {
   if (get && /^\/plots(\/layouts|\/layout\/[^/]+|\/kolapakkam|\/[^/]+|\/[^/]+\/places)?\/?$/.test(p)) return PUBLIC
   if (m === 'POST' && p === '/visits') return PUBLIC // site-visit popup on the website
   if (get && /^\/documents\/[^/]+\/view$/.test(p)) return PUBLIC // token-protected share link
+  if (get && /^\/plot-documents\/[^/]+\/shared$/.test(p)) return PUBLIC // token-protected plot file link
 
   // Signed-in user, any role
   if (/^\/auth\/(me|logout|change-password)$/.test(p)) return ANY_USER
@@ -165,8 +166,19 @@ export function ruleFor(method, p) {
   // Properties, plots, layouts, nearby places
   if (p.startsWith('/plot-activity')) return get ? VIEW_ANY('properties', 'payments') : EDIT_ANY('properties', 'payments')
   if (p.startsWith('/plots')) return get ? VIEW_ANY('properties') : EDIT_ANY('properties')
+  // Plot documents: managed by property editors; viewable and shareable from payments too
+  if (p.startsWith('/plot-documents')) {
+    if (get) return VIEW_ANY('properties', 'payments', 'documents')
+    // New uploads also from the Send Document page; rename / replace / delete stay with property editors
+    if (m === 'POST' && p === '/plot-documents') return EDIT_ANY('properties', 'documents')
+    return EDIT_ANY('properties')
+  }
   if (p.startsWith('/upload')) return get ? VIEW_ANY('properties') : EDIT_ANY('properties', 'documents')
 
+  // Sending plot documents by WhatsApp / email, and its history
+  if (p.startsWith('/document-shares')) return get ? VIEW_ANY('documents', 'payments', 'properties') : EDIT_ANY('documents', 'payments')
+  // Payment editors can create a share link when they record a payment
+  if (m === 'POST' && p === '/documents') return EDIT_ANY('documents', 'payments')
   if (p.startsWith('/documents')) return get ? VIEW_ANY('documents') : EDIT_ANY('documents')
 
   return SUPER // anything not listed is closed by default

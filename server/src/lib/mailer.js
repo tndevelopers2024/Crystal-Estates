@@ -43,19 +43,35 @@ function getTransport() {
 }
 
 /** Throws when no delivery channel is configured or the provider rejects the message. */
-export async function sendMail({ to, subject, text, html, tag }) {
+/**
+ * attachments: [{ filename, content: Buffer, contentType }] (optional).
+ * Returns { delivered, channel, messageId }. 'outbox' means the message was
+ * only written to the local development folder, not delivered to anyone.
+ */
+export async function sendMail({ to, subject, text, html, tag, attachments }) {
   const dir = outboxDir()
   if (dir && !smtpConfigured()) {
     fs.mkdirSync(dir, { recursive: true })
     const file = path.join(dir, `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.json`)
-    fs.writeFileSync(file, JSON.stringify({ to, subject, text, html, tag, at: new Date().toISOString() }, null, 2))
-    return { delivered: true, channel: 'outbox' }
+    const files = (attachments || []).map((a) => ({ filename: a.filename, contentType: a.contentType, size: a.content?.length || 0 }))
+    fs.writeFileSync(file, JSON.stringify({ to, subject, text, html, tag, attachments: files, at: new Date().toISOString() }, null, 2))
+    return { delivered: false, channel: 'outbox', file }
   }
   if (!smtpConfigured()) {
     throw new Error('Email is not configured on the server (set SMTP_HOST, SMTP_USER, SMTP_PASS and MAIL_FROM).')
   }
-  await getTransport().sendMail({ from: process.env.MAIL_FROM, to, subject, text, html })
-  return { delivered: true, channel: 'smtp' }
+  const info = await getTransport().sendMail({ from: process.env.MAIL_FROM, to, subject, text, html, attachments })
+  // The SMTP server must accept the recipient; a rejected address is a failure
+  if (Array.isArray(info.rejected) && info.rejected.length && !(info.accepted || []).length) {
+    throw new Error(`The mail server rejected ${info.rejected.join(', ')}`)
+  }
+  return { delivered: true, channel: 'smtp', messageId: info.messageId || null }
+}
+
+/** How email is set up: 'smtp' (real delivery), 'outbox' (dev only) or null. */
+export function mailMode() {
+  if (smtpConfigured()) return 'smtp'
+  return outboxDir() ? 'outbox' : null
 }
 
 /** Base URL of the CRM, used in links inside emails. */

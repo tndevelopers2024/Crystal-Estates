@@ -2,6 +2,8 @@ import React from 'react'
 import { Search, Bell, Plus, Sparkles, LogOut, User as UserIcon, Menu } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useConfirm } from '../../context/DialogContext'
+import { useNavigate } from 'react-router-dom'
+import NotificationsMenu from './NotificationsMenu'
 
 export default function Header({
   activeNav = 'properties',
@@ -17,10 +19,11 @@ export default function Header({
   onScheduleVisit,
   onSimulateEnquiry,
   isSimulating = false,
-  notificationCount = 3,
+  notifications = [],
   onToggleMobileMenu,
 }) {
-  const { user, logout } = useAuth()
+  const { user, logout, can } = useAuth()
+  const navigate = useNavigate()
   const confirm = useConfirm()
 
   const handleLogout = async () => {
@@ -78,7 +81,7 @@ export default function Header({
         )}
 
         {/* ── LEADS PIPELINE ACTIONS ── */}
-        {!isAddOrEditPage && activeNav === 'leads' && (
+        {!isAddOrEditPage && activeNav === 'leads' && can('leads', 'edit') && (
           <>
 
             {onAddLead && (
@@ -95,7 +98,7 @@ export default function Header({
         )}
 
         {/* ── FOLLOW-UPS ACTIONS ── */}
-        {!isAddOrEditPage && activeNav === 'followups' && onNewFollowUp && (
+        {!isAddOrEditPage && activeNav === 'followups' && onNewFollowUp && can('followups', 'edit') && (
           <button
             type="button"
             onClick={onNewFollowUp}
@@ -107,7 +110,7 @@ export default function Header({
         )}
 
         {/* ── SITE VISITS ACTIONS ── */}
-        {!isAddOrEditPage && activeNav === 'visits' && onScheduleVisit && (
+        {!isAddOrEditPage && activeNav === 'visits' && onScheduleVisit && can('visits', 'edit') && (
           <button
             type="button"
             onClick={onScheduleVisit}
@@ -119,7 +122,7 @@ export default function Header({
         )}
 
         {/* ── PROPERTIES & DASHBOARD ACTIONS ── */}
-        {!isAddOrEditPage && (activeNav === 'properties' || activeNav === 'dashboard') && onOpenUpload && (
+        {!isAddOrEditPage && activeNav === 'properties' && onOpenUpload && can('properties', 'edit') && (
           <button
             type="button"
             onClick={onOpenUpload}
@@ -130,30 +133,22 @@ export default function Header({
           </button>
         )}
 
-        {/* Notification Bell */}
-        <button
-          type="button"
-          className="relative p-2 rounded-xl text-slate-600 hover:bg-slate-100 transition"
-          aria-label="Notifications"
-        >
-          <Bell className="w-4 h-4 text-slate-600" />
-          {notificationCount > 0 && (
-            <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-rose-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
-              {notificationCount}
-            </span>
-          )}
-        </button>
+        {/* Notifications: live items that need attention */}
+        <NotificationsMenu items={notifications} />
 
         {/* User Profile & Logout Action */}
         {user && (
           <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
-            <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-xs shrink-0"
+            <button
+              type="button"
+              onClick={() => navigate('/settings')}
+              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-xs shrink-0 hover:ring-2 hover:ring-[#0F3D2E]/30 transition"
               style={{ backgroundColor: user.color || '#0F3D2E' }}
-              title={`${user.name} (${user.role || 'Admin'})`}
+              title={`${user.name} (${user.role || 'Admin'}) — profile & password`}
+              aria-label="Profile and settings"
             >
               {user.initials || 'CA'}
-            </div>
+            </button>
 
             <div className="hidden lg:block text-left">
               <div className="text-xs font-bold text-slate-800 leading-none">

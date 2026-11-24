@@ -462,6 +462,8 @@ router.post('/:id/payments', async (req, res) => {
       paidOn = '',
       note = '',
       actor = null,
+      clientRequestId = '',
+      documentIds = [],
     } = req.body
 
     const numAmount = Number(amount)
@@ -475,8 +477,15 @@ router.post('/:id/payments', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Lead not found' })
     }
 
+    // A repeated submission (double click, retry after a timeout) returns the first payment
+    const requestId = String(clientRequestId || '').trim().slice(0, 80)
+    if (requestId) {
+      const existing = await db.collection('payments').findOne({ clientRequestId: requestId, leadId: id }, { projection: { _id: 0 } })
+      if (existing) return res.json({ success: true, lead, payment: existing, duplicate: true })
+    }
+
     const formatted = amountFormatted || formatCurrency(numAmount)
-    const paymentId = `pay-${Date.now()}`
+    const paymentId = `pay-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
 
     const paymentRecord = {
       id: paymentId,
@@ -496,6 +505,10 @@ router.post('/:id/payments', async (req, res) => {
       note: String(note || '').trim().slice(0, 500),
       createdAt: new Date(),
     }
+    if (requestId) paymentRecord.clientRequestId = requestId
+    // Plot documents chosen to go with this payment
+    const docIds = Array.isArray(documentIds) ? documentIds.map((d) => String(d || '').trim().slice(0, 60)).filter(Boolean).slice(0, 10) : []
+    if (docIds.length) paymentRecord.documentIds = docIds
 
     // Plot link: stored on the payment and mirrored into that plot's activity log
     // Project only (no plot) is stored too, so the payment maps to the right listing
@@ -540,6 +553,7 @@ router.post('/:id/payments', async (req, res) => {
         note: paymentFor,
         paymentId,
         leadId: id,
+        ...(docIds.length ? { documentIds: docIds } : {}),
         changes: [],
         actor: actor && actor.name ? { name: String(actor.name).slice(0, 120), email: String(actor.email || '').slice(0, 160) } : { name: 'CRM user', email: '' },
         createdAt: new Date(),

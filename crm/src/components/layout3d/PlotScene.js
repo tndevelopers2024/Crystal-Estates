@@ -80,6 +80,11 @@ export default class PlotScene {
       zoomSpeed: 0.9,
       autoRotateSpeed: 0.6,
     })
+    // Map-style navigation: dragging moves across the layout (so you can always
+    // travel from the selected plot to any other one); rotating is right-drag or
+    // Ctrl/Shift + drag on a mouse, and two fingers on touch screens.
+    this.controls.mouseButtons = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE }
+    this.controls.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_ROTATE }
     this.controls.addEventListener('start', () => {
       this.tween = null
     })
@@ -352,6 +357,11 @@ export default class PlotScene {
   }
 
   _onDown(e) {
+    // Only the main button (or a finger) selects; right/middle drags move the camera
+    if (e.button !== 0) {
+      this._down = null
+      return
+    }
     this._down = { x: e.clientX, y: e.clientY, t: performance.now() }
   }
 
@@ -394,12 +404,15 @@ export default class PlotScene {
 
   /** Current camera pose, so a rebuild (new geometry from the CRM) can keep the view. */
   getView() {
-    return { pos: this.camera.position.clone(), target: this.controls.target.clone() }
+    const pre = this._preSelectView
+    return { pos: this.camera.position.clone(), target: this.controls.target.clone(), preSelect: pre ? { pos: pre.pos.clone(), target: pre.target.clone() } : null, placeOpen: Boolean(this._placeOpen) }
   }
 
   setView(view) {
     if (!view) return
     this.tween = null
+    this._preSelectView = view.preSelect || null
+    this._placeOpen = Boolean(view.placeOpen)
     this.camera.position.copy(view.pos)
     this.controls.target.copy(view.target)
     this.controls.update()
@@ -412,7 +425,30 @@ export default class PlotScene {
     if (this.colorAttr) this.colorAttr.needsUpdate = true
     if (this.selected < 0) {
       this.selMesh.visible = false
+      this._lift = null
+      // Closing a plot: glide back to the view from before it was opened
+      if (prev >= 0) {
+        const back = this._preSelectView
+        const moved = this._cameraMoved
+        this._preSelectView = null
+        this._cameraMoved = false
+        if (this._placeOpen) {
+          // a place card took over (opened from this plot): it owns the way back
+          this._preSelectView = back
+        } else if (moved) {
+          // the camera was already sent somewhere else
+        } else if (this.introState) this.pendingTween = null
+        else if (back) this._animateTo(back.pos, back.target)
+        else this.reset()
+      } else this._preSelectView = null
       return
+    }
+    // Opening a plot from the normal view: remember that view (where the camera is heading, if it is moving)
+    if (prev < 0) this._cameraMoved = false
+    if (prev < 0 && !this.introState && !this._preSelectView) {
+      this._preSelectView = this.tween
+        ? { pos: this.tween.pos.clone(), target: this.tween.target.clone() }
+        : { pos: this.camera.position.clone(), target: this.controls.target.clone() }
     }
     const p = this.plots[this.selected]
     this.selMesh.geometry = p.geometry
@@ -454,6 +490,10 @@ export default class PlotScene {
   }
 
   reset(animate = true) {
+    if (this.selected >= 0 || this._placeOpen) {
+      this._preSelectView = null
+      this._cameraMoved = true
+    }
     // Fit the whole site to the current aspect ratio, viewed from ~52° above the ground
     const vb = this.viewBox || { width: 1000, height: 1000 }
     const fit = Math.max(vb.height, vb.width / Math.max(this.camera.aspect, 0.1))
@@ -469,6 +509,10 @@ export default class PlotScene {
   }
 
   topView() {
+    if (this.selected >= 0 || this._placeOpen) {
+      this._preSelectView = null
+      this._cameraMoved = true
+    }
     const dist = (this.span || 1000) * 1.12
     const t = this.controls.target.clone()
     this._animateTo(new THREE.Vector3(t.x, dist, t.z + 0.01), t)
@@ -483,9 +527,39 @@ export default class PlotScene {
 
   /** Move the camera target to SVG coordinates (minimap click). */
   panToSvg(x, y) {
+    if (this.selected >= 0 || this._placeOpen) {
+      this._preSelectView = null
+      this._cameraMoved = true
+    }
     const target = new THREE.Vector3(x - this.center.cx, 0, y - this.center.cz)
     const offset = this.camera.position.clone().sub(this.controls.target)
     this._animateTo(target.clone().add(offset), target, 600)
+  }
+
+  /** Where the camera rests: the end of a running move, or where it is now. */
+  _restingView() {
+    return this.tween
+      ? { pos: this.tween.pos.clone(), target: this.tween.target.clone() }
+      : { pos: this.camera.position.clone(), target: this.controls.target.clone() }
+  }
+
+  /** Open a place card: pan to it and remember the view to come back to. */
+  focusPlace(x, y) {
+    if (!this._preSelectView && !this.introState) this._preSelectView = this._restingView()
+    this._placeOpen = true
+    const target = new THREE.Vector3(x - this.center.cx, 0, y - this.center.cz)
+    const offset = this.camera.position.clone().sub(this.controls.target)
+    this._animateTo(target.clone().add(offset), target, 600)
+  }
+
+  /** Place card closed: go back, unless a plot was opened from it (the plot's close returns). */
+  closePlace() {
+    if (!this._placeOpen) return
+    this._placeOpen = false
+    if (this.selected >= 0) return
+    const back = this._preSelectView
+    this._preSelectView = null
+    if (back && !this.introState) this._animateTo(back.pos, back.target)
   }
 
   setAutoRotate(on) {
@@ -546,6 +620,7 @@ export default class PlotScene {
       if (k >= 1) this._lift = null
     }
     this.controls.update()
+    this._keepTargetOnSite()
     this.renderer.render(this.scene, this.camera)
     this.env?.update(now / 1000)
     // Haze starts beyond the area being looked at, however far the camera is
@@ -555,6 +630,24 @@ export default class PlotScene {
       this.scene.fog.far = d * 0.8 + this.span * 3
     }
     if (this.viewBox) this.onFrame?.(this)
+  }
+
+  /** Clamp the camera target to the layout (plus a margin), moving the camera with it. */
+  _keepTargetOnSite() {
+    const vb = this.viewBox
+    if (!vb || this.tween) return
+    const t = this.controls.target
+    const hx = (vb.width / 2) * 1.15
+    const hz = (vb.height / 2) * 1.15
+    const x = THREE.MathUtils.clamp(t.x, -hx, hx)
+    const z = THREE.MathUtils.clamp(t.z, -hz, hz)
+    if (x === t.x && z === t.z) return
+    const dx = x - t.x
+    const dz = z - t.z
+    t.x = x
+    t.z = z
+    this.camera.position.x += dx
+    this.camera.position.z += dz
   }
 
   dispose() {

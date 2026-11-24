@@ -345,7 +345,7 @@ export default function Layout3DView({
     if (!pl) return
     setSelected(null)
     setActivePlace(id)
-    sceneRef.current?.panToSvg(pl.x, pl.y)
+    sceneRef.current?.focusPlace(pl.x, pl.y)
   }
 
   /* ───── Push colours to the scene ───── */
@@ -361,6 +361,11 @@ export default function Layout3DView({
     sceneRef.current?.setViewShift(selected !== null && window.innerWidth <= 860 ? 0.11 : 0)
     sceneRef.current?.setSelected(selected ?? -1)
   }, [selected, plots])
+
+  // Place card closed: the camera returns (runs after the selection effect, so a plot opened from a place keeps its own return)
+  useEffect(() => {
+    if (!activePlace) sceneRef.current?.closePlace()
+  }, [activePlace])
 
   /* ───── Minimap ───── */
   useEffect(() => {
