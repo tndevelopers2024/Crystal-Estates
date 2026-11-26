@@ -57,6 +57,8 @@ function RecordPaymentForm({ lead, properties = [], onClose, onSavePayment }) {
   const [sendWhatsApp, setSendWhatsApp] = useState(Boolean(lead.phone))
   const [sendEmail, setSendEmail] = useState(Boolean(lead.email))
   const [moveLeadToWon, setMoveLeadToWon] = useState(true)
+  const [payStatus, setPayStatus] = useState('Received')
+  const [note, setNote] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [saved, setSaved] = useState(null) // { payment, whatsapp, email } after a successful save
@@ -139,6 +141,8 @@ function RecordPaymentForm({ lead, properties = [], onClose, onSavePayment }) {
         moveLeadToWon,
         // Same id on a repeated submit: the server returns the first payment instead of a second one
         clientRequestId: requestId,
+        status: payStatus,
+        note: note.trim(),
         documentIds: target.plotNo ? docIds : [],
       })
       const savedLead = result?.lead
@@ -415,6 +419,25 @@ function RecordPaymentForm({ lead, properties = [], onClose, onSavePayment }) {
                 placeholder="e.g. Plot #12"
                 className={`${inputCls}${target.plotNo ? ' cursor-default' : ''}`}
               />
+            </div>
+          </div>
+
+          {/* Status & note */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelCls} htmlFor="rpm-status">Payment status</label>
+              <div className="relative">
+                <select id="rpm-status" value={payStatus} onChange={(e) => setPayStatus(e.target.value)} className={`${inputCls} appearance-none font-semibold cursor-pointer pr-8`}>
+                  {['Received', 'Pending clearance', 'Failed'].map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-3 pointer-events-none" />
+              </div>
+            </div>
+            <div>
+              <label className={labelCls} htmlFor="rpm-note">Note</label>
+              <input id="rpm-note" type="text" value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} placeholder="Optional" className={inputCls} />
             </div>
           </div>
 

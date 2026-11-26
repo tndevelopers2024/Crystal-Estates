@@ -576,6 +576,32 @@ export async function deleteOption(list, value) {
 /**
  * Payments (beyond recordLeadPayment / fetchAllPayments)
  */
+/** Correct a recorded lead payment (amount, date, mode, reference, status, note). */
+export async function updateLeadPayment(paymentId, patch) {
+  const res = await fetch(getApiUrl(`/api/leads/payments/${encodeURIComponent(paymentId)}`), {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok || data.success === false) throw new Error(data.error || `Failed to update the payment: HTTP ${res.status}`)
+  return data
+}
+
+/** Correct or remove a payment or note entered on a plot's history. */
+export async function updatePlotEntry(entryId, patch) {
+  const res = await fetch(getApiUrl(`/api/plot-activity/${encodeURIComponent(entryId)}`), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch) })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok || data.success === false) throw new Error(data.error || `Failed to update the entry: HTTP ${res.status}`)
+  return data
+}
+export async function deletePlotEntry(entryId, actor) {
+  const res = await fetch(getApiUrl(`/api/plot-activity/${encodeURIComponent(entryId)}`), { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ actor }) })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok || data.success === false) throw new Error(data.error || `Failed to delete the entry: HTTP ${res.status}`)
+  return data
+}
+
 export async function deletePayment(paymentId) {
   const res = await fetch(getApiUrl(`/api/leads/payments/${encodeURIComponent(paymentId)}`), { method: 'DELETE' })
   const data = await res.json().catch(() => ({}))
@@ -713,4 +739,23 @@ export function deleteCustomerActivity(id, activityId) {
 
 export function importCustomersFromLeads() {
   return customerRequest('/api/customers/import-from-leads', { method: 'POST', body: {}, fallback: 'Could not import customers' })
+}
+
+export function addCustomerPayment(id, payment) {
+  return customerRequest(`/api/customers/${encodeURIComponent(id)}/payments`, { method: 'POST', body: payment, fallback: 'Could not record payment' })
+}
+
+export function updateCustomerPayment(id, paymentId, patch) {
+  return customerRequest(`/api/customers/${encodeURIComponent(id)}/payments/${encodeURIComponent(paymentId)}`, {
+    method: 'PATCH',
+    body: patch,
+    fallback: 'Could not update payment',
+  })
+}
+
+export function deleteCustomerPayment(id, paymentId) {
+  return customerRequest(`/api/customers/${encodeURIComponent(id)}/payments/${encodeURIComponent(paymentId)}`, {
+    method: 'DELETE',
+    fallback: 'Could not delete payment',
+  })
 }

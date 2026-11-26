@@ -18,6 +18,7 @@ export function useLeads() {
   const [error, setError] = useState(null)
   const [selectedSource, setSelectedSource] = useState('All sources')
   const [selectedAgent, setSelectedAgent] = useState('All agents')
+  const [selectedBroker, setSelectedBroker] = useState('All brokers')
   const [searchQuery, setSearchQuery] = useState('')
 
   // Load leads from MongoDB
@@ -199,7 +200,13 @@ export function useLeads() {
       }
     }
 
-    // 3. Search query
+    // 3. Broker filter: a broker's name, or "No broker" for direct leads
+    if (selectedBroker !== 'All brokers') {
+      const brokerName = lead.referral?.brokerName || ''
+      if (selectedBroker === 'No broker' ? Boolean(lead.referral?.brokerId) : brokerName !== selectedBroker) return false
+    }
+
+    // 4. Search query
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim()
       const matchName = (lead.name || '').toLowerCase().includes(q)
@@ -235,6 +242,8 @@ export function useLeads() {
     setSelectedSource,
     selectedAgent,
     setSelectedAgent,
+    selectedBroker,
+    setSelectedBroker,
     searchQuery,
     setSearchQuery,
   }

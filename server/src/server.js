@@ -18,6 +18,9 @@ import customersRouter from './routes/customers.js'
 import usersRouter from './routes/users.js'
 import plotDocumentsRouter, { ensurePlotDocumentIndexes } from './routes/plotDocuments.js'
 import documentSharesRouter, { ensureDocumentShareIndexes } from './routes/documentShares.js'
+import landRouter, { ensureLandIndexes } from './routes/land.js'
+import brokersRouter from './routes/brokers.js'
+import reportsRouter from './routes/reports.js'
 import { apiPolicy } from './lib/auth.js'
 import { ensureRoles } from './lib/roles.js'
 import { testimonials } from './data/testimonials.js'
@@ -216,6 +219,9 @@ app.use('/api/plot-activity', plotActivityRouter)
 app.use('/api/documents', documentsRouter)
 app.use('/api/plot-documents', plotDocumentsRouter)
 app.use('/api/document-shares', documentSharesRouter)
+app.use('/api/land', landRouter)
+app.use('/api/brokers', brokersRouter)
+app.use('/api/reports', reportsRouter)
 app.use('/api/crm-options', optionsRouter)
 app.use('/api/plots', layoutRouter)
 app.use('/api/plots/kolapakkam', kolapakkamRouter)
@@ -472,6 +478,10 @@ getDb()
     await db.collection('users').createIndex({ setupTokenHash: 1 }, { sparse: true })
     await ensurePlotDocumentIndexes(db)
     await ensureDocumentShareIndexes(db)
+    await ensureLandIndexes(db)
+    await db.collection('broker_activity').createIndex({ brokerId: 1, at: -1 })
+    await db.collection('broker_commission_payments').createIndex({ ownerKey: 1 })
+    await db.collection('broker_commission_payments').createIndex({ brokerId: 1 })
     await db.collection('payments').createIndex({ clientRequestId: 1 }, { sparse: true })
   })
   .catch((err) => console.error('Auth setup failed:', err.message))

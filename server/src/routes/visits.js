@@ -95,27 +95,35 @@ function parseFallbackDateParts(followUpStr = '') {
 router.get('/', async (req, res) => {
   try {
     const db = await getDb()
-    const [rawVisits, leads, plots] = await Promise.all([
+    const [rawVisits, leads, featuredPlots] = await Promise.all([
       db.collection('site_visits').find({}, { projection: { _id: 0 } }).sort({ visitDate: 1, createdAt: -1 }).toArray(),
       db.collection('leads').find({}, { projection: { _id: 0 } }).toArray(),
-      db.collection('plots').find({}, { projection: { _id: 0, id: 1, name: 1, location: 1 } }).toArray(),
+      db.collection('featured_plots').find({}, { projection: { _id: 0, id: 1, projectId: 1, name: 1, location: 1 } }).toArray(),
     ])
 
     const leadMap = new Map(leads.map((l) => [l.id, l]))
-    const plotByName = new Map(plots.map((p) => [(p.name || '').toLowerCase().trim(), p]))
+    const plotById = new Map()
+    const plotByName = new Map()
+    for (const p of featuredPlots) {
+      if (p.id) plotById.set(p.id, p)
+      if (p.projectId) plotById.set(p.projectId, p)
+      if (p.name) plotByName.set(p.name.toLowerCase().trim(), p)
+    }
 
     // Enrich stored visits with latest lead/plot details
     const visits = rawVisits.map((v) => {
       const lead = leadMap.get(v.leadId)
       const propName = v.property || lead?.property || 'Crystal Estates'
-      const matchedPlot = plotByName.get(propName.toLowerCase().trim())
+      const matchedPlot = (v.propertyId && plotById.get(v.propertyId)) || plotByName.get(propName.toLowerCase().trim())
       return {
         ...v,
+        customerId: v.customerId || lead?.customerId || null,
+        propertyId: v.propertyId || matchedPlot?.id || null,
         leadName: v.leadName || lead?.name || 'Lead',
         leadPhone: v.leadPhone || lead?.phone || '',
         leadEmail: v.leadEmail || lead?.email || '',
         leadInitials: v.leadInitials || getInitials(v.leadName || lead?.name),
-        property: propName,
+        property: matchedPlot?.name || propName,
         location: v.location || matchedPlot?.location || 'Chennai',
         assignedAgent: v.assignedAgent || lead?.assignedAgent || {
           name: 'Crystal Admin',
@@ -131,16 +139,18 @@ router.get('/', async (req, res) => {
     for (const lead of leads) {
       const stage = (lead.stage || '').toLowerCase().replace(/\s+/g, '')
       if (stage === 'sitevisit' && !anyVisitLeadIds.has(lead.id)) {
-        const matchedPlot = plotByName.get((lead.property || '').toLowerCase().trim())
+        const matchedPlot = (lead.propertyId && plotById.get(lead.propertyId)) || plotByName.get((lead.property || '').toLowerCase().trim())
         const parts = parseFallbackDateParts(lead.followUpDate)
         visits.push({
           id: `visit-lead-${lead.id}`,
           leadId: lead.id,
+          customerId: lead.customerId || null,
           leadName: lead.name,
           leadPhone: lead.phone || '',
           leadEmail: lead.email || '',
           leadInitials: getInitials(lead.name),
-          property: lead.property || 'Crystal Estates',
+          propertyId: matchedPlot?.id || lead.propertyId || null,
+          property: matchedPlot?.name || lead.property || 'Crystal Estates',
           location: matchedPlot?.location || 'Chennai',
           visitDate: parts.isoDate,
           dateLabel: parts.dateLabel,
@@ -185,6 +195,7 @@ router.post('/', async (req, res) => {
       status,
       cabPickup = false,
       location,
+      propertyId,
       property,
       project,
       interest,
@@ -273,11 +284,22 @@ router.post('/', async (req, res) => {
       }
     }
 
-    // 2. Resolve plot/property location
-    const matchedPlot = await db.collection('plots').findOne(
-      { name: { $regex: `^${propName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' } },
-      { projection: { _id: 0, location: 1 } }
-    )
+    // 2. Resolve plot/property from featured_plots (Properties DB)
+    let matchedPlot = null
+    if (propertyId) {
+      matchedPlot = await db.collection('featured_plots').findOne(
+        { $or: [{ id: String(propertyId) }, { projectId: String(propertyId) }] },
+        { projection: { _id: 0, id: 1, name: 1, location: 1 } }
+      )
+    }
+    if (!matchedPlot && propName) {
+      matchedPlot = await db.collection('featured_plots').findOne(
+        { name: { $regex: `^${propName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' } },
+        { projection: { _id: 0, id: 1, name: 1, location: 1 } }
+      )
+    }
+    const resolvedPropName = matchedPlot?.name || propName
+    const resolvedPropId = matchedPlot?.id || propertyId || targetLead?.propertyId || null
     const resolvedLocation = (location || matchedPlot?.location || 'Chennai').trim()
 
     // 3. Date & time parts
@@ -297,11 +319,13 @@ router.post('/', async (req, res) => {
     const newVisit = {
       id: `visit-${Date.now()}`,
       leadId: targetLead.id,
+      customerId: targetLead.customerId || null,
       leadName: targetLead.name || clientName,
       leadPhone: targetLead.phone || clientPhone,
       leadEmail: targetLead.email || clientEmail,
       leadInitials: getInitials(targetLead.name || clientName),
-      property: propName,
+      propertyId: resolvedPropId,
+      property: resolvedPropName,
       location: resolvedLocation,
       visitDate: isoDate,
       dateLabel,
@@ -366,6 +390,10 @@ router.post('/', async (req, res) => {
       if (CONTACTED_STAGES.has(afterVisit.stage)) {
         const r = await upsertCustomerFromLead(db, afterVisit, { actor, reason: 'Site visit scheduled' })
         linkedNow = r.linked
+        if (r.customer?.id && !newVisit.customerId) {
+          await db.collection('site_visits').updateOne({ id: newVisit.id }, { $set: { customerId: r.customer.id } })
+          newVisit.customerId = r.customer.id
+        }
       }
       if (!linkedNow) {
         if (updateSet.stage) {
@@ -421,19 +449,21 @@ router.patch('/:id', async (req, res) => {
       if (!lead) {
         return res.status(404).json({ success: false, error: 'Visit not found' })
       }
-      const matchedPlot = await db.collection('plots').findOne(
+      const matchedPlot = await db.collection('featured_plots').findOne(
         { name: { $regex: `^${(lead.property || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' } },
-        { projection: { _id: 0, location: 1 } }
+        { projection: { _id: 0, id: 1, name: 1, location: 1 } }
       )
       const parts = parseFallbackDateParts(lead.followUpDate)
       existing = {
         id,
         leadId: lead.id,
+        customerId: lead.customerId || null,
         leadName: lead.name,
         leadPhone: lead.phone || '',
         leadEmail: lead.email || '',
         leadInitials: getInitials(lead.name),
-        property: lead.property || 'Crystal Estates',
+        propertyId: matchedPlot?.id || lead.propertyId || null,
+        property: matchedPlot?.name || lead.property || 'Crystal Estates',
         location: matchedPlot?.location || 'Chennai',
         visitDate: parts.isoDate,
         dateLabel: parts.dateLabel,
@@ -457,7 +487,29 @@ router.patch('/:id', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Site visit not found' })
     }
 
-    if (updates.date || updates.time) {
+    if (updates.propertyId !== undefined || updates.property !== undefined) {
+      let matchedPlot = null
+      if (updates.propertyId) {
+        matchedPlot = await db.collection('featured_plots').findOne(
+          { $or: [{ id: String(updates.propertyId) }, { projectId: String(updates.propertyId) }] },
+          { projection: { _id: 0, id: 1, name: 1, location: 1 } }
+        )
+      }
+      if (!matchedPlot && updates.property) {
+        matchedPlot = await db.collection('featured_plots').findOne(
+          { name: { $regex: `^${String(updates.property).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' } },
+          { projection: { _id: 0, id: 1, name: 1, location: 1 } }
+        )
+      }
+      if (matchedPlot) {
+        updates.propertyId = matchedPlot.id
+        updates.property = matchedPlot.name
+        if (!updates.location && matchedPlot.location) updates.location = matchedPlot.location
+      }
+    }
+
+    const dateOrTimeChanged = Boolean(updates.date || updates.time)
+    if (dateOrTimeChanged) {
       const parts = formatVisitDateParts(
         updates.date || existing.visitDate,
         updates.time || existing.visitTime
@@ -475,75 +527,110 @@ router.patch('/:id', async (req, res) => {
     await db.collection('site_visits').updateOne({ id }, { $set: updates })
     const updatedVisit = await db.collection('site_visits').findOne({ id }, { projection: { _id: 0 } })
 
-    // Log status transition on the lead's activity timeline and advance stage to "Site visit done" when visited
-    if (updates.status && existing.leadId && updates.status !== existing.status) {
+    const statusChanged = Boolean(updates.status && updates.status !== existing.status)
+    const propertyChanged = Boolean(updates.property && updates.property !== existing.property)
+    const agentChanged = Boolean(updates.assignedAgent?.name && updates.assignedAgent.name !== existing.assignedAgent?.name)
+
+    // Sync status, reschedule, property, or agent changes back to the lead and customer timeline
+    if (existing.leadId && (statusChanged || dateOrTimeChanged || propertyChanged || agentChanged)) {
       const targetLead = await db
         .collection('leads')
         .findOne({ id: existing.leadId }, { projection: { _id: 0 } })
       const leadUpdateSet = { updatedAt: new Date() }
-      const newActivities = [
-        {
+      const newActivities = []
+
+      if (dateOrTimeChanged && !statusChanged) {
+        newActivities.push({
+          id: `act-${Date.now()}-visit-resched`,
+          text: `Site visit rescheduled to ${updatedVisit.dateLabel} · ${updatedVisit.visitTime} (${updatedVisit.property})`,
+          time: 'Just now',
+          createdAt: new Date(),
+        })
+        if (updatedVisit.status !== 'Completed' && updatedVisit.status !== 'Cancelled') {
+          leadUpdateSet.followUpDate = `${updatedVisit.dateLabel}, ${updatedVisit.visitTime}`
+        }
+      }
+
+      if (propertyChanged) {
+        newActivities.push({
+          id: `act-${Date.now()}-visit-prop`,
+          text: `Site visit property updated to ${updatedVisit.property}`,
+          time: 'Just now',
+          createdAt: new Date(),
+        })
+      }
+
+      if (statusChanged) {
+        newActivities.push({
           id: `act-${Date.now()}-visit-upd`,
           text:
             updates.status === 'Completed'
               ? `Site visit marked as visited for ${updatedVisit.property}`
-              : `Site visit status updated to ${updates.status}`,
+              : `Site visit status updated to ${updates.status}${dateOrTimeChanged ? ` (${updatedVisit.dateLabel} · ${updatedVisit.visitTime})` : ''}`,
           time: 'Just now',
           createdAt: new Date(),
-        },
-      ]
+        })
 
-      if (
-        updates.status === 'Completed' &&
-        targetLead &&
-        ['new', 'contacted', 'followup', 'sitevisit'].includes(
-          (targetLead.stage || '').toLowerCase().replace(/\s+/g, '')
-        )
-      ) {
-        leadUpdateSet.stage = 'sitevisitdone'
-        leadUpdateSet.followUpDate = 'Visited'
-        newActivities.unshift({
-          id: `act-${Date.now()}-stage-done`,
-          text: 'Pipeline stage moved to "Site visit done"',
-          time: 'Just now',
-          createdAt: new Date(),
-        })
-      } else if (
-        (updates.status === 'Scheduled' || updates.status === 'Confirmed' || updates.status === 'Pending') &&
-        targetLead &&
-        targetLead.stage === 'sitevisitdone'
-      ) {
-        leadUpdateSet.stage = 'sitevisit'
-        leadUpdateSet.followUpDate = `${updatedVisit.dateLabel || 'Scheduled'}, ${updatedVisit.visitTime || '11:00 am'}`
-        newActivities.unshift({
-          id: `act-${Date.now()}-stage-reopen`,
-          text: `Pipeline stage moved back to "Site visit" (${updates.status})`,
-          time: 'Just now',
-          createdAt: new Date(),
-        })
-      } else if (updates.status === 'Cancelled') {
-        leadUpdateSet.followUpDate = 'Visit Cancelled'
+        if (
+          updates.status === 'Completed' &&
+          targetLead &&
+          ['new', 'contacted', 'followup', 'sitevisit'].includes(
+            (targetLead.stage || '').toLowerCase().replace(/\s+/g, '')
+          )
+        ) {
+          leadUpdateSet.stage = 'sitevisitdone'
+          leadUpdateSet.followUpDate = 'Visited'
+          newActivities.unshift({
+            id: `act-${Date.now()}-stage-done`,
+            text: 'Pipeline stage moved to "Site visit done"',
+            time: 'Just now',
+            createdAt: new Date(),
+          })
+        } else if (
+          (updates.status === 'Scheduled' || updates.status === 'Confirmed' || updates.status === 'Pending') &&
+          targetLead &&
+          targetLead.stage === 'sitevisitdone'
+        ) {
+          leadUpdateSet.stage = 'sitevisit'
+          leadUpdateSet.followUpDate = `${updatedVisit.dateLabel || 'Scheduled'}, ${updatedVisit.visitTime || '11:00 am'}`
+          newActivities.unshift({
+            id: `act-${Date.now()}-stage-reopen`,
+            text: `Pipeline stage moved back to "Site visit" (${updates.status})`,
+            time: 'Just now',
+            createdAt: new Date(),
+          })
+        } else if (updates.status === 'Cancelled') {
+          leadUpdateSet.followUpDate = 'Visit Cancelled'
+        } else if (updates.status === 'Scheduled' || updates.status === 'Confirmed') {
+          leadUpdateSet.followUpDate = `${updatedVisit.dateLabel}, ${updatedVisit.visitTime}`
+        }
       }
 
-      await db.collection('leads').updateOne(
-        { id: existing.leadId },
-        {
-          $set: leadUpdateSet,
-          $push: {
-            activity: {
-              $each: newActivities,
-              $position: 0,
-            },
-          },
-        }
-      )
+      if (newActivities.length || Object.keys(leadUpdateSet).length > 1) {
+        await db.collection('leads').updateOne(
+          { id: existing.leadId },
+          {
+            $set: leadUpdateSet,
+            ...(newActivities.length
+              ? { $push: { activity: { $each: newActivities, $position: 0 } } }
+              : {}),
+          }
+        )
+      }
 
       await safely(async () => {
         if (!targetLead) return
         const actor = await actorFromRequest(req)
+        const title = statusChanged
+          ? updates.status === 'Completed'
+            ? `Visited ${updatedVisit.property || 'the site'}`
+            : `Site visit ${String(updates.status).toLowerCase()}`
+          : dateOrTimeChanged
+            ? `Site visit rescheduled to ${updatedVisit.dateLabel} · ${updatedVisit.visitTime}`
+            : `Site visit updated (${updatedVisit.property})`
         const entry = {
           type: 'visit',
-          title: updates.status === 'Completed' ? `Visited ${updatedVisit.property || 'the site'}` : `Site visit ${String(updates.status).toLowerCase()}`,
+          title,
           details: [updatedVisit.dateLabel, updatedVisit.visitTime, updatedVisit.property].filter(Boolean).join(' · '),
           property: updatedVisit.property || null,
           meta: { visitId: updatedVisit.id },
@@ -557,7 +644,6 @@ router.patch('/:id', async (req, res) => {
             actor,
           )
         }
-        // Completing a visit moves a brand-new lead into a contacted stage — give them a profile
         if (!logged && leadUpdateSet.stage && CONTACTED_STAGES.has(leadUpdateSet.stage)) {
           const after = await db.collection('leads').findOne({ id: targetLead.id }, { projection: { _id: 0 } })
           await upsertCustomerFromLead(db, after, { actor, reason: 'Site visit completed' })

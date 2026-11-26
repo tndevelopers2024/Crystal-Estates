@@ -56,6 +56,11 @@ export default function LeadCard({ lead, onClick, onDragStart }) {
         >
           {lead.source || 'Website'}
         </span>
+        {lead.referral?.brokerName && (
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-violet-50 text-violet-700 border border-violet-200 truncate max-w-[120px]" title={`Broker: ${lead.referral.brokerName}`}>
+            {lead.referral.brokerName}
+          </span>
+        )}
 
         <button
           type="button"

@@ -1,8 +1,10 @@
 import React, { useMemo, useState } from 'react'
-import { Download, IndianRupee, Users, Compass, Trophy, BarChart2, CalendarRange } from 'lucide-react'
+import { Download, IndianRupee, Users, Compass, Trophy, BarChart2, CalendarRange, FileSpreadsheet, Loader2 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { usePayments } from '../../hooks/usePayments'
 import { Card, StatCard, EmptyState, LoadingBlock, ErrorBlock, BarList, ColumnChart, btnGhost } from '../common/PageKit'
+import PaymentTrackingPanel from './PaymentTrackingPanel'
+import { exportPaymentReportExcel } from '../../lib/reportsApi'
 import {
   STAGES,
   stageCounts,
@@ -33,7 +35,17 @@ export default function ReportsView({ leads = [], visits = [], loading = false }
   const showMoney = can('payments', 'view')
   const pay = usePayments()
   const [rangeId, setRangeId] = useState(90)
+  const [exportingType, setExportingType] = useState('')
   const range = RANGES.find((r) => r.id === rangeId) || RANGES[1]
+
+  const runQuickExcel = async (type) => {
+    setExportingType(type)
+    try {
+      await exportPaymentReportExcel(type, { scope: 'all' })
+    } finally {
+      setExportingType('')
+    }
+  }
 
   const data = useMemo(() => {
     const L = leads.filter((l) => inRange(l.createdAt, range.id))
@@ -176,6 +188,37 @@ export default function ReportsView({ leads = [], visits = [], loading = false }
           {loading ? <LoadingBlock rows={4} /> : <BarList rows={data.stages} emptyText="No leads in this period" />}
         </Card>
       </div>
+
+      {showMoney && (
+        <Card title="Dedicated Excel Reports" subtitle="Download complete, formatted ExcelJS workbooks independently from the database">
+          <div className="flex flex-wrap gap-2.5">
+            {[
+              { type: 'plot-payments', label: 'Plot Payments (.xlsx)' },
+              { type: 'customer-payments', label: 'Customer Payments (.xlsx)' },
+              { type: 'broker-payments', label: 'Broker Payments & Commission (.xlsx)' },
+            ].map((item) => (
+              <button
+                key={item.type}
+                type="button"
+                className={btnGhost}
+                disabled={Boolean(exportingType)}
+                onClick={() => runQuickExcel(item.type)}
+              >
+                {exportingType === item.type ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5 text-[#0F3D2E]" />}
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {showMoney && (
+        <PaymentTrackingPanel
+          title="Detailed Payment & Commission Reports"
+          subtitle="Browse Plot Payments, Customer Payments, and Broker Commission reports with drill-down history and Excel export"
+          defaultTab="plots"
+        />
+      )}
 
       {showMoney && (
         <Card title="Payment register" subtitle={`${range.label} · newest first`} bodyClassName="p-0">

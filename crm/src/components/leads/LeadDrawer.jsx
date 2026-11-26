@@ -15,11 +15,20 @@ import {
   Sparkles,
   Trash2,
   UserCircle2,
+  MapPin,
+  Pencil,
+  XCircle,
+  Plus,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import ScheduleFollowUpModal from './ScheduleFollowUpModal'
 import RecordPaymentModal from './RecordPaymentModal'
+import ScheduleSiteVisitModal from '../visits/ScheduleSiteVisitModal'
 import { useDialog } from '../../context/DialogContext'
+import { useAuth } from '../../context/AuthContext'
+import LeadPayments from './LeadMoney'
+import ReferralPanel from '../brokers/ReferralPanel'
+import { leadOwner } from '../../lib/brokersApi'
 
 const STAGE_OPTIONS = [
   { id: 'new', label: 'New leads' },
@@ -65,6 +74,8 @@ function LeadDrawerContent({
   lead,
   meta,
   properties = [],
+  visitsState,
+  onShowToast,
   onClose,
   onUpdate,
   onDelete,
@@ -74,6 +85,10 @@ function LeadDrawerContent({
   onAddNote,
 }) {
   const { confirm, alert } = useDialog()
+  const { can } = useAuth()
+  const canEditMoney = can('leads', 'edit') || can('payments', 'edit')
+  // Reload the lead after money or broker changes made through their own endpoints
+  const refreshLead = async () => applyServerLead(await onUpdate?.(lead.id, {}, { silent: true }))
 
   const dynamicAgents = meta?.agents && meta.agents.length > 0 ? meta.agents : []
   const dynamicStages = meta?.stages && meta.stages.length > 0 ? meta.stages : STAGE_OPTIONS
@@ -85,6 +100,8 @@ function LeadDrawerContent({
   )
   const [noteInput, setNoteInput] = useState('')
   const [isFollowUpModalOpen, setIsFollowUpModalOpen] = useState(false)
+  const [visitModal, setVisitModal] = useState(null) // null | 'new' | visit
+  const leadVisits = (visitsState?.visits || []).filter((v) => v.leadId === lead.id)
   const [isRecordPaymentModalOpen, setIsRecordPaymentModalOpen] = useState(false)
 
   // Derive initial follow-ups & activity timeline with graceful dynamic defaults
@@ -534,53 +551,98 @@ function LeadDrawerContent({
               </div>
             </div>
 
-            {/* ── PAYMENTS SECTION ── */}
-            <div>
-              <div className="flex items-center justify-between mb-2.5">
-                <span className="text-[11px] font-bold tracking-wider text-slate-400 uppercase">
-                  Payments
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setIsRecordPaymentModalOpen(true)}
-                  className="text-xs font-bold text-[#0F3D2E] hover:text-[#16533D] transition"
-                >
-                  + Record
-                </button>
+            {/* ── SITE VISITS SECTION ── */}
+            {visitsState && (
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-[11px] font-bold tracking-wider text-slate-400 uppercase flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-[#0F3D2E]" />
+                    <span>Site Visits ({leadVisits.length})</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setVisitModal('new')}
+                    className="inline-flex items-center gap-1 text-xs font-bold text-[#0F3D2E] hover:underline"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Schedule visit
+                  </button>
+                </div>
+                {leadVisits.length === 0 ? (
+                  <p className="text-xs text-slate-400">No site visits scheduled for this lead yet.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {leadVisits.map((v) => (
+                      <div key={v.id} className="p-3 rounded-xl border border-slate-200/80 bg-slate-50/50 space-y-1.5">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-slate-900 truncate">
+                              {v.dateLabel} · {v.visitTime}
+                            </p>
+                            <p className="text-[11px] text-slate-600 truncate">
+                              {v.property}{v.location ? ` (${v.location})` : ''}
+                            </p>
+                          </div>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
+                            v.status === 'Cancelled'
+                              ? 'bg-rose-50 text-rose-700'
+                              : v.status === 'Completed'
+                                ? 'bg-emerald-50 text-emerald-700'
+                                : 'bg-[#E2EDE8] text-[#0F3D2E]'
+                          }`}>
+                            {v.status}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between gap-2 pt-1">
+                          <span className="text-[11px] text-slate-500 truncate">
+                            Agent: {v.assignedAgent?.name || 'Crystal Admin'}{v.cabPickup ? ' · Cab' : ''}
+                          </span>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => setVisitModal(v)}
+                              className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-700 hover:text-[#0F3D2E] px-2 py-1 rounded-lg hover:bg-white border border-transparent hover:border-slate-200"
+                            >
+                              <Pencil className="w-3 h-3" /> Edit
+                            </button>
+                            {v.status !== 'Cancelled' && v.status !== 'Completed' && (
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  try {
+                                    await visitsState.updateVisit(v.id, { status: 'Cancelled' })
+                                    await refreshLead()
+                                    onShowToast?.('Site visit cancelled', 'info')
+                                  } catch (err) {
+                                    onShowToast?.(err.message, 'error')
+                                  }
+                                }}
+                                className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-600 hover:bg-rose-50 px-2 py-1 rounded-lg"
+                              >
+                                <XCircle className="w-3 h-3" /> Cancel
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
+            )}
 
-              {lead.advanceReceived ? (
-                <div className="p-3.5 bg-emerald-50/70 border border-emerald-200 rounded-2xl flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs">
-                      ₹
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-emerald-900">
-                        Advance {lead.advanceReceived} received
-                      </div>
-                      <div className="text-[11px] text-emerald-600">
-                        Booking advance confirmed &amp; verified
-                      </div>
-                    </div>
-                  </div>
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                </div>
-              ) : (
-                <div className="p-3.5 bg-slate-50 border border-slate-100 rounded-2xl flex items-center gap-3">
-                  <div className="w-7 h-7 rounded-full bg-slate-200/80 text-slate-600 flex items-center justify-center font-bold text-xs shrink-0">
-                    ₹
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-slate-700">
-                      No advance yet
-                    </div>
-                    <div className="text-[11px] text-slate-400 mt-0.5">
-                      Record the booking or token advance once paid
-                    </div>
-                  </div>
-                </div>
-              )}
+            {/* ── PAYMENTS SECTION ── */}
+            <LeadPayments
+              lead={lead}
+              canEdit={canEditMoney}
+              onRecord={() => setIsRecordPaymentModalOpen(true)}
+              onSaveAgreedPrice={async (v) => applyServerLead(await onUpdate?.(lead.id, { dealValue: v }, { silent: true }))}
+              onRefresh={refreshLead}
+            />
+
+            {/* ── BROKER SECTION ── */}
+            <div>
+              <div className="text-[11px] font-bold tracking-wider text-slate-400 uppercase mb-3">Broker &amp; commission</div>
+              <ReferralPanel owner={leadOwner(lead.id)} canEdit={canEditMoney} onChanged={refreshLead} dealHint="the agreed price" />
             </div>
 
             {/* ── DOCUMENTS SECTION ── */}
@@ -754,6 +816,29 @@ function LeadDrawerContent({
         properties={properties}
         onSavePayment={handleSavePayment}
       />
+
+      {/* ── SCHEDULE / EDIT SITE VISIT MODAL ── */}
+      {visitModal && visitsState && (
+        <ScheduleSiteVisitModal
+          isOpen={Boolean(visitModal)}
+          visit={visitModal === 'new' ? null : visitModal}
+          lead={lead}
+          properties={properties}
+          meta={meta}
+          onClose={() => setVisitModal(null)}
+          onSchedule={async (visitData) => {
+            if (visitModal !== 'new' && visitModal?.id) {
+              await visitsState.updateVisit(visitModal.id, visitData)
+              onShowToast?.('Site visit updated!', 'success')
+            } else {
+              await visitsState.scheduleVisit(visitData)
+              onShowToast?.('Site visit scheduled!', 'success')
+            }
+            await refreshLead()
+            setVisitModal(null)
+          }}
+        />
+      )}
     </div>
   )
 }

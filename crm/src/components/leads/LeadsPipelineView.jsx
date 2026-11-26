@@ -100,6 +100,8 @@ export default function LeadsPipelineView({
     setSelectedSource,
     selectedAgent,
     setSelectedAgent,
+    selectedBroker,
+    setSelectedBroker,
     meta,
   } = leadsState
 
@@ -143,6 +145,12 @@ export default function LeadsPipelineView({
     }
     return ['All agents', ...Array.from(set)]
   }, [meta?.agents, allLeads])
+
+  // Brokers that have leads, for the filter
+  const brokerFilterList = useMemo(() => {
+    const names = new Set((allLeads || []).map((l) => l.referral?.brokerName).filter(Boolean))
+    return ['All brokers', 'No broker', ...[...names].sort()]
+  }, [allLeads])
 
   // Drag and drop handler
   const handleDropLead = async (targetStageId, leadId) => {
@@ -230,6 +238,23 @@ export default function LeadsPipelineView({
           </select>
           <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-2.5 pointer-events-none" />
         </div>
+
+        {/* Broker Dropdown */}
+        <div className="relative shrink-0">
+          <select
+            value={selectedBroker}
+            onChange={(e) => setSelectedBroker(e.target.value)}
+            aria-label="Filter by broker"
+            className="appearance-none bg-white border border-slate-200 text-slate-700 text-xs font-semibold px-3 py-1.5 pr-8 rounded-xl shadow-2xs focus:outline-none focus:border-[#0F3D2E] cursor-pointer"
+          >
+            {brokerFilterList.map((b) => (
+              <option key={b} value={b}>
+                {b}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-2.5 pointer-events-none" />
+        </div>
       </div>
 
       {/* ── Main Kanban Columns (Horizontally Scrollable) ── */}
@@ -263,6 +288,7 @@ export default function LeadsPipelineView({
           onSubmit={async (data) => {
             const created = await addNewLead(data)
             if (onShowToast) onShowToast(`Lead for "${created.name}" added to pipeline!`)
+            return created
           }}
         />
       )}
@@ -275,6 +301,7 @@ export default function LeadsPipelineView({
           onUpdate={async (id, updates) => {
             const updated = await updateLeadDetails(id, updates)
             if (updated) setSelectedLead(updated)
+            return updated
           }}
           onDelete={async (id) => {
             await removeLead(id)
@@ -282,6 +309,8 @@ export default function LeadsPipelineView({
             if (onShowToast) onShowToast('Lead deleted successfully')
           }}
           properties={properties}
+          visitsState={visitsState}
+          onShowToast={onShowToast}
           onRecordPayment={async (id, paymentData) => {
             const updated = await leadsState.recordPayment(id, paymentData)
             if (updated) setSelectedLead(updated)

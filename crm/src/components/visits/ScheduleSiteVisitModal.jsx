@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react'
-import { X, Calendar, Clock, ChevronDown, MapPin, Building2, Car } from 'lucide-react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
+import { X, Calendar, Clock, ChevronDown, MapPin, Building2, Car, User, Phone, Mail } from 'lucide-react'
 
 const VISIT_TIME_SLOTS = [
   '09:00 AM',
@@ -40,108 +40,160 @@ const getTomorrowDateString = () => {
   ).padStart(2, '0')}`
 }
 
+function normalizeTimeSlot(raw) {
+  const s = String(raw || '').trim().toUpperCase()
+  if (!s) return '11:00 AM'
+  const padded = s.replace(/^(\d):/, '0$1:')
+  if (VISIT_TIME_SLOTS.includes(padded)) return padded
+  return '11:00 AM'
+}
+
 export default function ScheduleSiteVisitModal({
   isOpen,
-  lead,
+  visit = null,
+  lead = null,
   leads = [],
   properties = [],
   meta,
+  defaultStatus = null,
   onClose,
   onSchedule,
 }) {
-  const [selectedLeadId, setSelectedLeadId] = useState(lead?.id || leads[0]?.id || '')
-  const activeLead = lead || leads.find((l) => l.id === selectedLeadId) || leads[0]
+  const isEditing = Boolean(visit?.id)
+  const [selectedLeadId, setSelectedLeadId] = useState(visit?.leadId || lead?.id || leads[0]?.id || '')
+  const activeLead = lead || leads.find((l) => l.id === selectedLeadId) || visit?.lead || null
 
-  const resolvePropertyLocation = (propName) => {
-    if (!propName) return ''
-    const match = properties.find(
-      (p) => (p.name || '').toLowerCase().trim() === propName.toLowerCase().trim()
-    )
-    return match?.location || ''
+  const propertyList = useMemo(
+    () => (properties || []).filter((p) => p && p.name),
+    [properties]
+  )
+
+  const matchProperty = (propId, propName) => {
+    if (propId) {
+      const byId = propertyList.find((p) => p.id === propId || p.projectId === propId)
+      if (byId) return byId
+    }
+    if (propName) {
+      const lower = String(propName).toLowerCase().trim()
+      const byName = propertyList.find((p) => p.name.toLowerCase().trim() === lower)
+      if (byName) return byName
+    }
+    return null
   }
 
-  const [property, setProperty] = useState(activeLead?.property || properties[0]?.name || '')
-  const [location, setLocation] = useState(
-    resolvePropertyLocation(activeLead?.property) || ''
-  )
+  const [propertyId, setPropertyId] = useState('')
+  const [propertyName, setPropertyName] = useState('')
+  const [location, setLocation] = useState('')
   const [visitDate, setVisitDate] = useState(getTomorrowDateString())
   const [visitTime, setVisitTime] = useState('11:00 AM')
-  const [status, setStatus] = useState('Confirmed')
+  const [status, setStatus] = useState('Scheduled')
   const [cabPickup, setCabPickup] = useState(true)
-  const [agentName, setAgentName] = useState(
-    activeLead?.assignedAgent?.name || meta?.agents?.[0]?.name || 'Crystal Admin'
-  )
+  const [agentName, setAgentName] = useState('')
   const [notes, setNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
   const dateInputRef = useRef(null)
 
-  const agentOptions =
-    meta?.agents && meta.agents.length > 0
-      ? meta.agents
-      : [
-          { name: 'Arun Kumar', initials: 'AK', color: '#DC2626' },
-          { name: 'Meera R', initials: 'MR', color: '#7C3AED' },
-          { name: 'Divya S', initials: 'DS', color: '#0F3D2E' },
-          { name: 'Deepak Sharma', initials: 'DS', color: '#0D9488' },
-          { name: 'Crystal Admin', initials: 'CA', color: '#0F3D2E' },
-        ]
+  const agentOptions = useMemo(() => {
+    if (meta?.agents && meta.agents.length > 0) return meta.agents
+    return [
+      { name: 'Arun Kumar', initials: 'AK', color: '#DC2626' },
+      { name: 'Meera R', initials: 'MR', color: '#7C3AED' },
+      { name: 'Divya S', initials: 'DS', color: '#0F3D2E' },
+      { name: 'Deepak Sharma', initials: 'DS', color: '#0D9488' },
+      { name: 'Crystal Admin', initials: 'CA', color: '#0F3D2E' },
+    ]
+  }, [meta])
 
   useEffect(() => {
-    if (isOpen) {
-      const targetLead = lead || leads.find((l) => l.id === selectedLeadId) || leads[0]
-      if (targetLead) {
-        if (lead?.id) setSelectedLeadId(lead.id)
-        const prop = targetLead.property || properties[0]?.name || ''
-        setProperty(prop)
-        setLocation(resolvePropertyLocation(prop) || 'Chennai')
-        setAgentName(targetLead.assignedAgent?.name || agentOptions[0]?.name || 'Crystal Admin')
-      }
-      setVisitDate(getTomorrowDateString())
-      setVisitTime('11:00 AM')
-      setStatus('Confirmed')
-      setCabPickup(true)
-      setNotes('')
-      setError(null)
-    }
-  }, [isOpen, lead])
+    if (!isOpen) return
+    const targetLead = lead || (visit?.leadId ? leads.find((l) => l.id === visit.leadId) || visit.lead : leads[0]) || null
+    if (visit?.leadId) setSelectedLeadId(visit.leadId)
+    else if (lead?.id) setSelectedLeadId(lead.id)
+    else if (leads[0]?.id) setSelectedLeadId(leads[0].id)
 
-  // Sync property & location when lead dropdown changes
+    const matched = matchProperty(
+      visit?.propertyId || targetLead?.propertyId,
+      visit?.property || targetLead?.property
+    )
+    const fallbackProp = matched || propertyList[0] || null
+    setPropertyId(fallbackProp?.id || '')
+    setPropertyName(fallbackProp?.name || visit?.property || '')
+    setLocation(visit?.location || fallbackProp?.location || 'Chennai')
+
+    setVisitDate(visit?.visitDate || getTomorrowDateString())
+    setVisitTime(normalizeTimeSlot(visit?.visitTime))
+    setStatus(defaultStatus || visit?.status || 'Scheduled')
+    setCabPickup(visit ? Boolean(visit.cabPickup) : true)
+    setAgentName(
+      visit?.assignedAgent?.name ||
+        targetLead?.assignedAgent?.name ||
+        agentOptions[0]?.name ||
+        'Crystal Admin'
+    )
+    setNotes(visit?.notes || '')
+    setError(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, visit?.id, lead?.id])
+
   const handleLeadChange = (newId) => {
     setSelectedLeadId(newId)
     const found = leads.find((l) => l.id === newId)
     if (found) {
-      const prop = found.property || properties[0]?.name || ''
-      setProperty(prop)
-      setLocation(resolvePropertyLocation(prop) || 'Chennai')
+      const matched = matchProperty(found.propertyId, found.property) || propertyList[0] || null
+      if (matched) {
+        setPropertyId(matched.id)
+        setPropertyName(matched.name)
+        setLocation(matched.location || 'Chennai')
+      }
       if (found.assignedAgent?.name) {
         setAgentName(found.assignedAgent.name)
       }
     }
   }
 
-  const handlePropertyChange = (newProp) => {
-    setProperty(newProp)
-    const loc = resolvePropertyLocation(newProp)
-    if (loc) setLocation(loc)
+  const handlePropertySelect = (selectedId) => {
+    const matched = propertyList.find((p) => p.id === selectedId)
+    if (matched) {
+      setPropertyId(matched.id)
+      setPropertyName(matched.name)
+      setLocation(matched.location || 'Chennai')
+    } else {
+      setPropertyId('')
+      setPropertyName(selectedId)
+    }
   }
 
-  if (!isOpen || !activeLead) return null
+  if (!isOpen) return null
+  if (!isEditing && !activeLead && leads.length === 0) return null
+
+  const displayName = activeLead?.name || visit?.leadName || 'Customer'
+  const displayPhone = activeLead?.phone || visit?.leadPhone || ''
+  const displayEmail = activeLead?.email || visit?.leadEmail || ''
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError(null)
+
+    const finalLeadId = activeLead?.id || visit?.leadId
+    if (!finalLeadId) return setError('Please select a lead.')
+    if (!propertyName && !propertyId) return setError('Please select a property or project.')
+    if (!visitDate) return setError('Please choose a visit date.')
+    if (!visitTime) return setError('Please choose a visit time.')
+
     try {
       setSubmitting(true)
       const matchedAgent = agentOptions.find((a) => a.name === agentName) || {
-        name: agentName,
-        initials: agentName.slice(0, 2).toUpperCase(),
+        name: agentName || 'Crystal Admin',
+        initials: (agentName || 'CA').slice(0, 2).toUpperCase(),
         color: '#0F3D2E',
       }
 
       await onSchedule({
-        leadId: activeLead.id,
-        property: property.trim() || activeLead.property || 'Crystal Estates',
+        ...(isEditing ? { id: visit.id } : {}),
+        leadId: finalLeadId,
+        propertyId: propertyId || undefined,
+        property: propertyName,
         location: location.trim() || 'Chennai',
         date: visitDate,
         time: visitTime,
@@ -149,53 +201,60 @@ export default function ScheduleSiteVisitModal({
         cabPickup,
         assignedAgent: matchedAgent,
         notes: notes.trim(),
-        moveToSiteVisit: true,
+        moveToSiteVisit: !isEditing,
       })
       onClose()
     } catch (err) {
-      setError(err.message || 'Failed to schedule site visit')
+      setError(err.message || 'Failed to save site visit')
     } finally {
       setSubmitting(false)
     }
   }
 
+  const statusOptions = isEditing
+    ? ['Pending', 'Scheduled', 'Confirmed', 'Completed', 'Cancelled']
+    : ['Scheduled', 'Confirmed', 'Pending', 'Tentative']
+
   return (
     <div className="fixed inset-0 z-70 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200/90 max-w-md w-full overflow-hidden animate-in fade-in zoom-in-95 duration-150 font-sans">
+      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200/90 max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150 font-sans">
         {/* Header */}
-        <div className="px-6 py-4.5 border-b border-slate-100 flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
           <div>
             <h3 className="text-base font-bold text-slate-900 tracking-tight">
-              Schedule site visit
+              {isEditing ? 'Edit / Reschedule site visit' : 'Schedule site visit'}
             </h3>
             <p className="text-[11px] text-slate-400 font-medium mt-0.5">
-              Set visit date, time, cab pickup &amp; confirmation status
+              {isEditing
+                ? 'Update property, date, time, assigned agent, or visit status'
+                : 'Select property, date, time, assigned agent & cab pickup'}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
             className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition"
+            aria-label="Close modal"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
           {error && (
             <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs font-semibold text-rose-700">
               {error}
             </div>
           )}
 
-          {/* Lead Field */}
+          {/* Lead / Customer Details */}
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1.5">
-              Lead
+              Lead / Customer
             </label>
-            <div className="relative">
-              {leads && leads.length > 0 && !lead ? (
-                <>
+            {leads && leads.length > 0 && !lead && !isEditing ? (
+              <div className="space-y-2">
+                <div className="relative">
                   <select
                     value={selectedLeadId}
                     onChange={(e) => handleLeadChange(e.target.value)}
@@ -209,47 +268,83 @@ export default function ScheduleSiteVisitModal({
                     ))}
                   </select>
                   <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-3 pointer-events-none" />
-                </>
-              ) : (
-                <input
-                  type="text"
-                  readOnly
-                  value={`${activeLead.name}${activeLead.phone ? ` · ${activeLead.phone}` : ''}`}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 cursor-default focus:outline-none"
-                />
-              )}
-            </div>
+                </div>
+                {activeLead && (
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2 rounded-xl bg-slate-50/70 border border-slate-200/60 text-[11px] text-slate-500">
+                    {activeLead.phone && (
+                      <span className="inline-flex items-center gap-1">
+                        <Phone className="w-3 h-3" /> {activeLead.phone}
+                      </span>
+                    )}
+                    {activeLead.email && (
+                      <span className="inline-flex items-center gap-1">
+                        <Mail className="w-3 h-3" /> {activeLead.email}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl space-y-1">
+                <div className="flex items-center gap-2 text-xs font-bold text-slate-900">
+                  <User className="w-3.5 h-3.5 text-[#0F3D2E]" />
+                  <span>{displayName}</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-0.5 text-[11px] text-slate-500 pl-5">
+                  {displayPhone && (
+                    <span className="inline-flex items-center gap-1">
+                      <Phone className="w-3 h-3" /> {displayPhone}
+                    </span>
+                  )}
+                  {displayEmail && (
+                    <span className="inline-flex items-center gap-1">
+                      <Mail className="w-3 h-3" /> {displayEmail}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Project & Location */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* Property / Project Dropdown & Location */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1">
+              <label htmlFor="sv-property" className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1">
                 <Building2 className="w-3.5 h-3.5 text-slate-400" />
-                <span>Property</span>
+                <span>Property / Project <span className="text-rose-500">*</span></span>
               </label>
-              <input
-                type="text"
-                value={property}
-                onChange={(e) => handlePropertyChange(e.target.value)}
-                list="visit-property-list"
-                placeholder="Project name"
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white"
-                required
-              />
-              <datalist id="visit-property-list">
-                {properties.map((p) => (
-                  <option key={p.id || p.name} value={p.name} />
-                ))}
-              </datalist>
+              <div className="relative">
+                <select
+                  id="sv-property"
+                  value={propertyId || ''}
+                  onChange={(e) => handlePropertySelect(e.target.value)}
+                  className="w-full appearance-none px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white cursor-pointer pr-8"
+                  required
+                >
+                  {propertyList.length === 0 ? (
+                    <option value="">No properties available</option>
+                  ) : (
+                    <>
+                      <option value="" disabled>Select property…</option>
+                      {propertyList.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}{p.location ? ` (${p.location})` : ''}
+                        </option>
+                      ))}
+                    </>
+                  )}
+                </select>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-3 pointer-events-none" />
+              </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1">
+              <label htmlFor="sv-location" className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1">
                 <MapPin className="w-3.5 h-3.5 text-slate-400" />
                 <span>Location</span>
               </label>
               <input
+                id="sv-location"
                 type="text"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
@@ -262,9 +357,9 @@ export default function ScheduleSiteVisitModal({
           {/* Visit Date & Time */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
+              <label htmlFor="sv-date" className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
                 <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                <span>Visit date</span>
+                <span>Visit date <span className="text-rose-500">*</span></span>
               </label>
               <div
                 className="relative cursor-pointer"
@@ -275,29 +370,31 @@ export default function ScheduleSiteVisitModal({
                 }}
               >
                 <input
+                  id="sv-date"
                   ref={dateInputRef}
                   type="date"
                   value={visitDate}
-                  min={getTodayDateString()}
+                  min={isEditing ? undefined : getTodayDateString()}
                   onChange={(e) => setVisitDate(e.target.value)}
                   onClick={(e) => {
                     try {
                       e.currentTarget.showPicker?.()
                     } catch {}
                   }}
-                  className="w-full appearance-none px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white cursor-pointer pr-8"
+                  className="w-full appearance-none px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white cursor-pointer"
                   required
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
+              <label htmlFor="sv-time" className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5 text-slate-400" />
-                <span>Visit time</span>
+                <span>Visit time <span className="text-rose-500">*</span></span>
               </label>
               <div className="relative">
                 <select
+                  id="sv-time"
                   value={visitTime}
                   onChange={(e) => setVisitTime(e.target.value)}
                   className="w-full appearance-none px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white cursor-pointer pr-8"
@@ -316,28 +413,33 @@ export default function ScheduleSiteVisitModal({
           {/* Status & Assigned Agent */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+              <label htmlFor="sv-status" className="block text-xs font-bold text-slate-700 mb-1.5">
                 Visit status
               </label>
               <div className="relative">
                 <select
+                  id="sv-status"
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
                   className="w-full appearance-none px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white cursor-pointer pr-8"
                 >
-                  <option value="Confirmed">Confirmed</option>
-                  <option value="Tentative">Tentative</option>
+                  {statusOptions.map((st) => (
+                    <option key={st} value={st}>
+                      {st}
+                    </option>
+                  ))}
                 </select>
                 <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-3 pointer-events-none" />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                Assigned agent
+              <label htmlFor="sv-agent" className="block text-xs font-bold text-slate-700 mb-1.5">
+                Assigned person
               </label>
               <div className="relative">
                 <select
+                  id="sv-agent"
                   value={agentName}
                   onChange={(e) => setAgentName(e.target.value)}
                   className="w-full appearance-none px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0F3D2E] focus:bg-white cursor-pointer pr-8"
@@ -369,10 +471,11 @@ export default function ScheduleSiteVisitModal({
 
           {/* Notes */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">
+            <label htmlFor="sv-notes" className="block text-xs font-bold text-slate-700 mb-1.5">
               Visit notes (optional)
             </label>
             <textarea
+              id="sv-notes"
               rows={2}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -395,7 +498,9 @@ export default function ScheduleSiteVisitModal({
               disabled={submitting}
               className="px-5 py-2 bg-[#0F3D2E] hover:bg-[#16533D] text-white font-bold rounded-xl text-xs shadow-sm transition active:scale-[0.98] disabled:opacity-50"
             >
-              {submitting ? 'Scheduling...' : 'Schedule visit'}
+              {submitting
+                ? isEditing ? 'Saving...' : 'Scheduling...'
+                : isEditing ? 'Save changes' : 'Schedule visit'}
             </button>
           </div>
         </form>
@@ -403,4 +508,3 @@ export default function ScheduleSiteVisitModal({
     </div>
   )
 }
-

@@ -13,8 +13,15 @@ import {
   Loader2,
   AlertCircle,
   Wallet,
+  Pencil,
+  Download,
+  FileSpreadsheet,
+  ExternalLink,
+  CheckCircle2,
+  Clock,
 } from 'lucide-react'
 import { fetchAllPayments, recordLeadPayment, deletePayment } from '../../lib/api'
+import { exportPaymentReportExcel } from '../../lib/reportsApi'
 import { useOptions } from '../../hooks/useOptions'
 import { useAuth } from '../../context/AuthContext'
 import { useDialog } from '../../context/DialogContext'
@@ -25,6 +32,8 @@ import CustomerHistoryDrawer from '../common/CustomerHistoryDrawer'
 import SidePanel from '../common/SidePanel'
 import { formatRupees, parseRupees } from '../../lib/plotUtils'
 import { PaymentDocumentSection, ShareResults, useDocumentSender } from '../documents/PlotDocumentSharing'
+import { EditPaymentModal, PaymentStatusBadge, PAYMENT_STATUSES } from '../leads/LeadMoney'
+import { downloadCsv } from '../../lib/analytics'
 import { newRequestKey } from '../../lib/plotDocumentsApi'
 
 const inputCls =
@@ -234,8 +243,18 @@ export default function PaymentsPage({ leads = [], properties = [], onShowToast,
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [search, setSearch] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
+  const [customerFilter, setCustomerFilter] = useState('')
   const [projectFilter, setProjectFilter] = useState('')
+  const [plotFilter, setPlotFilter] = useState('')
   const [modeFilter, setModeFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
+  const [brokerFilter, setBrokerFilter] = useState('')
+  const [typeFilter, setTypeFilter] = useState('')
+  const [exporting, setExporting] = useState('')
+  const [selectedPayment, setSelectedPayment] = useState(null)
+  const [editing, setEditing] = useState(null)
   const [formOpen, setFormOpen] = useState(false)
   const [historyLeadId, setHistoryLeadId] = useState(null)
   const [justSaved, setJustSaved] = useState(null)
@@ -259,26 +278,115 @@ export default function PaymentsPage({ leads = [], properties = [], onShowToast,
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
+    const pl = plotFilter.trim().toLowerCase()
     const project = properties.find((p) => p.id === projectFilter)
     return payments.filter((p) => {
+      const iso = p.paidOn || (p.createdAt ? new Date(p.createdAt).toISOString().slice(0, 10) : '')
+      if (dateFrom && (!iso || iso < dateFrom)) return false
+      if (dateTo && (!iso || iso > dateTo)) return false
+      if (customerFilter && (p.customerId || p.leadId || p.leadName) !== customerFilter) return false
       if (project && p.propertyId !== project.id && String(p.property || '').toLowerCase() !== project.name.toLowerCase()) return false
+      if (!project && projectFilter && String(p.property || '') !== projectFilter) return false
+      if (pl && !String(p.plotNo || p.unitAllotted || '').toLowerCase().includes(pl)) return false
       if (modeFilter && p.mode !== modeFilter) return false
+      if (statusFilter && (p.status || 'Received') !== statusFilter) return false
+      if (brokerFilter === '__none' ? p.brokerId : brokerFilter && p.brokerName !== brokerFilter) return false
+      if (typeFilter && p.paymentFor !== typeFilter && p.sourceModule !== typeFilter) return false
       if (!q) return true
-      return [p.leadName, p.referenceNo, p.paymentFor, p.property, p.unitAllotted, p.plotNo].some((v) => String(v || '').toLowerCase().includes(q))
+      return [p.id, p.leadName, p.referenceNo, p.paymentFor, p.property, p.unitAllotted, p.plotNo, p.brokerName, p.note, p.sourceModule].some((v) => String(v || '').toLowerCase().includes(q))
     })
-  }, [payments, search, projectFilter, modeFilter, properties])
+  }, [payments, search, dateFrom, dateTo, customerFilter, projectFilter, plotFilter, modeFilter, statusFilter, brokerFilter, typeFilter, properties])
+
+  const brokerOptions = useMemo(() => [...new Set(payments.map((p) => p.brokerName).filter(Boolean))].sort(), [payments])
+  const customerOptions = useMemo(() => {
+    const map = new Map()
+    for (const p of payments) {
+      const key = p.customerId || p.leadId || p.leadName
+      if (key && p.leadName && !map.has(key)) map.set(key, p.leadName)
+    }
+    return [...map.entries()].map(([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label))
+  }, [payments])
+  const projectOptions = useMemo(() => {
+    const map = new Map(properties.map((p) => [p.id, p.name]))
+    for (const p of payments) {
+      if (p.property && !Array.from(map.values()).some((n) => n.toLowerCase() === String(p.property).toLowerCase())) {
+        map.set(p.propertyId || p.property, p.property)
+      }
+    }
+    return [...map.entries()].map(([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label))
+  }, [properties, payments])
+  const typeOptions = useMemo(() => {
+    const set = new Set()
+    for (const p of payments) {
+      if (p.paymentFor) set.add(p.paymentFor)
+      if (p.sourceModule) set.add(p.sourceModule)
+    }
+    return [...set].sort()
+  }, [payments])
+
+  const hasActiveFilter = Boolean(search.trim() || dateFrom || dateTo || customerFilter || projectFilter || plotFilter.trim() || modeFilter || statusFilter || brokerFilter || typeFilter)
+
+  const clearFilters = () => {
+    setSearch('')
+    setDateFrom('')
+    setDateTo('')
+    setCustomerFilter('')
+    setProjectFilter('')
+    setPlotFilter('')
+    setModeFilter('')
+    setStatusFilter('')
+    setBrokerFilter('')
+    setTypeFilter('')
+  }
 
   const stats = useMemo(() => {
-    const now = new Date()
-    const total = payments.reduce((s, p) => s + (Number(p.amount) || 0), 0)
-    const month = payments
-      .filter((p) => {
-        const d = new Date(paymentDate(p))
-        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+    const isReceived = (p) => !['Pending', 'Pending clearance', 'Failed', 'Bounced', 'Refunded', 'Cancelled'].includes(p.status || 'Received')
+    const totalPayments = filtered.reduce((s, p) => s + (Number(p.amount) || 0), 0)
+    const totalReceived = filtered.filter(isReceived).reduce((s, p) => s + (Number(p.amount) || 0), 0)
+    const pendingByLead = new Map()
+    let pendingTxnSum = 0
+    for (const p of filtered) {
+      if (['Pending', 'Pending clearance'].includes(p.status)) pendingTxnSum += Number(p.amount) || 0
+      if (p.balance != null && (p.leadId || p.customerId)) {
+        const k = p.leadId || p.customerId
+        if (!pendingByLead.has(k)) pendingByLead.set(k, Number(p.balance) || 0)
+      }
+    }
+    const pendingAmount = pendingTxnSum + [...pendingByLead.values()].reduce((s, v) => s + v, 0)
+    return {
+      totalPayments,
+      totalReceived,
+      pendingAmount,
+      count: filtered.length,
+      customers: new Set(filtered.map((p) => p.customerId || p.leadId || p.leadName).filter(Boolean)).size,
+    }
+  }, [filtered])
+
+  const runExcelExport = async (scope) => {
+    setExporting(scope)
+    try {
+      const filename = await exportPaymentReportExcel('all-payments', {
+        scope,
+        filters: {
+          q: search,
+          dateFrom,
+          dateTo,
+          customerId: customerFilter,
+          broker: brokerFilter,
+          propertyId: projectFilter,
+          plotNo: plotFilter,
+          mode: modeFilter,
+          status: statusFilter,
+          paymentFor: typeFilter,
+        },
       })
-      .reduce((s, p) => s + (Number(p.amount) || 0), 0)
-    return { total, month, count: payments.length, customers: new Set(payments.map((p) => p.leadId)).size }
-  }, [payments])
+      onShowToast?.(`Downloaded ${filename}`, 'success')
+    } catch (err) {
+      onShowToast?.(err.message, 'error')
+    } finally {
+      setExporting('')
+    }
+  }
 
   const handleSaved = async (payment, target, share = {}) => {
     setFormOpen(false)
@@ -353,10 +461,10 @@ export default function PaymentsPage({ leads = [], properties = [], onShowToast,
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { label: 'Total received', value: formatRupees(stats.total), icon: Wallet },
-          { label: 'This month', value: formatRupees(stats.month), icon: CalendarDays },
-          { label: 'Payments', value: stats.count, icon: Receipt },
-          { label: 'Paying customers', value: stats.customers, icon: Users },
+          { label: 'Total payments', value: formatRupees(stats.totalPayments), hint: hasActiveFilter ? 'Matching filters' : 'All modules', icon: Wallet },
+          { label: 'Total received', value: formatRupees(stats.totalReceived), hint: 'Cleared / received', icon: CheckCircle2 },
+          { label: 'Pending amount', value: formatRupees(stats.pendingAmount), hint: 'Pending clearance & balances', icon: Clock },
+          { label: 'Payment count', value: stats.count, hint: `${stats.customers} customers / parties`, icon: Receipt },
         ].map((s) => {
           const Icon = s.icon
           return (
@@ -368,19 +476,91 @@ export default function PaymentsPage({ leads = [], properties = [], onShowToast,
                 </span>
               </div>
               <p className="text-lg sm:text-2xl font-bold text-slate-900 mt-1">{s.value}</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">{s.hint}</p>
             </div>
           )
         })}
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-        <div className="p-3 border-b border-slate-100 grid grid-cols-1 md:grid-cols-[1fr_220px_220px] gap-2">
-          <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search customer, reference, plot…" className={`${inputCls} pl-9`} aria-label="Search payments" />
+        <div className="p-3 border-b border-slate-100 space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative flex-1 min-w-[220px]">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search customer, broker, plot, txn ID, reference…"
+                className={`${inputCls} pl-9`}
+                aria-label="Search payments"
+              />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className={`${inputCls} !w-auto text-xs`}
+                aria-label="From date"
+                title="From date"
+              />
+              <span className="text-xs text-slate-400">to</span>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className={`${inputCls} !w-auto text-xs`}
+                aria-label="To date"
+                title="To date"
+              />
+            </div>
+            {hasActiveFilter && (
+              <button
+                type="button"
+                onClick={() => runExcelExport('filtered')}
+                disabled={Boolean(exporting) || !filtered.length}
+                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 border border-slate-200 text-slate-700 hover:border-[#0F3D2E] hover:text-[#0F3D2E] text-xs font-bold rounded-xl disabled:opacity-40"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5" />
+                {exporting === 'filtered' ? 'Exporting…' : 'Export Filtered (.xlsx)'}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => runExcelExport('all')}
+              disabled={Boolean(exporting) || !payments.length}
+              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-[#0F3D2E] hover:bg-[#16533D] text-white text-xs font-bold rounded-xl disabled:opacity-40"
+              title="Download all centralized payments as Excel"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              {exporting === 'all' ? 'Exporting…' : 'Export Excel (.xlsx)'}
+            </button>
           </div>
-          <SearchSelect value={projectFilter} onChange={setProjectFilter} options={properties.map((p) => ({ value: p.id, label: p.name }))} placeholder="All projects" clearable />
-          <SearchSelect value={modeFilter} onChange={setModeFilter} options={modeList.options.map((m) => ({ value: m, label: m }))} placeholder="All modes" clearable />
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2">
+            <SearchSelect value={customerFilter} onChange={setCustomerFilter} options={customerOptions} placeholder="All customers" clearable />
+            <SearchSelect value={brokerFilter} onChange={setBrokerFilter} options={[{ value: '__none', label: 'Direct (No broker)' }, ...brokerOptions.map((b) => ({ value: b, label: b }))]} placeholder="All brokers" clearable />
+            <SearchSelect value={projectFilter} onChange={setProjectFilter} options={projectOptions} placeholder="All projects" clearable />
+            <input
+              value={plotFilter}
+              onChange={(e) => setPlotFilter(e.target.value)}
+              placeholder="Plot no…"
+              className={`${inputCls} !py-2 text-xs`}
+              aria-label="Filter by plot number"
+            />
+            <SearchSelect value={modeFilter} onChange={setModeFilter} options={modeList.options.map((m) => ({ value: m, label: m }))} placeholder="All methods" clearable />
+            <SearchSelect value={statusFilter} onChange={setStatusFilter} options={[...new Set([...PAYMENT_STATUSES, 'Pending clearance', 'Failed', 'Pending'])].map((st) => ({ value: st, label: st }))} placeholder="All statuses" clearable />
+            <SearchSelect value={typeFilter} onChange={setTypeFilter} options={typeOptions.map((t) => ({ value: t, label: t }))} placeholder="All types" clearable />
+          </div>
+
+          {hasActiveFilter && (
+            <div className="flex items-center justify-between text-[11px] text-slate-500 pt-0.5">
+              <span>Showing {filtered.length} of {payments.length} centralized payments</span>
+              <button type="button" onClick={clearFilters} className="font-bold text-[#0F3D2E] hover:underline">
+                Clear all filters
+              </button>
+            </div>
+          )}
         </div>
 
         {loading ? (
@@ -409,37 +589,67 @@ export default function PaymentsPage({ leads = [], properties = [], onShowToast,
                     <th className="text-left font-semibold px-4 py-3">Project / plot</th>
                     <th className="text-left font-semibold px-4 py-3">For</th>
                     <th className="text-left font-semibold px-4 py-3">Mode &amp; ref</th>
+                    <th className="text-left font-semibold px-4 py-3">Status</th>
                     <th className="text-right font-semibold px-4 py-3">Amount</th>
+                    <th className="text-right font-semibold px-4 py-3">Pending</th>
                     <th className="px-4 py-3" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {filtered.map((p) => (
-                    <tr key={p.id} className="hover:bg-slate-50/70">
-                      <td className="px-4 py-3 text-slate-600 whitespace-nowrap">{fmtDate(paymentDate(p))}</td>
-                      <td className="px-4 py-3">
-                        <button type="button" onClick={() => setHistoryLeadId(p.leadId)} className="font-semibold text-slate-900 hover:text-[#0F3D2E] hover:underline">
-                          {p.leadName}
-                        </button>
+                    <tr key={p.id} onClick={() => setSelectedPayment(p)} className="hover:bg-slate-50/70 cursor-pointer">
+                      <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
+                        {fmtDate(paymentDate(p))}
+                        {p.sourceModule && (
+                          <span className="block text-[10px] font-semibold text-slate-400">{p.sourceModule}</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                        {p.leadId ? (
+                          <button type="button" onClick={() => setHistoryLeadId(p.leadId)} className="font-semibold text-slate-900 hover:text-[#0F3D2E] hover:underline text-left">
+                            {p.leadName}
+                          </button>
+                        ) : p.customerId ? (
+                          <button type="button" onClick={() => navigate(`/customers/${encodeURIComponent(p.customerId)}`)} className="font-semibold text-slate-900 hover:text-[#0F3D2E] hover:underline text-left">
+                            {p.leadName}
+                          </button>
+                        ) : (
+                          <span className="font-semibold text-slate-900">{p.leadName}</span>
+                        )}
+                        {p.brokerName && <span className="block text-[11px] text-violet-700">Broker: {p.brokerName}</span>}
                       </td>
                       <td className="px-4 py-3 text-slate-600">
                         {p.property}
                         {p.plotNo ? <span className="text-slate-400"> · Plot {p.plotNo}</span> : p.unitAllotted && p.unitAllotted !== 'Not allotted' ? <span className="text-slate-400"> · {p.unitAllotted}</span> : null}
                       </td>
-                      <td className="px-4 py-3 text-slate-700">{p.paymentFor}</td>
+                      <td className="px-4 py-3 text-slate-700">
+                        {p.paymentFor}
+                        {p.note && <span className="block text-[11px] text-slate-400 max-w-[200px] truncate" title={p.note}>{p.note}</span>}
+                      </td>
                       <td className="px-4 py-3 text-slate-600">
                         {p.mode}
                         {p.referenceNo && <span className="block text-[11px] text-slate-400">{p.referenceNo}</span>}
                       </td>
+                      <td className="px-4 py-3"><PaymentStatusBadge status={p.status} /></td>
                       <td className="px-4 py-3 text-right font-bold text-slate-900 whitespace-nowrap">{formatRupees(p.amount)}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 text-right whitespace-nowrap text-xs">{p.balance == null ? <span className="text-slate-300">—</span> : p.balance > 0 ? <span className="font-semibold text-rose-700">{formatRupees(p.balance)}</span> : <span className="font-semibold text-emerald-700">Paid</span>}</td>
+                      <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                         <div className="flex justify-end gap-1">
-                          <button type="button" onClick={() => shareReceipt(p)} className="p-2 rounded-lg text-slate-500 hover:text-[#0F3D2E] hover:bg-[#E2EDE8]" aria-label={`Share receipt for ${p.leadName}`} title="Share receipt">
-                            <Receipt className="w-4 h-4" />
-                          </button>
-                          <button type="button" onClick={() => handleDelete(p)} className="p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50" aria-label={`Delete payment from ${p.leadName}`} title="Delete">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {p.editKind === 'core' && (
+                            <button type="button" onClick={() => setEditing(p)} className="p-2 rounded-lg text-slate-500 hover:text-[#0F3D2E] hover:bg-[#E2EDE8]" aria-label={`Edit payment from ${p.leadName}`} title="Edit">
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                          )}
+                          {p.leadId && (
+                            <button type="button" onClick={() => shareReceipt(p)} className="p-2 rounded-lg text-slate-500 hover:text-[#0F3D2E] hover:bg-[#E2EDE8]" aria-label={`Share receipt for ${p.leadName}`} title="Share receipt">
+                              <Receipt className="w-4 h-4" />
+                            </button>
+                          )}
+                          {p.editKind === 'core' && (
+                            <button type="button" onClick={() => handleDelete(p)} className="p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50" aria-label={`Delete payment from ${p.leadName}`} title="Delete">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -464,10 +674,18 @@ export default function PaymentsPage({ leads = [], properties = [], onShowToast,
                         {p.property}
                         {p.plotNo ? ` · Plot ${p.plotNo}` : ''}
                       </p>
+                      {p.brokerName && <p className="text-[11px] text-violet-700">Broker: {p.brokerName}</p>}
                     </div>
-                    <p className="text-sm font-bold text-slate-900 shrink-0">{formatRupees(p.amount)}</p>
+                    <div className="text-right shrink-0">
+                      <p className="text-sm font-bold text-slate-900">{formatRupees(p.amount)}</p>
+                      <PaymentStatusBadge status={p.status} />
+                      {p.balance > 0 && <p className="text-[11px] text-rose-700 mt-0.5">{formatRupees(p.balance)} pending</p>}
+                    </div>
                   </div>
                   <div className="mt-2 flex gap-2">
+                    <button type="button" onClick={() => setEditing(p)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 text-xs font-bold">
+                      <Pencil className="w-3.5 h-3.5" /> Edit
+                    </button>
                     <button type="button" onClick={() => shareReceipt(p)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#E2EDE8] text-[#0F3D2E] text-xs font-bold">
                       <Receipt className="w-3.5 h-3.5" /> Receipt
                     </button>
@@ -481,6 +699,8 @@ export default function PaymentsPage({ leads = [], properties = [], onShowToast,
           </>
         )}
       </div>
+
+      {editing && <EditPaymentModal payment={editing} onClose={() => setEditing(null)} onSaved={() => { onShowToast?.('Payment updated', 'success'); load() }} />}
 
       <SidePanel open={formOpen} onClose={() => setFormOpen(false)} title="Record payment" subtitle="Log a booking, token or milestone payment" icon={IndianRupee}>
         {formOpen && <RecordPaymentForm leads={leads} properties={properties} onSaved={handleSaved} onCancel={() => setFormOpen(false)} actor={actor} />}
@@ -496,6 +716,130 @@ export default function PaymentsPage({ leads = [], properties = [], onShowToast,
           navigate(`/documents?${new URLSearchParams({ share: type, leadId: historyLeadId }).toString()}`)
         }}
       />
+
+      {/* Payment Details SidePanel */}
+      <SidePanel
+        open={Boolean(selectedPayment)}
+        onClose={() => setSelectedPayment(null)}
+        title={selectedPayment ? `${selectedPayment.paymentFor || 'Payment'} · ${formatRupees(selectedPayment.amount)}` : 'Payment Details'}
+        subtitle={selectedPayment ? `${selectedPayment.sourceModule || 'Payment'} · ${fmtDate(paymentDate(selectedPayment))}` : ''}
+        icon={Receipt}
+      >
+        {selectedPayment && (
+          <div className="p-5 space-y-5 overflow-y-auto h-full">
+            <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Amount</p>
+                <p className="text-2xl font-extrabold text-slate-900 tabular-nums">{formatRupees(selectedPayment.amount)}</p>
+              </div>
+              <PaymentStatusBadge status={selectedPayment.status} />
+            </div>
+
+            <dl className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <dt className="text-[11px] font-medium text-slate-400">Customer / Party</dt>
+                <dd className="font-semibold text-slate-800 mt-0.5">{selectedPayment.leadName || '—'}</dd>
+              </div>
+              <div>
+                <dt className="text-[11px] font-medium text-slate-400">Payment Date</dt>
+                <dd className="font-semibold text-slate-800 mt-0.5">{fmtDate(paymentDate(selectedPayment))}</dd>
+              </div>
+              <div>
+                <dt className="text-[11px] font-medium text-slate-400">Project / Property</dt>
+                <dd className="font-semibold text-slate-800 mt-0.5">{selectedPayment.property || '—'}</dd>
+              </div>
+              <div>
+                <dt className="text-[11px] font-medium text-slate-400">Plot / Unit</dt>
+                <dd className="font-semibold text-slate-800 mt-0.5">
+                  {selectedPayment.plotNo ? `Plot ${selectedPayment.plotNo}` : selectedPayment.unitAllotted || '—'}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[11px] font-medium text-slate-400">Payment Method</dt>
+                <dd className="font-semibold text-slate-800 mt-0.5">{selectedPayment.mode || '—'}</dd>
+              </div>
+              <div>
+                <dt className="text-[11px] font-medium text-slate-400">Reference / Txn ID</dt>
+                <dd className="font-semibold text-slate-800 mt-0.5">{selectedPayment.referenceNo || '—'}</dd>
+              </div>
+              <div>
+                <dt className="text-[11px] font-medium text-slate-400">Broker</dt>
+                <dd className="font-semibold text-slate-800 mt-0.5">{selectedPayment.brokerName || 'Direct / No Broker'}</dd>
+              </div>
+              <div>
+                <dt className="text-[11px] font-medium text-slate-400">Source Module</dt>
+                <dd className="font-semibold text-slate-800 mt-0.5">{selectedPayment.sourceModule || 'CRM'}</dd>
+              </div>
+              {selectedPayment.balance != null && (
+                <div>
+                  <dt className="text-[11px] font-medium text-slate-400">Pending Balance</dt>
+                  <dd className={`font-bold mt-0.5 ${selectedPayment.balance > 0 ? 'text-rose-700' : 'text-emerald-700'}`}>
+                    {selectedPayment.balance > 0 ? formatRupees(selectedPayment.balance) : 'Paid in full'}
+                  </dd>
+                </div>
+              )}
+              {selectedPayment.note && (
+                <div className="col-span-2">
+                  <dt className="text-[11px] font-medium text-slate-400">Notes</dt>
+                  <dd className="text-slate-700 mt-0.5 whitespace-pre-line">{selectedPayment.note}</dd>
+                </div>
+              )}
+            </dl>
+
+            <div className="pt-4 border-t border-slate-100 flex flex-wrap gap-2">
+              {selectedPayment.customerId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedPayment(null)
+                    navigate(`/customers/${encodeURIComponent(selectedPayment.customerId)}`)
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" /> Open Customer
+                </button>
+              )}
+              {selectedPayment.propertyId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedPayment(null)
+                    navigate(`/properties/${encodeURIComponent(selectedPayment.propertyId)}/plots`)
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" /> Open Property
+                </button>
+              )}
+              {selectedPayment.brokerId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedPayment(null)
+                    navigate('/brokers')
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" /> Open Brokers
+                </button>
+              )}
+              {selectedPayment.editKind === 'core' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const target = selectedPayment
+                    setSelectedPayment(null)
+                    setEditing(target)
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#0F3D2E] text-white rounded-xl text-xs font-bold hover:bg-[#16533D] ml-auto"
+                >
+                  <Pencil className="w-3.5 h-3.5" /> Edit Payment
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </SidePanel>
     </div>
   )
 }

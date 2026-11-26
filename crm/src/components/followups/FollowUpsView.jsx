@@ -493,10 +493,11 @@ export default function FollowUpsView({
           meta={meta}
           properties={properties}
           onClose={() => setSelectedLead(null)}
-          onUpdate={async (id, updates) => {
+          onUpdate={async (id, updates, opts) => {
             const updated = await updateLeadDetails(id, updates)
             if (updated) setSelectedLead(updated)
-            if (onShowToast) onShowToast('Lead details updated!')
+            if (!opts?.silent && onShowToast) onShowToast('Lead details updated!')
+            return updated
           }}
           onRecordPayment={async (id, paymentData) => {
             const updated = await recordPayment(id, paymentData)

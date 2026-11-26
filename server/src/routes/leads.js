@@ -13,8 +13,14 @@ import {
   safely,
   upsertCustomerFromLead,
 } from '../lib/customers.js'
+import { BROKER_PAYMENTS, logBroker } from '../lib/brokers.js'
+import { loadCentralPayments } from '../lib/centralPayments.js'
 
 const router = Router()
+
+/** Payment states: only "Received" money counts towards the balance. */
+export const PAYMENT_STATUSES = ['Received', 'Pending clearance', 'Failed']
+const countsAsReceived = (p) => (p.status || 'Received') === 'Received'
 
 /**
  * Helper to format Indian currency
@@ -105,6 +111,7 @@ router.get('/meta', async (req, res) => {
         'Instagram',
         '99acres',
         'MagicBricks',
+        'Broker',
       ],
       stages: [
         { id: 'new', label: 'New leads' },
@@ -228,6 +235,14 @@ router.get('/', async (req, res) => {
       }
     })
 
+    // Each lead shows the name of its broker
+    const brokerIds = [...new Set(leads.map((l) => l.referral?.brokerId).filter(Boolean))]
+    if (brokerIds.length) {
+      const found = await db.collection('land_parties').find({ id: { $in: brokerIds } }, { projection: { _id: 0, id: 1, name: 1 } }).toArray()
+      const names = new Map(found.map((b) => [b.id, b.name]))
+      leads = leads.map((l) => (l.referral?.brokerId ? { ...l, referral: { ...l.referral, brokerName: names.get(l.referral.brokerId) || '' } } : l))
+    }
+
     return res.json({
       success: true,
       source: 'database',
@@ -242,17 +257,12 @@ router.get('/', async (req, res) => {
 
 /**
  * GET /api/leads/payments/all
- * Fetch all payments recorded across all leads
+ * Fetch centralized payments across Leads, Customers, Plots, Brokers, and Land Management
  */
 router.get('/payments/all', async (req, res) => {
   try {
     const db = await getDb()
-    const payments = await db
-      .collection('payments')
-      .find({}, { projection: { _id: 0 } })
-      .sort({ createdAt: -1 })
-      .toArray()
-
+    const payments = await loadCentralPayments(db)
     return res.json({
       success: true,
       total: payments.length,
@@ -295,6 +305,77 @@ router.delete('/payments/:paymentId', async (req, res) => {
     return res.json({ success: true })
   } catch (err) {
     console.error('Error deleting payment:', err.message)
+    return res.status(500).json({ success: false, error: err.message })
+  }
+})
+
+/**
+ * PATCH /api/leads/payments/:paymentId
+ * Correct a payment: amount, date, mode, reference, status, notes or what it is for.
+ * The lead's own list, the plot history copy and the customer timeline stay in step.
+ */
+router.patch('/payments/:paymentId', async (req, res) => {
+  try {
+    const { paymentId } = req.params
+    const b = req.body || {}
+    const db = await getDb()
+    const payment = await db.collection('payments').findOne({ id: paymentId }, { projection: { _id: 0 } })
+    if (!payment) return res.status(404).json({ success: false, error: 'Payment not found' })
+
+    const set = {}
+    if (b.amount !== undefined) {
+      const n = Number(String(b.amount).replace(/,/g, ''))
+      if (!Number.isFinite(n) || n <= 0) return res.status(400).json({ success: false, error: 'A valid payment amount is required' })
+      set.amount = n
+      set.amountFormatted = formatCurrency(n)
+    }
+    if (b.paidOn !== undefined) {
+      const d = String(b.paidOn || '').trim()
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(d) || Number.isNaN(new Date(d).getTime())) return res.status(400).json({ success: false, error: 'Choose a valid payment date' })
+      set.paidOn = d
+      set.date = new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    }
+    for (const [k, max] of [['mode', 60], ['referenceNo', 60], ['paymentFor', 80], ['note', 500]]) if (b[k] !== undefined) set[k] = String(b[k] ?? '').trim().slice(0, max)
+    if (b.status !== undefined) {
+      if (!PAYMENT_STATUSES.includes(b.status)) return res.status(400).json({ success: false, error: 'Choose Received, Pending clearance or Failed' })
+      set.status = b.status
+    }
+    if (!Object.keys(set).length) return res.status(400).json({ success: false, error: 'Nothing to change' })
+
+    // The sale can't be overpaid: received money is limited to the agreed price
+    const next = { ...payment, ...set }
+    if (payment.leadId && countsAsReceived(next)) {
+      const lead = await db.collection('leads').findOne({ id: payment.leadId }, { projection: { _id: 0, dealValue: 1 } })
+      if (lead?.dealValue != null) {
+        const others = await db.collection('payments').find({ leadId: payment.leadId, id: { $ne: paymentId } }, { projection: { amount: 1, status: 1 } }).toArray()
+        const receivedElsewhere = others.filter(countsAsReceived).reduce((s, p) => s + (Number(p.amount) || 0), 0)
+        if (receivedElsewhere + next.amount > Number(lead.dealValue)) {
+          return res.status(400).json({ success: false, error: `This is more than the pending balance of ₹${Math.max(Number(lead.dealValue) - receivedElsewhere, 0).toLocaleString('en-IN')}.` })
+        }
+      }
+    }
+
+    const changed = Object.keys(set).filter((k) => String(payment[k] ?? '') !== String(set[k] ?? ''))
+    await db.collection('payments').updateOne({ id: paymentId }, { $set: { ...set, editedAt: new Date() } })
+    await db.collection('plot_activity').updateMany(
+      { paymentId },
+      { $set: { ...(set.amount !== undefined ? { amount: set.amount, title: `${next.paymentFor} of ${next.amountFormatted} from ${next.leadName}` } : {}), ...(set.mode !== undefined ? { mode: set.mode } : {}), ...(set.referenceNo !== undefined ? { referenceNo: set.referenceNo } : {}), ...(set.paidOn !== undefined ? { paidOn: set.paidOn } : {}) } },
+    )
+    if (payment.leadId) {
+      const lead = await db.collection('leads').findOne({ id: payment.leadId }, { projection: { _id: 0 } })
+      if (lead) {
+        const payments = (lead.payments || []).map((p) => (p.id === paymentId ? { ...p, ...set } : p))
+        const text = `Payment ${next.amountFormatted || next.amount} (${next.paymentFor}) updated${next.status && next.status !== 'Received' ? ` – ${next.status}` : ''}`
+        await db.collection('leads').updateOne(
+          { id: payment.leadId },
+          { $set: { payments, updatedAt: new Date() }, $push: { activity: { $each: [{ id: `act-${Date.now()}-pay`, text, time: 'Just now', createdAt: new Date() }], $position: 0 } } },
+        )
+        await safely(async () => logForLead(db, lead, { type: 'payment', title: text, details: changed.map((k) => `${k}: ${payment[k] ?? '—'} → ${set[k]}`).join(' · ') }, await actorFromRequest(req)))
+      }
+    }
+    return res.json({ success: true, payment: await db.collection('payments').findOne({ id: paymentId }, { projection: { _id: 0 } }) })
+  } catch (err) {
+    console.error('Error updating payment:', err.message)
     return res.status(500).json({ success: false, error: err.message })
   }
 })
@@ -460,6 +541,7 @@ router.post('/:id/payments', async (req, res) => {
       plotNo = '',
       phase = '',
       paidOn = '',
+      status: payStatus = 'Received',
       note = '',
       actor = null,
       clientRequestId = '',
@@ -484,6 +566,15 @@ router.post('/:id/payments', async (req, res) => {
       if (existing) return res.json({ success: true, lead, payment: existing, duplicate: true })
     }
 
+    // With an agreed price, received payments can't add up to more than it
+    if (lead.dealValue != null && (payStatus || 'Received') === 'Received') {
+      const earlier = await db.collection('payments').find({ leadId: id }, { projection: { amount: 1, status: 1 } }).toArray()
+      const received = earlier.filter(countsAsReceived).reduce((s, p) => s + (Number(p.amount) || 0), 0)
+      if (received + numAmount > Number(lead.dealValue)) {
+        return res.status(400).json({ success: false, error: `This is more than the pending balance of ₹${Math.max(Number(lead.dealValue) - received, 0).toLocaleString('en-IN')}.` })
+      }
+    }
+
     const formatted = amountFormatted || formatCurrency(numAmount)
     const paymentId = `pay-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
 
@@ -506,6 +597,7 @@ router.post('/:id/payments', async (req, res) => {
       createdAt: new Date(),
     }
     if (requestId) paymentRecord.clientRequestId = requestId
+    paymentRecord.status = PAYMENT_STATUSES.includes(payStatus) ? payStatus : 'Received'
     // Plot documents chosen to go with this payment
     const docIds = Array.isArray(documentIds) ? documentIds.map((d) => String(d || '').trim().slice(0, 60)).filter(Boolean).slice(0, 10) : []
     if (docIds.length) paymentRecord.documentIds = docIds
@@ -926,8 +1018,20 @@ router.patch('/:id', async (req, res) => {
     delete updates.customerId
     delete updates.payments
     delete updates.actor
+    // The broker on a lead is managed through /api/brokers (with its commission and log)
+    delete updates.referral
 
     const activitiesToPush = []
+
+    // Agreed price: what the customer will pay, used for the pending balance and the commission
+    if (updates.dealValue !== undefined) {
+      const n = updates.dealValue === null || updates.dealValue === '' ? null : Number(String(updates.dealValue).replace(/,/g, ''))
+      if (n !== null && (!Number.isFinite(n) || n < 0)) return res.status(400).json({ success: false, error: 'The agreed price must be a positive number.' })
+      updates.dealValue = n
+      if (n !== (existing.dealValue ?? null)) {
+        activitiesToPush.push({ id: `act-${Date.now()}-deal`, text: n === null ? 'Agreed price cleared' : `Agreed price set to ${formatCurrency(n)}`, time: 'Just now', createdAt: new Date() })
+      }
+    }
 
     // Stage change tracking
     if (updates.stage && updates.stage !== existing.stage) {
@@ -1010,9 +1114,15 @@ router.delete('/:id', async (req, res) => {
     const { id } = req.params
     const db = await getDb()
     const lead = await db.collection('leads').findOne({ id }, { projection: { _id: 0 } })
+    if (lead?.referral?.brokerId && (await db.collection(BROKER_PAYMENTS).countDocuments({ ownerKey: `lead:${id}` }))) {
+      return res.status(409).json({ success: false, error: 'This lead has broker commission payments recorded. Delete those first.' })
+    }
     const result = await db.collection('leads').deleteOne({ id })
 
     // The customer profile and its history are kept; the timeline notes the removal
+    if (lead?.referral?.brokerId && result.deletedCount) {
+      await safely(async () => logBroker(db, { brokerId: lead.referral.brokerId, module: 'lead', type: 'removed', title: `Lead ${lead.name} was deleted`, refs: { leadId: id, ownerKey: `lead:${id}`, ownerType: 'lead', label: lead.name }, actor: await actorFromRequest(req) }))
+    }
     if (lead && result.deletedCount) {
       await safely(async () =>
         logForLead(db, lead, { type: 'status', title: 'Original lead removed from the pipeline', details: 'Customer profile and history kept' }, await actorFromRequest(req)),

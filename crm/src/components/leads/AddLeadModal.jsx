@@ -1,5 +1,7 @@
 import React, { useState } from 'react'
 import { X, ChevronDown } from 'lucide-react'
+import { PartySelect } from '../land/Parties'
+import { saveReferral, leadOwner } from '../../lib/brokersApi'
 
 const SOURCE_OPTIONS = [
   'Walk-in',
@@ -47,6 +49,8 @@ export default function AddLeadModal({
   const [email, setEmail] = useState('')
   const [project, setProject] = useState(dynamicProjects[0] || '')
   const [source, setSource] = useState(dynamicSources[0] || 'Walk-in')
+  const [brokerId, setBrokerId] = useState('')
+  const [broker, setBroker] = useState(null)
   const [budgetLakhs, setBudgetLakhs] = useState('')
   const [assignTo, setAssignTo] = useState(dynamicAgents[0]?.name || '')
   const [stage, setStage] = useState(initialStage || 'new')
@@ -101,7 +105,7 @@ export default function AddLeadModal({
         time: 'Just now',
       })
 
-      await onSubmit({
+      const created = await onSubmit({
         name: fullName.trim(),
         phone: mobile.trim(),
         email: email.trim(),
@@ -130,6 +134,15 @@ export default function AddLeadModal({
         ],
         activity: initialActivities,
       })
+
+      // The broker is optional: saved with the broker's usual commission, editable from the lead
+      if (brokerId && created?.id) {
+        try {
+          await saveReferral(leadOwner(created.id), brokerId, broker?.defaultCommission ? { type: broker.defaultCommission.type, value: broker.defaultCommission.value } : null)
+        } catch {
+          /* the lead is saved; the broker can be added from the lead panel */
+        }
+      }
 
       onClose()
     } catch (err) {
@@ -260,6 +273,23 @@ export default function AddLeadModal({
                 <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-3 pointer-events-none" />
               </div>
             </div>
+          </div>
+
+          {/* Referred by a broker (optional) */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1.5" htmlFor="al-broker">
+              Referred by a broker <span className="font-medium text-slate-400">(optional)</span>
+            </label>
+            <PartySelect
+              id="al-broker"
+              type="broker"
+              value={brokerId}
+              onChange={(id, b) => {
+                setBrokerId(id)
+                setBroker(b)
+              }}
+              placeholder="No broker: direct enquiry"
+            />
           </div>
 
           {/* Row 4: Budget & Assign to */}

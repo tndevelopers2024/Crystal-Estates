@@ -11,6 +11,7 @@ import {
   RotateCcw,
   CheckCircle2,
   XCircle,
+  Pencil,
 } from 'lucide-react'
 import ScheduleSiteVisitModal from './ScheduleSiteVisitModal'
 import LeadDrawer from '../leads/LeadDrawer'
@@ -68,6 +69,7 @@ export default function SiteVisitsView({
   } = leadsState
 
   const [selectedLead, setSelectedLead] = useState(null)
+  const [editingVisit, setEditingVisit] = useState(null) // { visit, defaultStatus? }
   const [isCompletedOpen, setIsCompletedOpen] = useState(false)
   const [isCancelledOpen, setIsCancelledOpen] = useState(false)
 
@@ -266,6 +268,24 @@ export default function SiteVisitsView({
               >
                 Mark visited
               </button>
+
+              <button
+                type="button"
+                onClick={() => setEditingVisit({ visit })}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200/90 text-slate-700 text-xs font-bold shadow-2xs transition"
+              >
+                <Pencil className="w-3 h-3" />
+                <span>Reschedule</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleStatusChange(visit, 'Cancelled')}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white hover:bg-rose-50 border border-slate-200/90 hover:border-rose-200 text-rose-600 text-xs font-bold shadow-2xs transition"
+              >
+                <XCircle className="w-3 h-3" />
+                <span>Cancel</span>
+              </button>
             </>
           )}
 
@@ -283,7 +303,7 @@ export default function SiteVisitsView({
           {isCancelled && (
             <button
               type="button"
-              onClick={() => handleStatusChange(visit, 'Scheduled')}
+              onClick={() => setEditingVisit({ visit, defaultStatus: 'Scheduled' })}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200/90 text-slate-600 text-xs font-bold shadow-2xs transition"
             >
               <RotateCcw className="w-3 h-3" />
@@ -436,18 +456,30 @@ export default function SiteVisitsView({
         </>
       )}
 
-      {/* ── SCHEDULE SITE VISIT MODAL ── */}
-      {isScheduleModalOpen && (
+      {/* ── SCHEDULE / EDIT SITE VISIT MODAL ── */}
+      {(isScheduleModalOpen || editingVisit) && (
         <ScheduleSiteVisitModal
-          isOpen={isScheduleModalOpen}
+          isOpen={Boolean(isScheduleModalOpen || editingVisit)}
+          visit={editingVisit?.visit || null}
+          defaultStatus={editingVisit?.defaultStatus || null}
           leads={allLeads}
           properties={properties}
           meta={meta}
-          onClose={() => setIsScheduleModalOpen && setIsScheduleModalOpen(false)}
+          onClose={() => {
+            if (editingVisit) setEditingVisit(null)
+            else if (setIsScheduleModalOpen) setIsScheduleModalOpen(false)
+          }}
           onSchedule={async (visitData) => {
-            await scheduleVisit(visitData)
-            if (refreshLeads) refreshLeads()
-            if (onShowToast) onShowToast('Site visit scheduled successfully!')
+            if (editingVisit?.visit?.id) {
+              await updateVisit(editingVisit.visit.id, visitData)
+              if (refreshLeads) refreshLeads()
+              if (onShowToast) onShowToast('Site visit updated successfully!')
+              setEditingVisit(null)
+            } else {
+              await scheduleVisit(visitData)
+              if (refreshLeads) refreshLeads()
+              if (onShowToast) onShowToast('Site visit scheduled successfully!')
+            }
           }}
         />
       )}
@@ -458,11 +490,14 @@ export default function SiteVisitsView({
           lead={selectedLead}
           meta={meta}
           properties={properties}
+          visitsState={visitsState}
+          onShowToast={onShowToast}
           onClose={() => setSelectedLead(null)}
-          onUpdate={async (id, updates) => {
+          onUpdate={async (id, updates, opts) => {
             const updated = await updateLeadDetails(id, updates)
             if (updated) setSelectedLead(updated)
-            if (onShowToast) onShowToast('Lead details updated!')
+            if (!opts?.silent && onShowToast) onShowToast('Lead details updated!')
+            return updated
           }}
           onRecordPayment={async (id, paymentData) => {
             const updated = await recordPayment(id, paymentData)

@@ -22,6 +22,20 @@ export const DEFAULT_OPTIONS = {
     'Floor / plot plan',
     'Other document',
   ],
+  landDocumentType: [
+    'Parent deed',
+    'Sale deed',
+    'Agreement of sale',
+    'Patta / Chitta',
+    'Encumbrance certificate',
+    'FMB sketch',
+    'Layout approval',
+    'Tax receipt',
+    'Power of attorney',
+    'Legal opinion',
+    'Layout plan',
+    'Other',
+  ],
   placeCategory: ['Temple', 'School', 'College', 'Hospital', 'Railway station', 'Bus stop', 'Market', 'Bank / ATM', 'Park', 'Landmark'],
 }
 

@@ -22,6 +22,9 @@ import ManagementView from './components/views/ManagementView'
 import ReportsView from './components/views/ReportsView'
 import TeamView from './components/views/TeamView'
 import SettingsView from './components/views/SettingsView'
+import LandProjectsPage from './components/land/LandProjectsPage'
+import LandProjectPage from './components/land/LandProjectPage'
+import PartiesPage from './components/land/PartiesPage'
 import { Lock } from 'lucide-react'
 import { useAuth } from './context/AuthContext'
 import { openFollowUps, inRange } from './lib/analytics'
@@ -331,12 +334,12 @@ export default function App() {
       case 'vendors':
         return {
           title: 'Vendors & Landowners',
-          subtitle: 'Procurement network, survey agencies and landowner contracts',
+          subtitle: 'Landowners, vendors and the brokers who bring customers',
         }
       case 'landrecords':
         return {
           title: 'Land Records',
-          subtitle: 'Revenue cadastral maps, FMB sketches and village survey logs',
+          subtitle: 'Land purchases, plots, customers, brokers and payments',
         }
       case 'team':
         return {
@@ -622,6 +625,9 @@ export default function App() {
             element={<ReportsView leads={leadsState.allLeads || []} visits={visitsState.visits || []} loading={leadsState.loading} />}
           />
           <Route path="/team" element={<TeamView onShowToast={showToast} />} />
+          <Route path="/landrecords" element={<LandProjectsPage onShowToast={showToast} />} />
+          <Route path="/landrecords/:projectId" element={<LandProjectPage onShowToast={showToast} />} />
+          <Route path="/vendors" element={<PartiesPage onShowToast={showToast} />} />
           <Route path="/settings" element={<SettingsView onShowToast={showToast} />} />
 
           {/* WhatsApp and land modules keep their current pages */}

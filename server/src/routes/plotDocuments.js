@@ -26,7 +26,7 @@ import { getDb } from '../config/db.js'
 const router = Router()
 const COLLECTION = 'plot_documents'
 const BUCKET = 'plot_document_files'
-const MAX_BYTES = 15 * 1024 * 1024
+export const MAX_BYTES = 15 * 1024 * 1024
 const MAX_PER_PLOT = 50
 
 const gzip = promisify(zlib.gzip)
@@ -38,11 +38,11 @@ const TYPES = {
   png: { mime: 'image/png', ext: 'png', test: (b) => b.slice(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) },
 }
 /** Decide the type from the file's own bytes, not its name. */
-const sniff = (buf) => Object.values(TYPES).find((t) => buf.length > 8 && t.test(buf)) || null
+export const sniff = (buf) => Object.values(TYPES).find((t) => buf.length > 8 && t.test(buf)) || null
 
 const norm = (v) => (v === undefined || v === null ? '' : String(v).trim())
 const cleanLabel = (v) => norm(v).replace(/\s+/g, ' ').slice(0, 120)
-const cleanName = (v, ext) => {
+export const cleanName = (v, ext) => {
   const base = norm(v).replace(/[\\/:*?"<>|\u0000-\u001f]/g, '').replace(/\.[a-z0-9]{1,5}$/i, '').slice(0, 120) || 'document'
   return `${base}.${ext}`
 }
@@ -52,7 +52,7 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: MAX_BYTES, files: 1 },
 })
-const single = (req, res, next) =>
+export const single = (req, res, next) =>
   upload.single('file')(req, res, (err) => {
     if (!err) return next()
     const msg = err.code === 'LIMIT_FILE_SIZE' ? `File is too large. The limit is ${MAX_BYTES / 1024 / 1024} MB.` : err.message
@@ -61,7 +61,7 @@ const single = (req, res, next) =>
 
 const bucketOf = (db) => new GridFSBucket(db, { bucketName: BUCKET })
 
-async function storeFile(db, buf, filename, mime) {
+export async function storeFile(db, buf, filename, mime) {
   let data = buf
   let encoding = null
   const packed = await gzip(buf, { level: 9 })
@@ -91,7 +91,7 @@ export async function readPlotDocumentFile(db, doc) {
   return doc.encoding === 'gzip' ? gunzip(raw) : raw
 }
 
-const dropFile = (db, fileId) => bucketOf(db).delete(fileId).catch((e) => console.warn('GridFS delete:', e.message))
+export const dropFile = (db, fileId) => bucketOf(db).delete(fileId).catch((e) => console.warn('GridFS delete:', e.message))
 
 /** Public shape (never the GridFS id or the share token). */
 const publicDoc = ({ _id, fileId, shareToken, ...d }) => d

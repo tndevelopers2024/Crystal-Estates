@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext'
 import { usePayments } from '../../hooks/usePayments'
 import { Card, StatCard, EmptyState, LoadingBlock, BarList, Badge, btnGhost, inputCls } from '../common/PageKit'
 import { inventoryByProject, agentStats, countBy, shortRupees, sumPayments, downloadCsv } from '../../lib/analytics'
+import PaymentTrackingPanel from './PaymentTrackingPanel'
 
 /** Executive view: portfolio inventory, team performance and lead sources. */
 export default function ManagementView({ properties = [], leads = [], visits = [], loading = false }) {
@@ -196,6 +197,14 @@ export default function ManagementView({ properties = [], leads = [], visits = [
           <BarList rows={interest} emptyText="No project-specific enquiries yet" />
         </Card>
       </div>
+
+      {showMoney && (
+        <PaymentTrackingPanel
+          title="Payment tracking"
+          subtitle="Balances and full transaction history for every plot, customer, and broker"
+          defaultTab="plots"
+        />
+      )}
     </div>
   )
 }

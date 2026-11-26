@@ -341,7 +341,7 @@ export default function CustomersPage({ onShowToast }) {
         )}
       </div>
 
-      <SidePanel open={addOpen} onClose={() => setAddOpen(false)} title="Add customer" subtitle="Create a profile by hand" icon={Users}>
+      <SidePanel open={addOpen} onClose={() => setAddOpen(false)} title="Add customer" subtitle="Create a profile by hand" icon={Users} width="max-w-2xl">
         <CustomerDetailsForm
           onSubmit={handleCreate}
           onCancel={() => setAddOpen(false)}

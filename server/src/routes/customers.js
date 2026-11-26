@@ -10,6 +10,7 @@ import {
   phoneKey,
   upsertCustomerFromLead,
 } from '../lib/customers.js'
+import { PARTIES, logBroker, readCommission } from '../lib/brokers.js'
 
 const router = Router()
 router.use(requireUser)
@@ -17,6 +18,54 @@ router.use(requireUser)
 const clean = (v, max = 300) => String(v ?? '').trim().slice(0, max)
 const actorOf = (req) => ({ name: req.user?.name || req.user?.email || 'CRM user', email: req.user?.email || '' })
 const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const rupees = (n) => `₹${Math.round(Number(n) || 0).toLocaleString('en-IN')}`
+const commText = (c) => (c ? (c.type === 'percent' ? `${c.value}%` : `${rupees(c.value)} fixed`) : 'No commission set')
+const isReceivedPayment = (p) => !['Bounced', 'Refunded', 'Cancelled'].includes(p?.status)
+
+function parseDealValue(v) {
+  if (v === '' || v === undefined || v === null) return { value: null }
+  const n = Number(String(v).replace(/,/g, '').trim())
+  if (!Number.isFinite(n) || n < 0) return { error: 'Total amount must be a valid positive number.' }
+  return { value: Math.round(n * 100) / 100 }
+}
+
+function readCustomerPayment(body) {
+  const amount = Number(String(body?.amount ?? '').replace(/,/g, '').trim())
+  if (!Number.isFinite(amount) || amount <= 0) return { error: 'Payment amount must be greater than 0.' }
+  const paidOnRaw = clean(body?.paidOn || body?.date, 20)
+  const paidOn = paidOnRaw && /^\d{4}-\d{2}-\d{2}$/.test(paidOnRaw) ? paidOnRaw : new Date().toISOString().slice(0, 10)
+  const mode = clean(body?.mode || 'UPI', 80) || 'UPI'
+  const referenceNo = clean(body?.referenceNo, 80)
+  const note = clean(body?.note, 500)
+  const paymentFor = clean(body?.paymentFor || 'Payment', 120) || 'Payment'
+  const status = ['Received', 'Pending', 'Cleared', 'Bounced', 'Refunded', 'Cancelled'].includes(body?.status) ? body.status : 'Received'
+  return {
+    payment: {
+      amount: Math.round(amount * 100) / 100,
+      amountFormatted: rupees(amount),
+      paidOn,
+      date: new Date(`${paidOn}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+      mode,
+      referenceNo,
+      note,
+      paymentFor,
+      status,
+    },
+  }
+}
+
+async function customerPaymentsFilter(customer) {
+  const leadIds = customer.leadIds || []
+  return leadIds.length ? { $or: [{ customerId: customer.id }, { leadId: { $in: leadIds } }] } : { customerId: customer.id }
+}
+
+async function syncCustomerPaymentTotals(db, customer) {
+  const filter = await customerPaymentsFilter(customer)
+  const all = await db.collection('payments').find(filter, { projection: { _id: 0, amount: 1, status: 1 } }).toArray()
+  const totalPaid = Math.round(all.filter(isReceivedPayment).reduce((s, p) => s + (Number(p.amount) || 0), 0) * 100) / 100
+  await db.collection('customers').updateOne({ id: customer.id }, { $set: { totalPaid, paymentsCount: all.length, updatedAt: new Date() } })
+  return { totalPaid, paymentsCount: all.length }
+}
 
 const EDITABLE = ['name', 'phone', 'email', 'address', 'city', 'notes', 'status', 'tags']
 const FIELD_LABELS = { name: 'Name', phone: 'Phone', email: 'Email', address: 'Address', city: 'City', notes: 'Notes', status: 'Status', tags: 'Tags' }
@@ -143,13 +192,17 @@ router.get('/:id', async (req, res) => {
     if (!customer) return res.status(404).json({ success: false, error: 'Customer not found' })
 
     const leadIds = customer.leadIds || []
-    const [leads, payments, activity] = await Promise.all([
+    const payFilter = await customerPaymentsFilter(customer)
+    const [leads, payments, activity, broker] = await Promise.all([
       db
         .collection('leads')
-        .find({ id: { $in: leadIds } }, { projection: { _id: 0, id: 1, name: 1, phone: 1, email: 1, stage: 1, source: 1, property: 1, propertyId: 1, unit: 1, advanceReceived: 1, assignedAgent: 1, createdAt: 1, updatedAt: 1 } })
+        .find({ id: { $in: leadIds } }, { projection: { _id: 0, id: 1, name: 1, phone: 1, email: 1, stage: 1, source: 1, property: 1, propertyId: 1, unit: 1, advanceReceived: 1, assignedAgent: 1, dealValue: 1, referral: 1, createdAt: 1, updatedAt: 1 } })
         .toArray(),
-      db.collection('payments').find({ leadId: { $in: leadIds } }, { projection: { _id: 0 } }).sort({ createdAt: -1 }).toArray(),
+      db.collection('payments').find(payFilter, { projection: { _id: 0 } }).sort({ paidOn: -1, createdAt: -1 }).toArray(),
       db.collection('customer_activity').find({ customerId: customer.id }, { projection: { _id: 0 } }).sort({ occurredAt: -1, createdAt: -1 }).limit(1000).toArray(),
+      customer.referral?.brokerId
+        ? db.collection(PARTIES).findOne({ id: customer.referral.brokerId }, { projection: { _id: 0, id: 1, name: 1, phone: 1, email: 1, defaultCommission: 1 } })
+        : Promise.resolve(null),
     ])
 
     const propertyIds = [
@@ -164,15 +217,22 @@ router.get('/:id', async (req, res) => {
           .toArray()
       : []
 
+    const paid = Math.round(payments.filter(isReceivedPayment).reduce((s, p) => s + (Number(p.amount) || 0), 0) * 100) / 100
+    const leadDealTotal = leads.some((l) => l.dealValue != null) ? leads.reduce((s, l) => s + (Number(l.dealValue) || 0), 0) : null
+    const dealValue = customer.dealValue != null ? Number(customer.dealValue) : leadDealTotal
+    const pending = dealValue != null ? Math.max(Math.round((dealValue - paid) * 100) / 100, 0) : null
+
     return res.json({
       success: true,
-      customer,
+      customer: { ...customer, broker: broker || null },
       leads,
       payments,
       properties,
       activity,
       totals: {
-        paid: payments.reduce((s, p) => s + (Number(p.amount) || 0), 0),
+        paid,
+        dealValue,
+        pending,
         payments: payments.length,
       },
     })
@@ -187,15 +247,41 @@ router.get('/:id', async (req, res) => {
  */
 router.post('/', async (req, res) => {
   try {
-    const { profile, errors } = readProfile(req.body || {})
+    const body = req.body || {}
+    const { profile, errors } = readProfile(body)
+    const dv = parseDealValue(body.dealValue)
+    if (dv.error) errors.push(dv.error)
+
+    const isDirectCustomer = body.isDirectCustomer !== undefined ? Boolean(body.isDirectCustomer) : !clean(body.brokerId, 80)
+    const brokerId = isDirectCustomer ? '' : clean(body.brokerId, 80)
+    const commRes = brokerId ? readCommission(body.commission) : { value: null }
+    if (commRes.error) errors.push(commRes.error)
+
+    const rawPayments = Array.isArray(body.payments) ? body.payments : []
+    const parsedPayments = []
+    for (const rp of rawPayments) {
+      const pr = readCustomerPayment(rp)
+      if (pr.error) errors.push(pr.error)
+      else parsedPayments.push(pr.payment)
+    }
+
     if (errors.length) return res.status(400).json({ success: false, error: errors.join(' ') })
+
     const db = await getDb()
     await ensureCustomerIndexes(db)
     const dup = await findDuplicate(db, profile)
     if (dup) {
       return res.status(409).json({ success: false, error: `${dup.name} already has a profile with this phone or email.`, existingId: dup.id })
     }
+
+    let broker = null
+    if (brokerId) {
+      broker = await db.collection(PARTIES).findOne({ id: brokerId, type: 'broker' }, { projection: { _id: 0 } })
+      if (!broker) return res.status(400).json({ success: false, error: 'The selected broker no longer exists.' })
+    }
+
     const now = new Date()
+    const actor = actorOf(req)
     const doc = {
       id: `cust-${Date.now().toString(36)}-${Math.random().toString(16).slice(2, 8)}`,
       ...profile,
@@ -203,7 +289,10 @@ router.post('/', async (req, res) => {
       status: profile.status || 'active',
       phoneKey: phoneKey(profile.phone),
       emailKey: emailKey(profile.email),
-      source: 'Added in CRM',
+      source: broker ? 'Broker' : 'Added in CRM',
+      isDirectCustomer: !broker,
+      referral: broker ? { brokerId: broker.id, commission: commRes.value, assignedAt: now, updatedAt: now } : null,
+      dealValue: dv.value,
       assignedAgent: null,
       leadIds: [],
       primaryLeadId: null,
@@ -213,7 +302,7 @@ router.post('/', async (req, res) => {
       paymentsCount: 0,
       lastActivityAt: now,
       convertedAt: now,
-      createdBy: actorOf(req),
+      createdBy: actor,
       createdAt: now,
       updatedAt: now,
     }
@@ -225,7 +314,55 @@ router.post('/', async (req, res) => {
       throw err
     }
     delete doc._id
-    await logCustomerActivity(db, doc.id, { type: 'profile', title: 'Customer profile created in CRM', source: 'manual' }, actorOf(req))
+    await logCustomerActivity(db, doc.id, { type: 'profile', title: 'Customer profile created in CRM', source: 'manual' }, actor)
+
+    if (dv.value != null) {
+      await logCustomerActivity(db, doc.id, { type: 'profile', title: `Total amount set to ${rupees(dv.value)}`, source: 'auto' }, actor)
+    }
+
+    if (broker) {
+      const cSummary = `Commission: ${commText(commRes.value)}`
+      await logCustomerActivity(db, doc.id, { type: 'profile', title: `Broker assigned: ${broker.name}`, details: cSummary, source: 'auto' }, actor)
+      await logBroker(db, {
+        brokerId: broker.id,
+        module: 'customer',
+        type: 'assigned',
+        title: `Assigned to customer: ${doc.name}`,
+        details: cSummary,
+        refs: { customerId: doc.id, customerName: doc.name, ownerKey: `customer:${doc.id}`, ownerType: 'customer', label: doc.name },
+        actor,
+      })
+    }
+
+    for (const p of parsedPayments) {
+      const paymentId = `pay-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
+      const paymentRecord = {
+        id: paymentId,
+        customerId: doc.id,
+        leadId: null,
+        leadName: doc.name,
+        customerName: doc.name,
+        ...p,
+        createdAt: now,
+        createdBy: actor,
+      }
+      await db.collection('payments').insertOne(paymentRecord)
+      await logCustomerActivity(
+        db,
+        doc.id,
+        {
+          type: 'payment',
+          title: `${p.paymentFor} of ${p.amountFormatted} recorded via ${p.mode}`,
+          details: [p.referenceNo && `Ref: ${p.referenceNo}`, p.note].filter(Boolean).join(' · '),
+          occurredAt: new Date(`${p.paidOn}T12:00:00Z`),
+          paymentId,
+          amount: p.amount,
+          source: 'auto',
+        },
+        actor,
+      )
+    }
+
     const customer = await db.collection('customers').findOne({ id: doc.id }, { projection: { _id: 0 } })
     return res.status(201).json({ success: true, customer })
   } catch (err) {
@@ -244,13 +381,30 @@ router.patch('/:id', async (req, res) => {
     const existing = await col.findOne({ id: req.params.id }, { projection: { _id: 0 } })
     if (!existing) return res.status(404).json({ success: false, error: 'Customer not found' })
 
-    const { profile, errors } = readProfile(req.body || {}, { partial: true })
+    const body = req.body || {}
+    const { profile, errors } = readProfile(body, { partial: true })
+    const hasDealValue = body.dealValue !== undefined
+    const dv = hasDealValue ? parseDealValue(body.dealValue) : { value: undefined }
+    if (dv.error) errors.push(dv.error)
+
+    const hasBrokerUpdate = body.brokerId !== undefined || body.isDirectCustomer !== undefined || body.commission !== undefined
+    const nextDirect = body.isDirectCustomer !== undefined ? Boolean(body.isDirectCustomer) : body.brokerId !== undefined ? !clean(body.brokerId, 80) : existing.isDirectCustomer
+    const nextBrokerId = nextDirect ? '' : body.brokerId !== undefined ? clean(body.brokerId, 80) : (existing.referral?.brokerId || '')
+    const commRes = hasBrokerUpdate && nextBrokerId ? readCommission(body.commission !== undefined ? body.commission : existing.referral?.commission) : { value: null }
+    if (commRes.error) errors.push(commRes.error)
+
     if (errors.length) return res.status(400).json({ success: false, error: errors.join(' ') })
     const nextPhone = profile.phone !== undefined ? profile.phone : existing.phone
     const nextEmail = profile.email !== undefined ? profile.email : existing.email
     if (!nextPhone && !nextEmail) return res.status(400).json({ success: false, error: 'Keep a phone number or email on the profile.' })
     const dup = await findDuplicate(db, { phone: profile.phone, email: profile.email }, existing.id)
     if (dup) return res.status(409).json({ success: false, error: `${dup.name} already uses this phone or email.`, existingId: dup.id })
+
+    let nextBroker = null
+    if (hasBrokerUpdate && nextBrokerId) {
+      nextBroker = await db.collection(PARTIES).findOne({ id: nextBrokerId, type: 'broker' }, { projection: { _id: 0 } })
+      if (!nextBroker) return res.status(400).json({ success: false, error: 'The selected broker no longer exists.' })
+    }
 
     const set = { updatedAt: new Date() }
     const unset = {}
@@ -269,7 +423,53 @@ router.patch('/:id', async (req, res) => {
     }
     if (set.email !== undefined) set.emailKey = emailKey(set.email)
 
-    if (changed.length) {
+    const extraLogs = []
+    const actor = actorOf(req)
+
+    if (hasDealValue && dv.value !== (existing.dealValue ?? null)) {
+      set.dealValue = dv.value
+      changed.push('Total amount')
+      extraLogs.push({
+        type: 'profile',
+        title: dv.value != null ? `Total amount updated to ${rupees(dv.value)}` : 'Total amount cleared',
+        source: 'auto',
+      })
+    }
+
+    if (hasBrokerUpdate) {
+      const prevBrokerId = existing.referral?.brokerId || ''
+      const prevComm = existing.referral?.commission || null
+      const nextReferral = nextBroker
+        ? {
+            brokerId: nextBroker.id,
+            commission: commRes.value,
+            assignedAt: prevBrokerId === nextBroker.id ? existing.referral?.assignedAt || new Date() : new Date(),
+            updatedAt: new Date(),
+          }
+        : null
+      if (prevBrokerId !== nextBrokerId || commText(prevComm) !== commText(commRes.value)) {
+        set.referral = nextReferral
+        set.isDirectCustomer = !nextBroker
+        const refs = { customerId: existing.id, customerName: existing.name, ownerKey: `customer:${existing.id}`, ownerType: 'customer', label: existing.name }
+        if (prevBrokerId && (!nextBroker || prevBrokerId !== nextBroker.id)) {
+          const oldBroker = await db.collection(PARTIES).findOne({ id: prevBrokerId }, { projection: { name: 1 } })
+          await logBroker(db, { brokerId: prevBrokerId, module: 'customer', type: 'removed', title: `Removed from customer: ${existing.name}`, refs, actor })
+          if (!nextBroker) {
+            extraLogs.push({ type: 'profile', title: `Broker ${oldBroker?.name || ''} removed (marked as Direct Customer)`.trim(), source: 'auto' })
+          }
+        }
+        if (nextBroker && prevBrokerId !== nextBroker.id) {
+          const cSummary = `Commission: ${commText(commRes.value)}`
+          await logBroker(db, { brokerId: nextBroker.id, module: 'customer', type: 'assigned', title: `${prevBrokerId ? 'Now handling' : 'Assigned to'} customer: ${existing.name}`, details: cSummary, refs, actor })
+          extraLogs.push({ type: 'profile', title: `Broker assigned: ${nextBroker.name}`, details: cSummary, source: 'auto' })
+        } else if (nextBroker && commText(prevComm) !== commText(commRes.value)) {
+          await logBroker(db, { brokerId: nextBroker.id, module: 'customer', type: 'commission_set', title: `Commission changed on customer: ${existing.name}`, changes: [{ field: 'commission', label: 'Commission', from: commText(prevComm), to: commText(commRes.value) }], refs, actor })
+          extraLogs.push({ type: 'profile', title: `Broker commission updated to ${commText(commRes.value)}`, details: `Broker: ${nextBroker.name}`, source: 'auto' })
+        }
+      }
+    }
+
+    if (changed.length || extraLogs.length) {
       const update = { $set: set }
       if (Object.keys(unset).length) update.$unset = unset
       try {
@@ -278,13 +478,19 @@ router.patch('/:id', async (req, res) => {
         if (err?.code === 11000) return res.status(409).json({ success: false, error: 'Another customer already uses this phone number.' })
         throw err
       }
-      const title =
-        set.status && changed.length === 1
-          ? set.status === 'archived'
-            ? 'Customer archived'
-            : 'Customer restored'
-          : `Profile updated: ${changed.join(', ')}`
-      await logCustomerActivity(db, existing.id, { type: set.status ? 'status' : 'profile', title, source: 'manual' }, actorOf(req))
+      const profileChanged = changed.filter((c) => c !== 'Total amount')
+      if (profileChanged.length) {
+        const title =
+          set.status && profileChanged.length === 1
+            ? set.status === 'archived'
+              ? 'Customer archived'
+              : 'Customer restored'
+            : `Profile updated: ${profileChanged.join(', ')}`
+        await logCustomerActivity(db, existing.id, { type: set.status ? 'status' : 'profile', title, source: 'manual' }, actor)
+      }
+      for (const l of extraLogs) {
+        await logCustomerActivity(db, existing.id, l, actor)
+      }
     }
     const customer = await col.findOne({ id: existing.id }, { projection: { _id: 0 } })
     return res.json({ success: true, customer, changed })
@@ -391,6 +597,126 @@ router.delete('/:id/activity/:activityId', async (req, res) => {
     return res.json({ success: true })
   } catch (err) {
     console.error('Error deleting customer activity:', err.message)
+    return res.status(500).json({ success: false, error: err.message })
+  }
+})
+
+/**
+ * POST /api/customers/:id/payments  → record a payment directly on a customer
+ */
+router.post('/:id/payments', async (req, res) => {
+  try {
+    const db = await getDb()
+    const customer = await db.collection('customers').findOne({ id: req.params.id }, { projection: { _id: 0 } })
+    if (!customer) return res.status(404).json({ success: false, error: 'Customer not found' })
+    const pr = readCustomerPayment(req.body || {})
+    if (pr.error) return res.status(400).json({ success: false, error: pr.error })
+
+    const now = new Date()
+    const actor = actorOf(req)
+    const paymentId = `pay-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
+    const payment = {
+      id: paymentId,
+      customerId: customer.id,
+      leadId: null,
+      leadName: customer.name,
+      customerName: customer.name,
+      ...pr.payment,
+      createdAt: now,
+      createdBy: actor,
+    }
+    await db.collection('payments').insertOne({ ...payment })
+    await logCustomerActivity(
+      db,
+      customer.id,
+      {
+        type: 'payment',
+        title: `${payment.paymentFor} of ${payment.amountFormatted} recorded via ${payment.mode}`,
+        details: [payment.referenceNo && `Ref: ${payment.referenceNo}`, payment.note].filter(Boolean).join(' · '),
+        occurredAt: new Date(`${payment.paidOn}T12:00:00Z`),
+        paymentId,
+        amount: payment.amount,
+        source: 'auto',
+      },
+      actor,
+    )
+    await syncCustomerPaymentTotals(db, customer)
+    return res.status(201).json({ success: true, payment })
+  } catch (err) {
+    console.error('Error recording customer payment:', err.message)
+    return res.status(500).json({ success: false, error: err.message })
+  }
+})
+
+/**
+ * PATCH /api/customers/:id/payments/:paymentId  → edit a customer payment record
+ */
+router.patch('/:id/payments/:paymentId', async (req, res) => {
+  try {
+    const db = await getDb()
+    const customer = await db.collection('customers').findOne({ id: req.params.id }, { projection: { _id: 0 } })
+    if (!customer) return res.status(404).json({ success: false, error: 'Customer not found' })
+    const filter = await customerPaymentsFilter(customer)
+    const existing = await db.collection('payments').findOne({ ...filter, id: req.params.paymentId }, { projection: { _id: 0 } })
+    if (!existing) return res.status(404).json({ success: false, error: 'Payment not found' })
+
+    const pr = readCustomerPayment({ ...existing, ...(req.body || {}) })
+    if (pr.error) return res.status(400).json({ success: false, error: pr.error })
+
+    const actor = actorOf(req)
+    await db.collection('payments').updateOne(
+      { id: existing.id },
+      { $set: { ...pr.payment, editedAt: new Date(), editedBy: actor } },
+    )
+    await syncCustomerPaymentTotals(db, customer)
+    await logCustomerActivity(
+      db,
+      customer.id,
+      {
+        type: 'payment',
+        title: `Payment updated: ${pr.payment.paymentFor} (${pr.payment.amountFormatted})`,
+        details: [pr.payment.mode, pr.payment.referenceNo && `Ref: ${pr.payment.referenceNo}`, pr.payment.note].filter(Boolean).join(' · '),
+        occurredAt: new Date(),
+        amount: pr.payment.amount,
+        source: 'auto',
+      },
+      actor,
+    )
+    const payment = await db.collection('payments').findOne({ id: existing.id }, { projection: { _id: 0 } })
+    return res.json({ success: true, payment })
+  } catch (err) {
+    console.error('Error updating customer payment:', err.message)
+    return res.status(500).json({ success: false, error: err.message })
+  }
+})
+
+/**
+ * DELETE /api/customers/:id/payments/:paymentId  → remove a customer payment record
+ */
+router.delete('/:id/payments/:paymentId', async (req, res) => {
+  try {
+    const db = await getDb()
+    const customer = await db.collection('customers').findOne({ id: req.params.id }, { projection: { _id: 0 } })
+    if (!customer) return res.status(404).json({ success: false, error: 'Customer not found' })
+    const filter = await customerPaymentsFilter(customer)
+    const existing = await db.collection('payments').findOne({ ...filter, id: req.params.paymentId }, { projection: { _id: 0 } })
+    if (!existing) return res.status(404).json({ success: false, error: 'Payment not found' })
+
+    await db.collection('payments').deleteOne({ id: existing.id })
+    await syncCustomerPaymentTotals(db, customer)
+    await logCustomerActivity(
+      db,
+      customer.id,
+      {
+        type: 'payment',
+        title: `Payment removed: ${existing.paymentFor || 'Payment'} (${existing.amountFormatted || rupees(existing.amount)})`,
+        source: 'auto',
+      },
+      actorOf(req),
+    )
+    return res.json({ success: true })
+  } catch (err) {
+    console.error('Error deleting customer payment:', err.message)
     return res.status(500).json({ success: false, error: err.message })
   }
 })

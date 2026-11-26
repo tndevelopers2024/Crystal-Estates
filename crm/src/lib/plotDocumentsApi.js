@@ -184,3 +184,6 @@ export const fetchShareHistory = (params = {}) => {
 /** A random key for one user action (send click, payment form). */
 export const newRequestKey = (prefix = 'req') =>
   `${prefix}-${typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`}`
+
+/** Multipart request with upload progress (shared with the Land module). */
+export { send as sendMultipart }

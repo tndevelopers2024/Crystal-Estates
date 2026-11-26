@@ -175,11 +175,27 @@ export function ruleFor(method, p) {
   }
   if (p.startsWith('/upload')) return get ? VIEW_ANY('properties') : EDIT_ANY('properties', 'documents')
 
+  // Brokers: everyone who works with leads, customers, properties, payments or land can read and add
+  // them; deleting one needs the Vendors or Land records section
+  if (p.startsWith('/brokers')) {
+    const SALES = ['leads', 'customers', 'properties', 'payments', 'vendors', 'landrecords']
+    if (m === 'DELETE' && /^\/brokers\/[^/]+$/.test(p)) return EDIT_ANY('vendors', 'landrecords')
+    return get ? VIEW_ANY(...SALES, 'management', 'reports') : EDIT_ANY(...SALES)
+  }
+  // Land purchase & management. Landowner / vendor and broker records are open to
+  // 'Vendors & landowners' too; exports check the sheet type inside the route.
+  if (p.startsWith('/land/parties')) return get ? VIEW_ANY('vendors', 'landrecords') : EDIT_ANY('vendors', 'landrecords')
+  if (p === '/land/export') return VIEW_ANY('vendors', 'landrecords')
+  if (p.startsWith('/land')) return get ? VIEW_ANY('landrecords') : EDIT_ANY('landrecords')
+
   // Sending plot documents by WhatsApp / email, and its history
   if (p.startsWith('/document-shares')) return get ? VIEW_ANY('documents', 'payments', 'properties') : EDIT_ANY('documents', 'payments')
   // Payment editors can create a share link when they record a payment
   if (m === 'POST' && p === '/documents') return EDIT_ANY('documents', 'payments')
   if (p.startsWith('/documents')) return get ? VIEW_ANY('documents') : EDIT_ANY('documents')
+
+  // Payment reports & ExcelJS exports (Management, Reports, Payments)
+  if (p.startsWith('/reports')) return VIEW_ANY('management', 'reports', 'payments')
 
   return SUPER // anything not listed is closed by default
 }

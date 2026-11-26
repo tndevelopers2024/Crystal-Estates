@@ -37,6 +37,8 @@ import {
   addPlotActivity,
   fetchPlotBookings,
   savePlotBooking,
+  fetchLeads,
+  deletePlotEntry,
 } from '../../lib/api'
 import {
   canonicalLayoutSlug,
@@ -54,6 +56,11 @@ import { useAuth } from '../../context/AuthContext'
 import { useDialog } from '../../context/DialogContext'
 import NearbyPlacesPanel from './NearbyPlacesPanel'
 import { usePlotDocuments, PlotDocumentsManager } from './PlotDocuments'
+import ReferralPanel from '../brokers/ReferralPanel'
+import PlotPaymentEdit from './PlotPaymentEdit'
+import SearchSelect from '../common/SearchSelect'
+import { PaymentStatusBadge, PAYMENT_STATUSES } from '../leads/LeadMoney'
+import { bookingOwner } from '../../lib/brokersApi'
 import { PlotDocumentChecklist, ShareChannelPicker, ShareResults, ConsentNote, useDocumentSender, useShareConfig } from '../documents/PlotDocumentSharing'
 import { newRequestKey } from '../../lib/plotDocumentsApi'
 import Layout3DView from '../layout3d/Layout3DView'
@@ -362,7 +369,9 @@ function PlotPanel({ property, plot, isNew, phaseName, existingPlots, onSavePlot
   const [tab, setTab] = useState('edit')
   const [details, setDetails] = useState(EMPTY_DETAILS)
   const [booking, setBooking] = useState({})
-  const [payment, setPayment] = useState({ amount: '', mode: 'Bank transfer', referenceNo: '', paidOn: new Date().toISOString().slice(0, 10), note: '' })
+  const [payment, setPayment] = useState({ amount: '', mode: 'Bank transfer', referenceNo: '', paidOn: new Date().toISOString().slice(0, 10), note: '', status: 'Received' })
+  const [editPay, setEditPay] = useState(null)
+  const [allLeads, setAllLeads] = useState(null)
   const [note, setNote] = useState('')
   const [history, setHistory] = useState({ activities: [], legacyPayments: [], relatedLeads: [] })
   const [historyLoading, setHistoryLoading] = useState(false)
@@ -417,6 +426,17 @@ function PlotPanel({ property, plot, isNew, phaseName, existingPlots, onSavePlot
     }
   }, [plot?.uid, isNew])
 
+  useEffect(() => {
+    if (tab !== 'booking' || isNew || allLeads) return undefined
+    let active = true
+    fetchLeads()
+      .then((d) => active && setAllLeads(d.leads || []))
+      .catch(() => active && setAllLeads([]))
+    return () => {
+      active = false
+    }
+  }, [tab, isNew, allLeads])
+
   const plotUid = plot?.uid
   const plotNo = plot?.plotNo
   const plotPhase = plot?.phase
@@ -446,7 +466,7 @@ function PlotPanel({ property, plot, isNew, phaseName, existingPlots, onSavePlot
   const payments = useMemo(() => {
     const logged = history.activities
       .filter((a) => a.type === 'payment')
-      .map((a) => ({ id: a.id, amount: Number(a.amount) || 0, mode: a.mode, ref: a.referenceNo, date: a.paidOn || a.createdAt, by: a.actor?.name, note: a.note, source: 'Plot log', documentIds: a.documentIds || [] }))
+      .map((a) => ({ id: a.id, amount: Number(a.amount) || 0, mode: a.mode, ref: a.referenceNo, date: a.paidOn || a.createdAt, by: a.actor?.name, note: a.note, source: 'Plot log', documentIds: a.documentIds || [], status: a.status || 'Received', customerName: a.customerName, editable: !a.paymentId }))
     const legacy = history.legacyPayments.map((p) => ({
       id: p.id,
       amount: Number(p.amount) || 0,
@@ -454,14 +474,17 @@ function PlotPanel({ property, plot, isNew, phaseName, existingPlots, onSavePlot
       ref: p.referenceNo,
       date: p.date || p.createdAt,
       by: p.leadName,
-      note: p.paymentFor,
+      note: [p.paymentFor, p.note].filter(Boolean).join(' · '),
       source: 'Lead payment',
+      status: p.status || 'Received',
+      customerName: p.leadName,
     }))
     return [...logged, ...legacy].sort((a, b) => new Date(b.date) - new Date(a.date))
   }, [history])
 
   const agreed = parseRupees(booking.totalPrice) ?? parseRupees(plot?.booking?.totalPrice) ?? parseRupees(plot?.price)
-  const received = payments.reduce((s, p) => s + p.amount, 0)
+  // Only money that has been received counts; pending clearance and failed payments do not
+  const received = payments.filter((p) => p.status === 'Received').reduce((s, p) => s + p.amount, 0)
   const balance = agreed != null ? Math.max(agreed - received, 0) : null
 
   const save = async (nextPlot, successMsg) => {
@@ -562,6 +585,9 @@ function PlotPanel({ property, plot, isNew, phaseName, existingPlots, onSavePlot
         paidOn: payment.paidOn,
         note: payment.note,
         documentIds: payDocs,
+        status: payment.status,
+        // the buyer's lead, so the payment belongs to that customer
+        leadId: plot.booking?.leadId || booking.leadId || undefined,
         // Same id on a repeated submit: the server returns the first entry instead of a second one
         clientRequestId: payRequestId,
         actor,
@@ -838,6 +864,7 @@ function PlotPanel({ property, plot, isNew, phaseName, existingPlots, onSavePlot
 
         {/* Booking */}
         {tab === 'booking' && !isNew && (
+          <>
           <form onSubmit={handleBookingSubmit} className="space-y-4">
             {history.relatedLeads.length > 0 && (
               <div className="rounded-xl border border-sky-200 bg-sky-50 p-3 text-xs text-sky-900">
@@ -856,6 +883,20 @@ function PlotPanel({ property, plot, isNew, phaseName, existingPlots, onSavePlot
                 </ul>
               </div>
             )}
+            <SearchSelect
+              label="Link the buyer to an existing customer"
+              value={booking.leadId || ''}
+              onChange={(leadId) => {
+                const l = (allLeads || []).find((x) => x.id === leadId)
+                if (!l) return setBooking((b) => ({ ...b, leadId: '' }))
+                setBooking((b) => ({ ...b, leadId: l.id, buyerName: l.name, phone: l.phone || b.phone || '', email: l.email || b.email || '' }))
+              }}
+              options={(allLeads || []).map((l) => ({ value: l.id, label: l.name, sub: [l.phone, l.property && l.property !== 'General Enquiry' ? l.property : null].filter(Boolean).join(' · ') }))}
+              placeholder={allLeads ? 'Search customers by name or phone' : 'Loading customers…'}
+              clearable
+              emptyText="No matching customer"
+            />
+            {booking.leadId && <p className="text-[11px] text-slate-500 -mt-2">Linked: payments and the broker are shared with this customer's lead.</p>}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2">
                 <label htmlFor="pb-name" className={labelCls}>Buyer name *</label>
@@ -905,6 +946,23 @@ function PlotPanel({ property, plot, isNew, phaseName, existingPlots, onSavePlot
             </div>
             <p className="text-[11px] text-slate-400">Saving a booking on an available plot marks it Booked. Every change is kept in History.</p>
           </form>
+
+          <div className="mt-6 pt-5 border-t border-slate-100 space-y-3">
+            <p className="text-xs font-bold text-slate-800 uppercase tracking-wider">Broker &amp; commission</p>
+            {plot.booking?.buyerName ? (
+              <ReferralPanel
+                key={`${plot.uid}-${plot.booking.buyerName}-${plot.booking.leadId || ''}`}
+                owner={bookingOwner(propId, plot)}
+                canEdit={can('properties', 'edit')}
+                onShowToast={onShowToast}
+                onChanged={() => loadHistory()}
+                dealHint="the agreed total price"
+              />
+            ) : (
+              <p className="text-xs text-slate-500">Save the booking (the buyer) first, then add the broker.</p>
+            )}
+          </div>
+          </>
         )}
 
         {/* Payments */}
@@ -952,7 +1010,13 @@ function PlotPanel({ property, plot, isNew, phaseName, existingPlots, onSavePlot
                   <label htmlFor="pm-date" className={labelCls}>Paid on</label>
                   <input id="pm-date" type="date" className={inputCls} value={payment.paidOn} onChange={setP('paidOn')} />
                 </div>
-                <div className="sm:col-span-2">
+                <div>
+                  <label htmlFor="pm-status" className={labelCls}>Status</label>
+                  <select id="pm-status" className={inputCls} value={payment.status} onChange={setP('status')}>
+                    {PAYMENT_STATUSES.map((st) => <option key={st} value={st}>{st}</option>)}
+                  </select>
+                </div>
+                <div>
                   <label htmlFor="pm-note" className={labelCls}>Note</label>
                   <input id="pm-note" className={inputCls} value={payment.note} onChange={setP('note')} placeholder="e.g. Token advance" />
                 </div>
@@ -1014,8 +1078,9 @@ function PlotPanel({ property, plot, isNew, phaseName, existingPlots, onSavePlot
                   {payments.map((p) => (
                     <li key={p.id} className="p-3 flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="text-sm font-bold text-slate-900">{formatRupees(p.amount)}</p>
+                        <p className="text-sm font-bold text-slate-900 flex items-center gap-2 flex-wrap">{formatRupees(p.amount)} <PaymentStatusBadge status={p.status} /></p>
                         <p className="text-xs text-slate-500">{[p.mode, p.ref && `Ref ${p.ref}`, p.note].filter(Boolean).join(' · ')}</p>
+                        {p.customerName && <p className="text-[11px] text-slate-400">Customer: {p.customerName}</p>}
                         {p.documentIds?.length > 0 && (
                           <p className="text-[11px] text-[#0F3D2E] font-semibold mt-0.5 truncate">
                             Attached: {p.documentIds.map((id) => docsState.documents.find((d) => d.id === id)?.label || 'Deleted document').join(', ')}
@@ -1025,12 +1090,38 @@ function PlotPanel({ property, plot, isNew, phaseName, existingPlots, onSavePlot
                       <div className="text-right shrink-0">
                         <p className="text-xs text-slate-600">{typeof p.date === 'string' && p.date.length <= 12 ? p.date : formatDateTime(p.date)}</p>
                         <p className="text-[11px] text-slate-400">{p.source}{p.by ? ` · ${p.by}` : ''}</p>
+                        {p.editable && can('properties', 'edit') && (
+                          <div className="flex justify-end gap-1 mt-1">
+                            <button type="button" onClick={() => setEditPay(p)} className="p-1 rounded-md text-slate-400 hover:text-[#0F3D2E] hover:bg-slate-100" aria-label={`Edit payment of ${formatRupees(p.amount)}`}>
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                const ok = await confirm({ title: 'Delete payment', message: `Delete the payment of ${formatRupees(p.amount)}?`, confirmText: 'Delete payment', cancelText: 'Cancel', type: 'danger' })
+                                if (!ok) return
+                                try {
+                                  await deletePlotEntry(p.id, actor)
+                                  onShowToast?.('Payment deleted', 'info')
+                                  await loadHistory()
+                                } catch (err) {
+                                  setError(err.message)
+                                }
+                              }}
+                              className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                              aria-label={`Delete payment of ${formatRupees(p.amount)}`}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </li>
                   ))}
                 </ul>
               )}
             </div>
+            {editPay && <PlotPaymentEdit payment={editPay} onClose={() => setEditPay(null)} onSaved={() => loadHistory()} />}
           </>
         )}
 

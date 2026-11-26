@@ -23,6 +23,7 @@ const router = Router()
 const COLLECTION = 'plot_activity'
 // Buyer details live here, never on the public plot documents
 const BOOKINGS = 'plot_bookings'
+const PAYMENT_STATUS = ['Received', 'Pending clearance', 'Failed']
 const ACTIVITY_TYPES = new Set(['created', 'deleted', 'status', 'booking', 'payment', 'update', 'note'])
 
 const TRACKED_FIELDS = [
@@ -320,7 +321,7 @@ router.put('/booking', async (req, res) => {
  */
 router.post('/', async (req, res) => {
   try {
-    const { propertyId, propertyName, phase, plotUid, plotNo, type = 'note', title, amount, mode, referenceNo, paidOn, note, actor, documentIds, clientRequestId } = req.body || {}
+    const { propertyId, propertyName, phase, plotUid, plotNo, type = 'note', title, amount, mode, referenceNo, paidOn, note, actor, documentIds, clientRequestId, status, leadId } = req.body || {}
 
     if (!propertyId || !norm(plotNo)) {
       return res.status(400).json({ success: false, error: 'propertyId and plotNo are required' })
@@ -361,6 +362,16 @@ router.post('/', async (req, res) => {
       record.paidOn = norm(paidOn) || new Date().toISOString().slice(0, 10)
       record.note = norm(note).slice(0, 500)
       record.title = norm(title) || `Payment of ₹${num.toLocaleString('en-IN')} received`
+      // Only "Received" money counts towards the balance
+      record.status = PAYMENT_STATUS.includes(status) ? status : 'Received'
+      // The customer (lead) this payment belongs to, when the buyer is linked
+      if (norm(leadId)) {
+        const db1 = await getDb()
+        const lead = await db1.collection('leads').findOne({ id: norm(leadId) }, { projection: { _id: 0, id: 1, name: 1 } })
+        if (!lead) return res.status(400).json({ success: false, error: 'The linked customer no longer exists' })
+        record.leadId = lead.id
+        record.customerName = lead.name
+      }
       // Plot documents chosen to go with this payment (ids from plot_documents)
       if (Array.isArray(documentIds)) {
         const ids = documentIds.map((d) => norm(d).slice(0, 60)).filter(Boolean).slice(0, 20)
@@ -379,6 +390,75 @@ router.post('/', async (req, res) => {
     return res.status(201).json({ success: true, activity: clean })
   } catch (err) {
     console.error('Error recording plot activity:', err.message)
+    return res.status(500).json({ success: false, error: err.message })
+  }
+})
+
+/**
+ * PATCH /api/plot-activity/:id
+ * Correct a payment or note entered on a plot (history entries made by the system can't be edited).
+ */
+router.patch('/:id', async (req, res) => {
+  try {
+    const db = await getDb()
+    const entry = await db.collection(COLLECTION).findOne({ id: req.params.id })
+    if (!entry || !['payment', 'note'].includes(entry.type) || entry.paymentId) {
+      return res.status(404).json({ success: false, error: 'Only payments and notes added on the plot can be edited here' })
+    }
+    const b = req.body || {}
+    const set = {}
+    if (entry.type === 'payment') {
+      if (b.amount !== undefined) {
+        const n = Number(b.amount)
+        if (!Number.isFinite(n) || n <= 0) return res.status(400).json({ success: false, error: 'A valid payment amount is required' })
+        set.amount = n
+        set.title = `Payment of ₹${n.toLocaleString('en-IN')} received`
+      }
+      if (b.mode !== undefined) set.mode = norm(b.mode)
+      if (b.referenceNo !== undefined) set.referenceNo = norm(b.referenceNo)
+      if (b.paidOn !== undefined) set.paidOn = norm(b.paidOn)
+      if (b.note !== undefined) set.note = norm(b.note).slice(0, 500)
+      if (b.status !== undefined) {
+        if (!PAYMENT_STATUS.includes(b.status)) return res.status(400).json({ success: false, error: 'Choose Received, Pending clearance or Failed' })
+        set.status = b.status
+      }
+    } else {
+      const t = norm(b.note).slice(0, 1000)
+      if (!t) return res.status(400).json({ success: false, error: 'The note cannot be empty' })
+      set.note = t
+    }
+    await db.collection(COLLECTION).updateOne({ id: entry.id }, { $set: { ...set, editedAt: new Date(), editedBy: sanitizeActor(b.actor) } })
+    const fresh = await db.collection(COLLECTION).findOne({ id: entry.id }, { projection: { _id: 0 } })
+    return res.json({ success: true, activity: fresh })
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message })
+  }
+})
+
+/** DELETE /api/plot-activity/:id - remove a payment or note entered on a plot (recorded in the history). */
+router.delete('/:id', async (req, res) => {
+  try {
+    const db = await getDb()
+    const entry = await db.collection(COLLECTION).findOne({ id: req.params.id })
+    if (!entry || !['payment', 'note'].includes(entry.type) || entry.paymentId) {
+      return res.status(404).json({ success: false, error: 'Only payments and notes added on the plot can be deleted here' })
+    }
+    await db.collection(COLLECTION).deleteOne({ id: entry.id })
+    await db.collection(COLLECTION).insertOne({
+      id: `pa-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      propertyId: entry.propertyId,
+      propertyName: entry.propertyName,
+      phase: entry.phase || null,
+      plotUid: entry.plotUid || null,
+      plotNo: entry.plotNo,
+      type: 'update',
+      title: entry.type === 'payment' ? `Payment of ₹${Number(entry.amount).toLocaleString('en-IN')} deleted` : 'Note deleted',
+      changes: [],
+      actor: sanitizeActor(req.body?.actor),
+      createdAt: new Date(),
+    })
+    return res.json({ success: true })
+  } catch (err) {
     return res.status(500).json({ success: false, error: err.message })
   }
 })
