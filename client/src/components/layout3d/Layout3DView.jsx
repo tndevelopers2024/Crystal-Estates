@@ -130,9 +130,10 @@ export default function Layout3DView({ project: initialProject }) {
       } catch {
         /* try fallback below */
       }
-      if (rawUrl.startsWith('/')) {
+      const apiBase = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '')
+      if (rawUrl.startsWith('/') && apiBase) {
         try {
-          const res = await fetch(`https://crystal-estates.onrender.com${rawUrl}`)
+          const res = await fetch(`${apiBase}${rawUrl}`)
           if (res.ok) {
             const text = await res.text()
             if (!cancelled) done(text)

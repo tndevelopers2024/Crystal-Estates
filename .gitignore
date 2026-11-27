@@ -179,6 +179,7 @@ desktop.ini
 $RECYCLE.BIN/
 .cursor/
 .gemini/
+.claude/
 
 # ==========================================
 # Temporary & Backup Files
