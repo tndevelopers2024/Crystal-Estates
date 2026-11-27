@@ -26,10 +26,11 @@ import { ensureRoles } from './lib/roles.js'
 import { testimonials } from './data/testimonials.js'
 import { getDb, closeDb } from './config/db.js'
 
-dotenv.config()
-
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const rootDir = path.resolve(__dirname, '../..')
+
+dotenv.config({ path: path.resolve(__dirname, '../.env') })
+dotenv.config()
 
 const app = express()
 // Behind Render / Vercel proxies: use the real client IP (rate limiting)
@@ -486,7 +487,7 @@ getDb()
   })
   .catch((err) => console.error('Auth setup failed:', err.message))
 
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`Crystal Estates Server listening on port ${PORT}`)
   if (!isProduction) {
     console.log(`Health check: http://localhost:${PORT}/api/health`)

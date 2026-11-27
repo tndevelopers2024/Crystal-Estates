@@ -4,9 +4,12 @@ import dotenv from 'dotenv'
 dotenv.config()
 
 // The connection string (with its credentials) must come from the environment, never from source code.
-const uri = process.env.MONGODB_URI
-if (!uri) {
-  throw new Error('MONGODB_URI is not set. Add it to server/.env (local) or the hosting environment.')
+function getMongoUri() {
+  const uri = process.env.MONGODB_URI
+  if (!uri) {
+    throw new Error('MONGODB_URI is not set. Add it to server/.env (local) or the hosting environment.')
+  }
+  return uri
 }
 
 const options = {
@@ -20,6 +23,7 @@ let clientPromise = null
 
 export async function getClient() {
   if (!clientPromise) {
+    const uri = getMongoUri()
     client = new MongoClient(uri, options)
     clientPromise = client.connect().catch((err) => {
       console.warn('MongoDB connection error, will retry on next request:', err.message)
