@@ -48,8 +48,6 @@ export const plots = projects
 export const searchOptions = {
   locations: [],
   types: ['All Types', 'Farm Land', 'Residential Plot', 'Agricultural', 'Bulk land'],
-  ],
-types: ['All Types', 'Farm Land', 'Residential Plot'],
   budgets: [
     { label: 'Any budget', max: Infinity },
     { label: 'Under ₹50 Lakh', max: 5000000 },
