@@ -12,6 +12,7 @@ import {
   Info,
   ArrowLeft,
   ChevronDown,
+  Box,
 } from 'lucide-react'
 import { WhatsAppIcon } from '../ui'
 import { computePathCentroid } from '@/lib/svgPathCentroid'
@@ -43,6 +44,7 @@ export default function PlotViewer({
   onClose = null,
   isModal = false,
   onToggleFullscreen = null,
+  view3dHref = null,
   // true = always fit the whole layout in view (no mobile zoom-in on load)
   fitWholeLayout = false,
 }) {
@@ -821,6 +823,19 @@ export default function PlotViewer({
                 <ChevronDown size={13} className="pv-status-select-arrow" />
               </div>
             </div>
+          )}
+
+          {/* Opens the 3D layout explorer */}
+          {view3dHref && (
+            <Link
+              href={view3dHref}
+              className="pv-fullview-btn pv-view3d-btn"
+              title="Explore layout in 3D"
+              aria-label="View 3D layout"
+            >
+              <Box size={15} aria-hidden="true" />
+              <span className="pv-fullview-btn__label">View 3D</span>
+            </Link>
           )}
 
           {/* Opens the layout in a larger full-view dialog (page supplies the handler) */}

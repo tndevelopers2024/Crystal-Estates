@@ -404,6 +404,7 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
                 activePhase={activePhaseIndex}
                 onPhaseChange={handlePhaseChange}
                 onPlotSelect={(p) => setSelectedPlot(p)}
+                view3dHref={`/projects/${project.slug || project.id}/3d?phase=${activePhaseIndex + 1}`}
                 fetchUrl={null}
                 backgroundUrl={currentPhaseLayoutUrl}
                 metadata={{

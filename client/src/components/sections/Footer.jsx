@@ -165,8 +165,6 @@ export default function Footer() {
           </div>
         </div>
       </div>
-
-      {/* <p className="sf__disclaimer">{business.disclaimer}</p> */}
     </footer>
   )
 }

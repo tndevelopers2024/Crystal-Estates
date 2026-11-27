@@ -1298,6 +1298,18 @@
   outline-offset: 2px;
 }
 
+.pv-view3d-btn {
+  text-decoration: none;
+  background: #ffffff;
+  color: #0f3d2e;
+  border-color: #c8ded5;
+}
+
+.pv-view3d-btn:hover {
+  background: #e2ede8;
+  border-color: #0f3d2e;
+}
+
 @media (max-width: 480px) {
   .pv-fullview-btn {
     width: 32px;
