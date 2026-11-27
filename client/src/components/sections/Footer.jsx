@@ -77,7 +77,7 @@ export default function Footer() {
           list.slice(0, 5).map((p) => ({ label: titleCase(p.name || p.projectName), href: `/projects/${p.slug || p.id}` })),
         )
       })
-      .catch(() => {})
+      .catch(() => { })
     return () => {
       active = false
     }
@@ -166,7 +166,7 @@ export default function Footer() {
         </div>
       </div>
 
-      <p className="sf__disclaimer">{business.disclaimer}</p>
+      {/* <p className="sf__disclaimer">{business.disclaimer}</p> */}
     </footer>
   )
 }

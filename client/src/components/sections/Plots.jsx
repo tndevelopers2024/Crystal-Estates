@@ -11,8 +11,11 @@ import { formatPrice } from '../ui/format'
 const categories = ['All', 'Farm Lands', 'Residential Plots']
 
 export function PlotCard({ plot, onEnquire }) {
-  const isAvailable = plot.status === 'Available' || plot.status === 'Booking Open'
-  const isSoldOut = plot.status === 'Sold Out' || plot.status === 'Sold'
+  const statusLower = String(plot.status || '').trim().toLowerCase()
+  const isAvailable = statusLower === 'available' || statusLower === 'booking open' || statusLower === 'booked'
+  const isSoldOut = statusLower === 'sold out' || statusLower === 'sold'
+  const isOnHold = statusLower === 'on hold' || statusLower === 'onhold' || statusLower === 'reserved'
+  const isLocked = isSoldOut || isOnHold
   const hasLayout = Boolean(plot.hasLayoutMap || plot.layoutBackgroundUrl || plot.layoutUrl)
   const layoutLink = `/layout-viewer?slug=${plot.layoutSlug || plot.slug || plot.id}`
 
@@ -56,7 +59,15 @@ export function PlotCard({ plot, onEnquire }) {
 
         {/* Clean, Uncluttered CTA Row */}
         <div className="plot-gallery-card__actions">
-          {hasLayout ? (
+          {isLocked ? (
+            <button
+              type="button"
+              disabled
+              className="btn btn--primary btn--sm btn--block"
+            >
+              {isSoldOut ? 'Sold Out' : 'On Hold'}
+            </button>
+          ) : hasLayout ? (
             <>
               <Link
                 href={layoutLink}
@@ -75,7 +86,7 @@ export function PlotCard({ plot, onEnquire }) {
           ) : (
             <button
               type="button"
-              disabled={isSoldOut}
+              disabled={isLocked}
               onClick={() => onEnquire && onEnquire(plot)}
               className="btn btn--primary btn--sm btn--block"
               style={isSoldOut ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}

@@ -78,7 +78,12 @@ export default function ProjectsIndex({ projects = [] }) {
           onMouseLeave={() => setActive(null)}
         >
           {rows.map((r, i) => {
-            const isSold = String(r.status || '').toLowerCase().includes('sold')
+            const st = String(r.status || '').trim().toLowerCase()
+            const isSold = st.includes('sold')
+            const isOnHold = !isSold && (st === 'on hold' || st === 'onhold' || st === 'reserved')
+            const isLocked = isSold || isOnHold
+            const lockedLabel = isSold ? 'Sold Out' : 'On Hold'
+            const dotColor = isSold ? '#ef4444' : '#d97706'
             const rowContent = (
               <>
                 <span className="ch-projects__num">{String(i + 1).padStart(2, '0')}</span>
@@ -89,15 +94,15 @@ export default function ProjectsIndex({ projects = [] }) {
                 <span className="ch-projects__loc">{r.location}</span>
                 <span className="ch-projects__meta">
                   <span>{r.type}</span>
-                  {isSold ? (
-                    <span style={{ color: '#ef4444', fontWeight: 600 }}>Sold Out</span>
+                  {isLocked ? (
+                    <span style={{ color: dotColor, fontWeight: 600 }}>{lockedLabel}</span>
                   ) : (
                     <span>{r.meta}</span>
                   )}
                 </span>
                 <span className="ch-projects__arrow" aria-hidden="true">
-                  {isSold ? (
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', display: 'inline-block' }} />
+                  {isLocked ? (
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: dotColor, display: 'inline-block' }} />
                   ) : (
                     <ArrowRight size={18} />
                   )}
@@ -113,7 +118,7 @@ export default function ProjectsIndex({ projects = [] }) {
                 viewport={{ once: true, margin: '0px 0px -8% 0px' }}
                 transition={{ duration: 0.7, ease: EASE, delay: i * 0.06 }}
               >
-                {isSold ? (
+                {isLocked ? (
                   <div
                     className={`ch-projects__row ch-projects__row--sold ${active && active !== r.key ? 'is-dim' : ''}`}
                     style={{ cursor: 'default' }}

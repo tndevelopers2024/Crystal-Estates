@@ -14,8 +14,6 @@ import {
   RefreshCw,
   Layers,
   FileCode2,
-  DollarSign,
-  Maximize2,
   Save,
   Check,
   Building2,
@@ -87,10 +85,17 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
   const { user } = useAuth()
   const { confirm } = useDialog()
 
-  // Step Tabs: 'basic' | 'measurements' | 'pricing' | 'media'
+  // Step Tabs: 'basic' | 'media'
   const [activeTab, setActiveTab] = useState('basic')
 
-  // Form State with all 16 Fields — Clean blank initial state without any dummy defaults
+  const normalizeStatus = (s) => {
+    if (s === 'Sold' || s === 'Sold Out') return 'Sold'
+    if (s === 'On Hold' || s === 'Reserved') return 'On Hold'
+    if (s === 'Booked') return 'Booked'
+    return 'Booked'
+  }
+
+  // Form State — Neat & focused on fields used by CRM and Website
   const [formData, setFormData] = useState({
     projectId: initialData?.projectId || generateProjectId(),
     name: initialData?.name || initialData?.projectName || '',
@@ -99,29 +104,16 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
     taluk: initialData?.taluk || '',
     village: initialData?.village || '',
     location: initialData?.location || '',
-    surveyNumber: initialData?.surveyNumber || '',
     totalLandArea: initialData?.totalLandArea
       ? String(initialData.totalLandArea).replace(/[^0-9.]/g, '')
       : initialData?.area
-      ? String(initialData.area)
+      ? String(initialData.area).replace(/[^0-9.]/g, '')
       : '',
     totalLandAreaUnit: initialData?.totalLandAreaUnit || 'Sq.ft.',
-    availableArea: initialData?.availableArea
-      ? String(initialData.availableArea).replace(/[^0-9.]/g, '')
-      : initialData?.available
-      ? String(initialData.available)
-      : '',
-    availableAreaUnit: initialData?.availableAreaUnit || 'Sq.ft.',
-    plotNumber: initialData?.plotNumber || initialData?.plotNo || '',
-    length: initialData?.length || '',
-    width: initialData?.width || '',
-    plotDimensions: initialData?.plotDimensions || '',
     price: initialData?.price ? String(initialData.price) : '',
-    pricePerSqft: initialData?.pricePerSqft ? String(initialData.pricePerSqft) : '',
-    pricePerCent: initialData?.pricePerCent ? String(initialData.pricePerCent) : '',
     roadAccess: initialData?.roadAccess || '',
     approvalStatus: initialData?.approvalStatus || initialData?.approval || '',
-    status: initialData?.status || 'Available',
+    status: normalizeStatus(initialData?.status),
     facing: initialData?.facing || 'East',
     description: initialData?.description || '',
     mapLocation: initialData?.mapLocation || initialData?.mapUrl || initialData?.googleMapsUrl || initialData?.mapEmbedUrl || '',
@@ -555,24 +547,12 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
         district: formData.district,
         taluk: formData.taluk,
         village: formData.village,
-        surveyNumber: formData.surveyNumber,
         totalLandArea: formData.totalLandArea
           ? `${formData.totalLandArea} ${formData.totalLandAreaUnit}`
           : '',
         totalLandAreaUnit: formData.totalLandAreaUnit,
-        area: formData.totalLandArea ? Number(formData.totalLandArea) : null,
-        availableArea: formData.availableArea
-          ? `${formData.availableArea} ${formData.availableAreaUnit}`
-          : '',
-        availableAreaUnit: formData.availableAreaUnit,
-        plotNumber: formData.plotNumber,
-        plotNo: formData.plotNumber,
-        plotDimensions: formData.plotDimensions,
-        length: formData.length,
-        width: formData.width,
+        area: formData.totalLandArea ? `${formData.totalLandArea} ${formData.totalLandAreaUnit}` : null,
         price: formData.price ? Number(formData.price) : null,
-        pricePerSqft: formData.pricePerSqft ? Number(formData.pricePerSqft) : null,
-        pricePerCent: formData.pricePerCent ? Number(formData.pricePerCent) : null,
         roadAccess: formData.roadAccess,
         approvalStatus: formData.approvalStatus,
         approval: formData.approvalStatus,
@@ -643,10 +623,8 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
   }
 
   const TABS = [
-    { id: 'basic', label: '1. Project & Location', icon: MapPin },
-    { id: 'measurements', label: '2. Land & Dimensions', icon: Maximize2 },
-    { id: 'pricing', label: '3. Pricing & Approvals', icon: DollarSign },
-    { id: 'media', label: '4. Documents, Photos & Videos', icon: Layers },
+    { id: 'basic', label: '1. Project & Website Details', icon: MapPin },
+    { id: 'media', label: '2. Documents, Photos & Videos', icon: Layers },
   ]
 
   return (
@@ -747,14 +725,14 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
       </div>
 
       {/* ── Tab Content Forms ── */}
-      <div className="bg-white rounded-3xl border border-slate-200/90 shadow-xs p-8">
-        {/* TAB 1: BASIC DETAILS & LOCATION */}
+      <div className="bg-white rounded-3xl border border-slate-200/90 shadow-xs p-4 sm:p-8">
+        {/* TAB 1: PROJECT, LOCATION & WEBSITE DETAILS */}
         {activeTab === 'basic' && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
-                  <span>1. Project ID (Auto Unique)</span>
+                  <span>Project ID (Auto Unique)</span>
                   <button
                     type="button"
                     onClick={handleRegenerateId}
@@ -775,7 +753,7 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  2. Project Name <span className="text-rose-500">*</span>
+                  Project Name <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -792,7 +770,7 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  3. Property Type
+                  Property Type
                 </label>
                 <select
                   name="propertyType"
@@ -809,7 +787,7 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  16. Status
+                  Project Status
                 </label>
                 <select
                   name="status"
@@ -817,19 +795,18 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
                   onChange={handleChange}
                   className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-xs font-medium bg-white"
                 >
-                  <option value="Available">Available</option>
-                  <option value="Reserved">Reserved</option>
                   <option value="Booked">Booked</option>
+                  <option value="On Hold">On Hold</option>
                   <option value="Sold">Sold</option>
                 </select>
               </div>
             </div>
 
             {/* Location Hierarchy */}
-            <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-4">
+            <div className="p-4 sm:p-5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-4">
               <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
                 <MapPin className="w-4 h-4 text-[#0F3D2E]" />
-                <span>4. Location Hierarchy (District, Taluk, Village)</span>
+                <span>Location &amp; Map Coordinates</span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -949,252 +926,115 @@ export default function AddEditPropertyPage({ initialData, onSave, onCancel }) {
               </div>
             </div>
 
-            {/* Survey Number */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                5. Survey Number (Land Survey Details)
-              </label>
-              <input
-                type="text"
-                name="surveyNumber"
-                value={formData.surveyNumber}
-                onChange={handleChange}
-                placeholder="e.g. S.No: 206/2A1"
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-xs"
-              />
-            </div>
-          </div>
-        )}
-
-        {/* TAB 2: MEASUREMENTS & DIMENSIONS */}
-        {activeTab === 'measurements' && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  6. Total Land Area
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    name="totalLandArea"
-                    value={formData.totalLandArea}
-                    onChange={handleChange}
-                    placeholder="Enter area number"
-                    className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-xs font-medium"
-                  />
-                  <select
-                    name="totalLandAreaUnit"
-                    value={formData.totalLandAreaUnit}
-                    onChange={handleChange}
-                    className="w-32 px-3 py-2.5 border border-slate-200 rounded-xl text-xs font-bold bg-white"
-                  >
-                    <option value="Sq.ft.">Sq.ft.</option>
-                    <option value="Cents">Cents</option>
-                    <option value="Acres">Acres</option>
-                    <option value="Grounds">Grounds</option>
-                  </select>
-                </div>
+            {/* Website Specifications & Highlights */}
+            <div className="p-4 sm:p-5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-4">
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
+                <Building2 className="w-4 h-4 text-[#0F3D2E]" />
+                <span>Website Display Specifications</span>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  7. Available Area (Current Available Extent)
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    name="availableArea"
-                    value={formData.availableArea}
-                    onChange={handleChange}
-                    placeholder="Enter available area"
-                    className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-xs font-medium"
-                  />
-                  <select
-                    name="availableAreaUnit"
-                    value={formData.availableAreaUnit}
-                    onChange={handleChange}
-                    className="w-32 px-3 py-2.5 border border-slate-200 rounded-xl text-xs font-bold bg-white"
-                  >
-                    <option value="Sq.ft.">Sq.ft.</option>
-                    <option value="Cents">Cents</option>
-                    <option value="Acres">Acres</option>
-                    <option value="Grounds">Grounds</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  8. Plot Number (Individual Plot Identification)
-                </label>
-                <input
-                  type="text"
-                  name="plotNumber"
-                  value={formData.plotNumber}
-                  onChange={handleChange}
-                  placeholder="e.g. Plot No. 1 to 45"
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-xs"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Facing Direction
-                </label>
-                <select
-                  name="facing"
-                  value={formData.facing}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-xs bg-white"
-                >
-                  <option value="East">East Facing</option>
-                  <option value="North">North Facing</option>
-                  <option value="West">West Facing</option>
-                  <option value="South">South Facing</option>
-                  <option value="North-East">North-East Corner</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Plot Dimensions */}
-            <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-4">
-              <div className="flex items-center justify-between text-xs font-bold text-slate-800">
-                <span>9. Plot Dimensions (Length & Width)</span>
-                {formData.plotDimensions && (
-                  <span className="font-mono text-[#0F3D2E] bg-[#E2EDE8] px-2 py-0.5 rounded border border-[#C8DED5]">
-                    {formData.plotDimensions}
-                  </span>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                    Length (ft)
+                    Extent / Standard Plot Area
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      name="totalLandArea"
+                      value={formData.totalLandArea}
+                      onChange={handleChange}
+                      placeholder="e.g. 1200"
+                      className="flex-1 px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium"
+                    />
+                    <select
+                      name="totalLandAreaUnit"
+                      value={formData.totalLandAreaUnit}
+                      onChange={handleChange}
+                      className="w-28 px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold bg-white"
+                    >
+                      <option value="Sq.ft.">Sq.ft.</option>
+                      <option value="Cents">Cents</option>
+                      <option value="Acres">Acres</option>
+                      <option value="Grounds">Grounds</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                    Facing Orientation
+                  </label>
+                  <select
+                    name="facing"
+                    value={formData.facing}
+                    onChange={handleChange}
+                    className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs bg-white"
+                  >
+                    <option value="East">East Facing</option>
+                    <option value="North">North Facing</option>
+                    <option value="West">West Facing</option>
+                    <option value="South">South Facing</option>
+                    <option value="North-East">North-East Corner</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                    Road Infrastructure
                   </label>
                   <input
-                    type="number"
-                    name="length"
-                    value={formData.length}
+                    type="text"
+                    name="roadAccess"
+                    value={formData.roadAccess}
                     onChange={handleChange}
-                    placeholder="Length in ft"
+                    placeholder="e.g. 30 ft & 40 ft Blacktop Roads"
                     className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs"
                   />
                 </div>
+
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                    Width (ft)
+                    Sanction / Approval Authority
                   </label>
                   <input
-                    type="number"
-                    name="width"
-                    value={formData.width}
+                    type="text"
+                    name="approvalStatus"
+                    value={formData.approvalStatus}
                     onChange={handleChange}
-                    placeholder="Width in ft"
+                    placeholder="e.g. Clear Title & Patta / DTCP Approved"
                     className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs"
                   />
                 </div>
-              </div>
-            </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                11. Road Access (Width & Access Details)
-              </label>
-              <input
-                type="text"
-                name="roadAccess"
-                value={formData.roadAccess}
-                onChange={handleChange}
-                placeholder="e.g. 30 ft. Wide Tar Road"
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-xs"
-              />
-            </div>
-          </div>
-        )}
-
-        {/* TAB 3: PRICING & APPROVALS */}
-        {activeTab === 'pricing' && (
-          <div className="space-y-6">
-            <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-4">
-              <div className="text-xs font-bold text-slate-800">
-                10. Price Structure (Total / Per Sq.ft. / Per Cent)
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                    Total Price (₹)
+                    Investment Price (₹)
                   </label>
                   <input
                     type="number"
                     name="price"
                     value={formData.price}
                     onChange={handleChange}
-                    placeholder="Enter total price in ₹"
-                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                    Price per Sq.ft. (₹)
-                  </label>
-                  <input
-                    type="number"
-                    name="pricePerSqft"
-                    value={formData.pricePerSqft}
-                    onChange={handleChange}
-                    placeholder="e.g. 3500"
-                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                    Price per Cent (₹)
-                  </label>
-                  <input
-                    type="number"
-                    name="pricePerCent"
-                    value={formData.pricePerCent}
-                    onChange={handleChange}
-                    placeholder="e.g. 152000"
-                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs"
+                    placeholder="Leave blank for Price on Request"
+                    className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs"
                   />
                 </div>
               </div>
-            </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                12. Approval Status (Applicable Details)
-              </label>
-              <input
-                type="text"
-                name="approvalStatus"
-                value={formData.approvalStatus}
-                onChange={handleChange}
-                placeholder="e.g. CMDA Approved / DTCP Approved / RERA Registered"
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-xs"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                Project Highlights & Marketing Description
-              </label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                rows={4}
-                placeholder="Enter details, landmarks, connectivity..."
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-xs"
-              />
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                  Project Highlights &amp; Description
+                </label>
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleChange}
+                  rows={3}
+                  placeholder="Enter highlights, landmarks, connectivity..."
+                  className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs"
+                />
+              </div>
             </div>
           </div>
         )}

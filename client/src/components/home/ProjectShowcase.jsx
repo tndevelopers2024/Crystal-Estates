@@ -279,7 +279,7 @@ export default function ProjectShowcase({ projects = [] }) {
             const title = rawTitle.replace(/_/g, ' ').trim()
             const projectSlug = project.slug || project.id || project.projectId
 
-            // Database Sold Out check
+            // Database Sold Out / On Hold check
             const statusStr = String(project.status || '').trim().toLowerCase()
             const plotsArr = Array.isArray(project.plots) ? project.plots : []
             const allPlotsSold =
@@ -294,6 +294,9 @@ export default function ProjectShowcase({ projects = [] }) {
               (typeof project.availablePlots === 'number' &&
                 project.availablePlots === 0 &&
                 (project.totalPlots > 0 || plotsArr.length > 0))
+            const isOnHold = !isSoldOut && (statusStr === 'on hold' || statusStr === 'onhold' || statusStr === 'reserved')
+            const isLocked = isSoldOut || isOnHold
+            const statusLabel = isSoldOut ? 'Sold Out' : isOnHold ? 'On Hold' : statusStr === 'booked' ? 'Booked' : 'Available'
 
             // Dynamic Image
             const imgSrc =
@@ -317,9 +320,10 @@ export default function ProjectShowcase({ projects = [] }) {
             return (
               <article
                 key={`${projectSlug}-${idx}`}
-                onClick={(e) => handleCardClick(project, isSoldOut, e)}
-                className={`ps-card-item ${isSoldOut ? 'ps-card-item--soldout' : ''}`}
-                aria-label={`${title} - ${isSoldOut ? 'Sold Out' : 'Available'}`}
+                onClick={(e) => handleCardClick(project, isLocked, e)}
+                className={`ps-card-item ${isLocked ? 'ps-card-item--soldout' : ''}`}
+                style={isLocked ? { cursor: 'default' } : undefined}
+                aria-label={`${title} - ${statusLabel}`}
               >
                 {/* Background Image */}
                 <div className="ps-card-item__media">
@@ -341,14 +345,14 @@ export default function ProjectShowcase({ projects = [] }) {
                 <div className="ps-card-item__top-bar">
                   <div
                     className={`ps-card-item__status-pill ${
-                      isSoldOut ? 'ps-card-item__status-pill--soldout' : ''
+                      isLocked ? 'ps-card-item__status-pill--soldout' : ''
                     }`}
                   >
                     <span className="ps-card-item__dot" />
-                    <span>{isSoldOut ? 'Sold Out' : 'Available'}</span>
+                    <span>{statusLabel}</span>
                   </div>
 
-                  {!isSoldOut && (
+                  {!isLocked && (
                     <div className="ps-card-item__arrow-circle" aria-hidden="true">
                       <ArrowUpRight size={17} />
                     </div>

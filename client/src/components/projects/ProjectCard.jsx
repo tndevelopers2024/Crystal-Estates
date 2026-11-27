@@ -33,7 +33,7 @@ export function ProjectCard({ project, className = '' }) {
   const projectSlug = project.slug || project.id || project.projectId
   const projectUrl = `/projects/${projectSlug}`
 
-  // 1. Determine Sold Out status strictly from database
+  // 1. Determine Sold Out / On Hold status strictly from database
   const statusStr = String(project.status || '').trim().toLowerCase()
   const plotsArray = Array.isArray(project.plots) ? project.plots : []
   const allPlotsSold =
@@ -48,6 +48,9 @@ export function ProjectCard({ project, className = '' }) {
     (typeof project.availablePlots === 'number' &&
       project.availablePlots === 0 &&
       (project.totalPlots > 0 || plotsArray.length > 0))
+  const isOnHold = !isSoldOut && (statusStr === 'on hold' || statusStr === 'onhold' || statusStr === 'reserved')
+  const isLocked = isSoldOut || isOnHold
+  const lockedLabel = isSoldOut ? 'Sold Out' : 'On Hold'
 
   // 2. Extract genuine images from database (no dummy hardcoded fillers)
   const cardImages = useMemo(() => {
@@ -115,8 +118,8 @@ export function ProjectCard({ project, className = '' }) {
   }
 
   const handleMediaClick = (e) => {
-    // If project is sold out, never redirect or navigate to other pages
-    if (isSoldOut) {
+    // If project is sold out or on hold, never redirect or navigate to other pages
+    if (isLocked) {
       e.preventDefault()
       e.stopPropagation()
       return
@@ -139,7 +142,7 @@ export function ProjectCard({ project, className = '' }) {
 
   // Price Display
   const priceDisplay = (() => {
-    if (isSoldOut) return 'Sold Out'
+    if (isLocked) return lockedLabel
     if (project.priceFormatted && project.priceFormatted !== 'Price on Request') return project.priceFormatted
     if (project.priceDisplay && project.priceDisplay !== 'Price on Request') return project.priceDisplay
     if (project.price) return formatPrice(project.price)
@@ -170,10 +173,11 @@ export function ProjectCard({ project, className = '' }) {
   const hasMultipleImages = cardImages.length > 1
 
   return (
-    <article className={`ce-pcard ${isSoldOut ? 'ce-pcard--soldout' : ''} ${className}`.trim()}>
+    <article className={`ce-pcard ${isLocked ? 'ce-pcard--soldout' : ''} ${className}`.trim()}>
       {/* ── Media Viewport (standard div to prevent router scroll-to-top jumping) ── */}
       <div
         className="ce-pcard__media"
+        style={isLocked ? { cursor: 'default' } : undefined}
         onClick={handleMediaClick}
         role="region"
         aria-label={`${propTitle} photo preview`}
@@ -201,13 +205,13 @@ export function ProjectCard({ project, className = '' }) {
 
         {/* Top Badges Floating Row */}
         <div className="ce-pcard__top-bar">
-          {/* Price or Sold Out Pill Badge */}
+          {/* Price or Sold Out / On Hold Pill Badge */}
           <div
-            className={`ce-pcard__price-badge ${isSoldOut ? 'ce-pcard__price-badge--soldout' : ''}`}
-            title={isSoldOut ? 'Project is fully sold out' : `Price: ${priceDisplay}`}
+            className={`ce-pcard__price-badge ${isLocked ? 'ce-pcard__price-badge--soldout' : ''}`}
+            title={isLocked ? `Project is ${lockedLabel}` : `Price: ${priceDisplay}`}
           >
-            {isSoldOut && <span className="ce-pcard__soldout-dot" />}
-            <span>{isSoldOut ? 'Sold Out' : priceDisplay}</span>
+            {isLocked && <span className="ce-pcard__soldout-dot" />}
+            <span>{isLocked ? lockedLabel : priceDisplay}</span>
           </div>
 
           {/* Wishlist Heart Button */}
@@ -270,8 +274,8 @@ export function ProjectCard({ project, className = '' }) {
 
           {/* Line 1: Title on left, dynamic rating or approval badge on right */}
           <div className="ce-pcard__header-row">
-            {isSoldOut ? (
-              <div className="ce-pcard__title-wrap" title={`${propTitle} (Sold Out)`}>
+            {isLocked ? (
+              <div className="ce-pcard__title-wrap" title={`${propTitle} (${lockedLabel})`}>
                 <h3 className="ce-pcard__title ce-pcard__title--soldout">{propTitle}</h3>
               </div>
             ) : (
@@ -340,8 +344,8 @@ export function ProjectCard({ project, className = '' }) {
             )}
           </div>
 
-          {/* Line 4: Action Button — Dynamically replaced with 'Sold Out' if sold */}
-          {isSoldOut ? (
+          {/* Line 4: Action Button — Dynamically replaced with 'Sold Out' / 'On Hold' if locked */}
+          {isLocked ? (
             <button
               type="button"
               disabled
@@ -354,7 +358,7 @@ export function ProjectCard({ project, className = '' }) {
             >
               <span className="ce-pcard__soldout-badge">
                 <span className="ce-pcard__soldout-dot" />
-                <span>Sold Out</span>
+                <span>{lockedLabel}</span>
               </span>
             </button>
           ) : (

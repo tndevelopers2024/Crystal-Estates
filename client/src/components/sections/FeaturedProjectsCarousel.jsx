@@ -67,8 +67,12 @@ function ShowcaseCard({ project }) {
   const area = cleanAreaText(project)
   const propType = project.type || project.propertyType || 'Residential'
   const status = project.status || 'Available'
-  const isSold = String(status).toLowerCase().includes('sold')
-  const isAvailable = !isSold && (status.toLowerCase() === 'available' || status.toLowerCase() === 'booking open')
+  const statusLower = String(status).trim().toLowerCase()
+  const isSold = statusLower.includes('sold')
+  const isOnHold = !isSold && (statusLower === 'on hold' || statusLower === 'onhold' || statusLower === 'reserved')
+  const isLocked = isSold || isOnHold
+  const lockedLabel = isSold ? 'Sold Out' : 'On Hold'
+  const isAvailable = !isLocked && (statusLower === 'available' || statusLower === 'booking open' || statusLower === 'booked')
   const totalPlots = project.totalPlots || (Array.isArray(project.plots) ? project.plots.length : 0)
 
   // Curate 3 clean pill badges for the image bottom
@@ -88,7 +92,7 @@ function ShowcaseCard({ project }) {
     pills.push(project.approval)
   }
   if (pills.length < 3) {
-    pills.push(isAvailable ? 'Available' : 'Sold Out')
+    pills.push(isLocked ? lockedLabel : statusLower === 'booked' ? 'Booked' : 'Available')
   }
 
   const cardInner = (
@@ -122,9 +126,9 @@ function ShowcaseCard({ project }) {
         <h3 className="featured-showcase-card__title">
           {title}
         </h3>
-        {isSold ? (
+        {isLocked ? (
           <div className="featured-showcase-card__sold-badge" aria-hidden="true">
-            Sold Out
+            {lockedLabel}
           </div>
         ) : (
           <div className="featured-showcase-card__arrow-btn" aria-hidden="true">
@@ -136,9 +140,9 @@ function ShowcaseCard({ project }) {
   )
 
   return (
-    <article className={`featured-showcase-card ${isSold ? 'featured-showcase-card--sold' : ''} group`}>
-      {isSold ? (
-        <div className="featured-showcase-card__link featured-showcase-card__link--sold" role="presentation">
+    <article className={`featured-showcase-card ${isLocked ? 'featured-showcase-card--sold' : ''} group`}>
+      {isLocked ? (
+        <div className="featured-showcase-card__link featured-showcase-card__link--sold" style={{ cursor: 'default' }} role="presentation">
           {cardInner}
         </div>
       ) : (

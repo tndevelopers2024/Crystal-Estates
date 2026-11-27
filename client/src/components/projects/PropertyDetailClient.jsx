@@ -323,7 +323,7 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
     totalPlotsCount > 0
       ? Math.round(((totalPlotsCount - availablePlotsCount) / totalPlotsCount) * 100)
       : (isSoldOut ? 100 : 0)
-  const cleanedArea = (project.area || project.totalLandArea || project.plotSizes || '1200 Sq.ft.')
+  const cleanedArea = String(project.totalLandArea || project.area || project.plotSizes || '1200 Sq.ft.')
     .replace(/\.{2,}/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
@@ -581,7 +581,7 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
                 </div>
                 <div className="project-bento-spec-item">
                   <span className="project-bento-spec-label">Road Infrastructure</span>
-                  <span className="project-bento-spec-val">30 ft &amp; 40 ft Blacktop Roads</span>
+                  <span className="project-bento-spec-val">{project.roadAccess || '30 ft & 40 ft Blacktop Roads'}</span>
                 </div>
               </div>
             </div>
