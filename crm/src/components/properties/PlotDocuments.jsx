@@ -301,9 +301,25 @@ function ProgressLine({ stage, progress }) {
  * selectable + selected + onSelectedChange: tick documents (Send Document page);
  * new uploads are ticked automatically there.
  */
-export function PlotDocumentsManager({ plotRef, docsState, canEdit, canUpload = canEdit, onShowToast, onChanged, selectable = false, selected = [], onSelectedChange, bare = false }) {
+export function PlotDocumentsManager({
+  plotRef,
+  docsState,
+  canEdit,
+  canUpload = canEdit,
+  onShowToast,
+  onChanged,
+  selectable = false,
+  selected = [],
+  onSelectedChange,
+  bare = false,
+  deferred = false,
+  stagedItems = null,
+  onStagedItemsChange = null,
+}) {
   const { documents, setDocuments, loading, error, reload } = docsState
-  const [queue, setQueue] = useState([]) // { key, file, label, status, progress, stage, error }
+  const [internalQueue, setInternalQueue] = useState([]) // { key, file, label, status, progress, stage, error }
+  const queue = deferred && Array.isArray(stagedItems) ? stagedItems : internalQueue
+  const setQueue = deferred && onStagedItemsChange ? onStagedItemsChange : setInternalQueue
   const [dragging, setDragging] = useState(false)
   const [preview, setPreview] = useState(null)
   const inputRef = useRef(null)
@@ -428,12 +444,17 @@ export function PlotDocumentsManager({ plotRef, docsState, canEdit, canUpload = 
               {q.error && <p className="mt-1.5 text-[11px] text-rose-600 flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5 shrink-0" /> {q.error}</p>}
             </div>
           ))}
-          {readyCount > 0 && (
+          {readyCount > 0 && !deferred && (
             <div className="p-3 flex justify-end">
               <button type="button" onClick={uploadAll} disabled={uploading} className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#0F3D2E] hover:bg-[#16533D] text-white text-xs font-bold rounded-xl disabled:opacity-50">
                 {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
                 Upload {readyCount} {readyCount === 1 ? 'file' : 'files'}
               </button>
+            </div>
+          )}
+          {readyCount > 0 && deferred && (
+            <div className="px-3 py-2 bg-slate-50/70 text-[11px] text-slate-600">
+              {readyCount} {readyCount === 1 ? 'document' : 'documents'} ready — will upload automatically when you add the plot.
             </div>
           )}
         </div>
@@ -442,6 +463,7 @@ export function PlotDocumentsManager({ plotRef, docsState, canEdit, canUpload = 
         <p className="mt-2 text-[11px] text-emerald-700 flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> Uploaded</p>
       )}
 
+      {!deferred && (
       <div className="mt-3">
         {loading && documents.length === 0 ? (
           <p className="text-xs text-slate-400 flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading documents…</p>
@@ -475,6 +497,7 @@ export function PlotDocumentsManager({ plotRef, docsState, canEdit, canUpload = 
           </ul>
         )}
       </div>
+      )}
 
       {preview && <PreviewModal doc={preview} onClose={() => setPreview(null)} />}
     </section>

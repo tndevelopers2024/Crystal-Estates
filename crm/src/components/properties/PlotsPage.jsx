@@ -53,6 +53,7 @@ import {
   statusGroup,
 } from '../../lib/plotUtils'
 import { useAuth } from '../../context/AuthContext'
+import { uploadPlotDocument } from '../../lib/plotDocumentsApi'
 import { useDialog } from '../../context/DialogContext'
 import NearbyPlacesPanel from './NearbyPlacesPanel'
 import { usePlotDocuments, PlotDocumentsManager } from './PlotDocuments'
@@ -393,6 +394,7 @@ function PlotPanel({ property, plot, isNew, phaseName, existingPlots, onSavePlot
   )
   const [payDocs, setPayDocs] = useState([])
   const [payChannels, setPayChannels] = useState([])
+  const [stagedDocs, setStagedDocs] = useState([])
   const [payRequestId, setPayRequestId] = useState(() => newRequestKey('plotpay'))
   const sender = useDocumentSender()
   const { config: shareConfig } = useShareConfig()
@@ -404,6 +406,7 @@ function PlotPanel({ property, plot, isNew, phaseName, existingPlots, onSavePlot
     setError(null)
     setPayDocs([])
     setPayChannels([])
+    setStagedDocs([])
     sender.reset()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [plot?.uid, isNew])
@@ -535,8 +538,35 @@ function PlotPanel({ property, plot, isNew, phaseName, existingPlots, onSavePlot
       phase: phaseName,
       updatedAt: new Date().toISOString(),
     }
+    const readyDocs = isNew ? stagedDocs.filter((d) => d.status === 'ready' || d.status === 'failed') : []
+    if (readyDocs.some((d) => !d.label.trim())) {
+      return setError('Add a label for every attached document.')
+    }
     const ok = await save(next, isNew ? `Plot ${plotNo} added` : `Plot ${plotNo} updated`)
     if (ok && isNew) {
+      if (readyDocs.length > 0) {
+        let uploaded = 0
+        for (const item of readyDocs) {
+          try {
+            await uploadPlotDocument({
+              propertyId: propId,
+              propertyName: property.name,
+              plotUid: next.uid,
+              plotNo: next.plotNo,
+              phase: phaseName,
+              label: item.label.trim(),
+              file: item.file,
+            })
+            uploaded += 1
+          } catch (docErr) {
+            onShowToast?.(`Could not upload "${item.label || item.file.name}": ${docErr.message}`, 'error')
+          }
+        }
+        if (uploaded > 0) {
+          onShowToast?.(`${uploaded} document${uploaded === 1 ? '' : 's'} uploaded for Plot ${plotNo}`, 'success')
+        }
+        setStagedDocs([])
+      }
       setTab('overview')
     }
   }
@@ -811,15 +841,16 @@ function PlotPanel({ property, plot, isNew, phaseName, existingPlots, onSavePlot
               </div>
             </form>
 
-            {!isNew && (
-              <PlotDocumentsManager
-                plotRef={plotRef}
-                docsState={docsState}
-                canEdit={can('properties', 'edit')}
-                onShowToast={onShowToast}
-                onChanged={() => loadHistory(false)}
-              />
-            )}
+            <PlotDocumentsManager
+              plotRef={plotRef}
+              docsState={docsState}
+              canEdit={can('properties', 'edit')}
+              onShowToast={onShowToast}
+              onChanged={() => loadHistory(false)}
+              deferred={isNew}
+              stagedItems={stagedDocs}
+              onStagedItemsChange={setStagedDocs}
+            />
 
             {!isNew && (
               <div className="pt-4 border-t border-slate-100">
