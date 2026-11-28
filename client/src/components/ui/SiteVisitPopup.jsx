@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { usePathname } from 'next/navigation'
 import { business } from '../../data/site'
 import './SiteVisitPopup.css'
@@ -12,16 +12,16 @@ export default function SiteVisitPopup() {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
   const [bubbleHidden, setBubbleHidden] = useState(false)
-  const [step, setStep] = useState(1)
   const [projects, setProjects] = useState([])
+  const [projectsLoading, setProjectsLoading] = useState(false)
   const [selectedProjectIndex, setSelectedProjectIndex] = useState(0)
-  const [selectedSize, setSelectedSize] = useState('All')
-  const [selectedPlot, setSelectedPlot] = useState(null)
+  const [preselectedPlotNo, setPreselectedPlotNo] = useState(null)
   const [dayIndex, setDayIndex] = useState(0)
   const [timeOfDay, setTimeOfDay] = useState('Morning (10 AM – 1 PM)')
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [errors, setErrors] = useState({ name: false, phone: false })
+  const [submitError, setSubmitError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDone, setIsDone] = useState(false)
   const [passCode, setPassCode] = useState('CE-1000')
@@ -42,55 +42,47 @@ export default function SiteVisitPopup() {
     return list
   }, [])
 
-  // 1. Fetch real projects & actual plots from API only when popup is opened or deferred when idle
+  // Fetch real projects from CRM database
   useEffect(() => {
     let isMounted = true
 
-    function loadPlots() {
+    function loadProjects() {
       if (projects.length > 0) return
+      setProjectsLoading(true)
       fetch('/api/plots')
         .then((res) => res.json())
         .then((data) => {
           if (!isMounted) return
           const list = Array.isArray(data.plots) ? data.plots : Array.isArray(data) ? data : []
-          if (list.length > 0) {
-            // Find projects that have plots or are available
-            const validProjects = list.filter((p) => Array.isArray(p.plots) && p.plots.length > 0)
-            const fallbackProjects = list.filter((p) => p.status !== 'Sold Out' && p.status !== 'Sold')
-            const finalProjects = validProjects.length > 0 ? validProjects : fallbackProjects
+          const activeProjects = list.filter((p) => {
+            const st = String(p.status || '').toLowerCase()
+            return st !== 'sold out' && st !== 'sold'
+          })
+          const finalProjects = activeProjects.length > 0 ? activeProjects : list
+          setProjects(finalProjects)
 
-            setProjects(finalProjects)
-
-            // If current URL matches a project slug, pre-select it
-            if (pathname) {
-              const currentSlug = pathname.replace(/^\/projects\/?/, '').trim()
-              const matchIdx = finalProjects.findIndex(
-                (p) => p.slug === currentSlug || p.id === currentSlug || p.projectId === currentSlug
-              )
-              if (matchIdx >= 0) {
-                setSelectedProjectIndex(matchIdx)
-                return
-              }
+          if (finalProjects.length > 0 && pathname) {
+            const currentSlug = pathname.replace(/^\/projects\/?/, '').split('/')[0].trim()
+            const matchIdx = finalProjects.findIndex(
+              (p) => p.slug === currentSlug || p.id === currentSlug || p.projectId === currentSlug
+            )
+            if (matchIdx >= 0) {
+              setSelectedProjectIndex(matchIdx)
             }
-
-            // Otherwise prefer project with the most available plots (e.g. Somamangalam)
-            const bestIdx = finalProjects.reduce((best, cur, idx) => {
-              const curAvail = (cur.plots || []).filter((x) => String(x.status).toLowerCase() === 'available').length
-              const bestAvail = (finalProjects[best]?.plots || []).filter((x) => String(x.status).toLowerCase() === 'available').length
-              return curAvail > bestAvail ? idx : best
-            }, 0)
-            setSelectedProjectIndex(bestIdx)
           }
         })
         .catch((err) => {
-          console.warn('Could not fetch plots for site visit popup:', err)
+          console.warn('Could not fetch projects for site visit popup:', err)
+        })
+        .finally(() => {
+          if (isMounted) setProjectsLoading(false)
         })
     }
 
     if (isOpen) {
-      loadPlots()
+      loadProjects()
     } else if (projects.length === 0 && typeof window !== 'undefined' && 'requestIdleCallback' in window) {
-      const idleId = window.requestIdleCallback(loadPlots, { timeout: 5000 })
+      const idleId = window.requestIdleCallback(loadProjects, { timeout: 5000 })
       return () => {
         isMounted = false
         window.cancelIdleCallback(idleId)
@@ -104,64 +96,7 @@ export default function SiteVisitPopup() {
 
   const currentProject = projects[selectedProjectIndex] || null
 
-  // 2. Extract and format the actual plots from the currently selected project
-  const actualPlotsData = useMemo(() => {
-    if (!currentProject || !Array.isArray(currentProject.plots) || currentProject.plots.length === 0) {
-      // Fallback 16 plots if project data is not yet loaded
-      return [
-        { uid: 'plot-1-0', n: '1', sq: 1200, s: 'a' },
-        { uid: 'plot-2-1', n: '2', sq: 1200, s: 's' },
-        { uid: 'plot-3-2', n: '3', sq: 1500, s: 'a' },
-        { uid: 'plot-4-3', n: '4', sq: 1500, s: 'a' },
-        { uid: 'plot-5-4', n: '5', sq: 1200, s: 'a' },
-        { uid: 'plot-6-5', n: '6', sq: 2400, s: 'a' },
-        { uid: 'plot-7-6', n: '7', sq: 2400, s: 's' },
-        { uid: 'plot-8-7', n: '8', sq: 1500, s: 'a' },
-        'road',
-        { uid: 'plot-9-8', n: '9', sq: 1500, s: 's' },
-        { uid: 'plot-10-9', n: '10', sq: 1200, s: 'a' },
-        { uid: 'plot-11-10', n: '11', sq: 2400, s: 'a' },
-        { uid: 'plot-12-11', n: '12', sq: 1200, s: 'a' },
-        { uid: 'plot-13-12', n: '13', sq: 2400, s: 'a' },
-        { uid: 'plot-14-13', n: '14', sq: 1500, s: 'a' },
-        { uid: 'plot-15-14', n: '15', sq: 1200, s: 's' },
-        { uid: 'plot-16-15', n: '16', sq: 1500, s: 'a' },
-      ]
-    }
-
-    const items = []
-    const rawList = currentProject.plots
-
-    rawList.forEach((p, idx) => {
-      // Insert road divider every 8 plots
-      if (idx > 0 && idx % 8 === 0) {
-        items.push('road')
-      }
-
-      const rawNo = String(p.plotNo || p.number || p.plotNumber || p.id || (idx + 1)).replace(/^Plot\s*/i, '').trim()
-      const areaNum = parseInt(String(p.area || p.sqft || p.size || '').replace(/\D/g, '')) || 1200
-      const isAvail = String(p.status || '').toLowerCase() === 'available'
-      const uniqueUid = p.id ? `plot-${p.id}-${idx}` : `plot-${rawNo}-${idx}`
-
-      items.push({
-        uid: uniqueUid,
-        id: p.id || idx,
-        n: rawNo,
-        sq: areaNum,
-        s: isAvail ? 'a' : 's',
-        raw: p,
-      })
-    })
-
-    return items
-  }, [currentProject])
-
-  // Count available plots across the project
-  const availablePlotsCount = useMemo(() => {
-    return actualPlotsData.filter((p) => typeof p === 'object' && p.s === 'a').length
-  }, [actualPlotsData])
-
-  // Total free slots across all loaded projects
+  // Total available plots across loaded projects for the floating bubble
   const totalFreeSlots = useMemo(() => {
     let count = 0
     projects.forEach((p) => {
@@ -169,42 +104,18 @@ export default function SiteVisitPopup() {
         count += p.plots.filter((x) => String(x.status).toLowerCase() === 'available').length
       }
     })
-    return count > 0 ? count : (availablePlotsCount > 0 ? availablePlotsCount : 6)
-  }, [projects, availablePlotsCount])
+    return count
+  }, [projects])
 
-  // Distinct sizes available in current project
-  const availableSizes = useMemo(() => {
-    const numericSizes = actualPlotsData
-      .filter((p) => typeof p === 'object' && p.sq)
-      .map((p) => p.sq)
-    return ['All', ...Array.from(new Set(numericSizes)).sort((a, b) => a - b)]
-  }, [actualPlotsData])
-
-  // Reset selected plot if project changes
-  const handleProjectChange = (e) => {
-    const idx = Number(e.target.value)
-    setSelectedProjectIndex(idx)
-    setSelectedSize('All')
-    setSelectedPlot(null)
-  }
-
-  // Handle plot selection
-  const handlePlotClick = (p) => {
-    if (p.s === 's') return
-    if (selectedPlot && selectedPlot.uid === p.uid) {
-      setSelectedPlot(null)
-    } else {
-      setSelectedPlot(p)
-    }
-  }
-
-  // Handle modal open / close
   const openModal = () => setIsOpen(true)
   const closeModal = () => setIsOpen(false)
 
   // Other components open the popup with window.dispatchEvent(new CustomEvent('open-site-visit'))
   useEffect(() => {
-    const onOpen = () => setIsOpen(true)
+    const onOpen = (e) => {
+      setPreselectedPlotNo(e?.detail?.plotNo || null)
+      setIsOpen(true)
+    }
     window.addEventListener('open-site-visit', onOpen)
     return () => window.removeEventListener('open-site-visit', onOpen)
   }, [])
@@ -218,20 +129,17 @@ export default function SiteVisitPopup() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  // Reset state
   const resetForm = () => {
     setIsDone(false)
     setName('')
     setPhone('')
-    setSelectedPlot(null)
-    setSelectedSize('All')
+    setPreselectedPlotNo(null)
     setDayIndex(0)
     setTimeOfDay('Morning (10 AM – 1 PM)')
     setErrors({ name: false, phone: false })
-    setStep(1)
+    setSubmitError('')
   }
 
-  // Handle Form Submission
   const handleSubmit = async (e) => {
     e.preventDefault()
     const trimmedName = name.trim()
@@ -250,67 +158,58 @@ export default function SiteVisitPopup() {
     }
 
     setErrors(newErrors)
+    setSubmitError('')
     if (hasErr) return
 
     setIsSubmitting(true)
 
     const chosenDay = daysList[dayIndex]?.fullLabel || 'This Weekend'
     const projectName = currentProject?.name || 'Crystal Estates Layout'
-    const plotString = selectedPlot
-      ? `Plot ${selectedPlot.n} (${selectedPlot.sq.toLocaleString('en-IN')} sq.ft)`
-      : 'Decide on site'
+    const projectId = currentProject?.id || currentProject?.projectId || null
+    const plotNote = preselectedPlotNo ? ` | Plot: ${preselectedPlotNo}` : ''
 
-    const visitPayload = {
+    const enquiryPayload = {
       name: trimmedName,
       phone: `+91${trimmedPhone}`,
       property: projectName,
-      project: projectName,
-      plot: plotString,
-      date: chosenDay,
+      propertyId: projectId,
+      interest: preselectedPlotNo ? `${projectName} - Plot ${preselectedPlotNo}` : projectName,
+      unit: preselectedPlotNo ? `Plot ${preselectedPlotNo}` : 'Not allotted',
       datePreference: chosenDay,
+      followUpDate: chosenDay,
       time: timeOfDay,
-      status: 'Pending',
-      source: 'Website - Plot Finder Site Visit Popup',
+      notes: `Preferred Visit: ${chosenDay} (${timeOfDay})${plotNote}`,
+      source: 'Website - Site Visit Popup',
+      isSiteVisit: true,
     }
 
     try {
-      // 1. Post to visits endpoint
-      await fetch('/api/visits', {
+      const res = await fetch('/api/enquiry', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(visitPayload),
-      }).catch(() => {})
+        body: JSON.stringify(enquiryPayload),
+      })
+      if (!res.ok) {
+        throw new Error(`Request failed (${res.status})`)
+      }
 
-      // 2. Also register lead in enquiry pipeline
-      await fetch('/api/enquiry', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...visitPayload,
-          interest: `${projectName} - ${plotString}`,
-          followUpDate: chosenDay,
-          stage: 'sitevisit',
-          isSiteVisit: true,
-        }),
-      }).catch(() => {})
+      const generatedCode = `CE-${Math.floor(1000 + Math.random() * 9000)}`
+      setPassCode(generatedCode)
+      setIsDone(true)
+
+      const whatsappMsg = `*New Site Visit Pass (${generatedCode})*\n\n👤 *Name:* ${trimmedName}\n📞 *Phone:* +91 ${trimmedPhone}\n📍 *Project:* ${projectName}${preselectedPlotNo ? `\n🏡 *Plot:* ${preselectedPlotNo}` : ''}\n📅 *Date:* ${chosenDay}\n⏰ *Time:* ${timeOfDay}\n\nPlease confirm my visit and share the Google Maps site location pin.`
+      setTimeout(() => {
+        window.open(
+          `https://wa.me/${business.whatsapp}?text=${encodeURIComponent(whatsappMsg)}`,
+          '_blank'
+        )
+      }, 700)
     } catch (err) {
       console.warn('Booking post error:', err)
+      setSubmitError('Could not submit your booking. Please try again.')
+    } finally {
+      setIsSubmitting(false)
     }
-
-    // Generate ticket code
-    const generatedCode = `CE-${Math.floor(1000 + Math.random() * 9000)}`
-    setPassCode(generatedCode)
-    setIsSubmitting(false)
-    setIsDone(true)
-
-    // Trigger WhatsApp notification
-    const whatsappMsg = `*New Site Visit Pass (${generatedCode})*\n\n👤 *Name:* ${trimmedName}\n📞 *Phone:* +91 ${trimmedPhone}\n📍 *Project:* ${projectName}\n🏡 *Selected Plot:* ${plotString}\n📅 *Date:* ${chosenDay}\n⏰ *Time:* ${timeOfDay}\n\nPlease confirm my visit and share the Google Maps site location pin.`
-    setTimeout(() => {
-      window.open(
-        `https://wa.me/${business.whatsapp}?text=${encodeURIComponent(whatsappMsg)}`,
-        '_blank'
-      )
-    }, 700)
   }
 
   const selectedDayLabel = daysList[dayIndex]?.fullLabel || 'This Weekend'
@@ -322,16 +221,16 @@ export default function SiteVisitPopup() {
         className={`pv-card ${isDone ? 'done' : ''}`}
         id="pvCard"
         role="dialog"
-        aria-label="Plot finder and site visit booking"
+        aria-label="Book a free site visit"
         aria-hidden={!isOpen}
       >
         {/* Card Top / Header */}
         <div className="pv-top">
           <div>
             <h3 className="pv-title">
-              Find your plot,<br />visit it free
+              Book a free<br />site visit
             </h3>
-            <p className="pv-sub">Pick a plot, choose a day. We&apos;ll show you around.</p>
+            <p className="pv-sub">Choose a project and day. We&apos;ll show you around.</p>
           </div>
           <button
             type="button"
@@ -343,156 +242,39 @@ export default function SiteVisitPopup() {
           </button>
         </div>
 
-        {/* Step Progress Indicators */}
-        <div className="pv-steps">
-          <i className="on" id="pvS1" />
-          <i className={step === 2 ? 'on' : ''} id="pvS2" />
-        </div>
-        <div className="pv-steplabel">
-          <b>{step === 1 ? '1 · Choose plot' : '2 · Your details'}</b>
-          <span>{step === 1 ? 'Step 1 of 2' : 'Step 2 of 2'}</span>
-        </div>
-
-        {/* Views Container */}
+        {/* Single-Step Booking Form */}
         <div className="pv-views">
-          {/* ══════════════════════════════════════════════════════════ */}
-          {/* STEP 1: CHOOSE PLOT                                       */}
-          {/* ══════════════════════════════════════════════════════════ */}
-          <div className={`pv-view ${step === 1 ? 'show' : ''}`} id="pvV1">
-            {/* Project Selector (when projects are loaded) */}
-            {projects.length > 1 && (
-              <div style={{ marginBottom: '14px' }}>
-                <span className="pv-lab">Select Project</span>
-                <select
-                  className="pv-project-select"
-                  value={selectedProjectIndex}
-                  onChange={handleProjectChange}
-                  aria-label="Select Project Layout"
-                >
-                  {projects.map((proj, pIdx) => {
-                    const avail = (proj.plots || []).filter(
-                      (x) => String(x.status).toLowerCase() === 'available'
-                    ).length
-                    return (
-                      <option key={`proj-${proj.id || proj._id || pIdx}-${pIdx}`} value={pIdx}>
-                        {proj.name} ({avail > 0 ? `${avail} plots available` : 'Active Layout'})
-                      </option>
-                    )
-                  })}
-                </select>
-              </div>
-            )}
-
-            {/* Size Filter Chips */}
-            <span className="pv-lab">Plot size</span>
-            <div className="pv-sizes" id="pvSizes">
-              {availableSizes.map((sz) => {
-                const isActive = selectedSize === sz
-                return (
-                  <button
-                    key={sz}
-                    type="button"
-                    className={`pv-size ${isActive ? 'on' : ''}`}
-                    onClick={() => setSelectedSize(sz)}
-                  >
-                    {sz === 'All' ? 'All sizes' : `${sz.toLocaleString('en-IN')} sq.ft`}
-                  </button>
-                )
-              })}
-            </div>
-
-            {/* Interactive Layout Map Grid */}
-            <span className="pv-lab">
-              Tap an available plot · {currentProject?.name || 'Crystal Estates Layout'}
-            </span>
-            <div className="pv-map">
-              <div className="pv-grid" id="pvGrid">
-                {actualPlotsData.map((item, idx) => {
-                  if (item === 'road') {
-                    return (
-                      <div key={`road-${idx}`} className="pv-road">
-                        30 FT AVENUE ROAD
-                      </div>
-                    )
-                  }
-
-                  const isSold = item.s === 's'
-                  const isSelected = selectedPlot && selectedPlot.uid === item.uid
-                  const isDimmed = selectedSize !== 'All' && item.sq !== selectedSize && !isSelected
-
-                  return (
-                    <button
-                      key={item.uid || `plot-${idx}`}
-                      type="button"
-                      disabled={isSold}
-                      title={isSold ? 'Already booked' : `Plot ${item.n} (${item.sq} sq.ft) - Available`}
-                      className={`pv-plot ${isSold ? 'sold' : ''} ${isSelected ? 'sel' : ''} ${
-                        isDimmed ? 'dim' : ''
-                      }`}
-                      style={{ animationDelay: `${(idx % 16) * 0.025}s` }}
-                      onClick={() => handlePlotClick(item)}
-                    >
-                      P{item.n}
-                      <small>{item.sq.toLocaleString('en-IN')}</small>
-                    </button>
-                  )
-                })}
-              </div>
-
-              {/* Map Legend */}
-              <div className="pv-legend">
-                <span>
-                  <i style={{ background: '#e6f4ec', border: '1px solid #b8d9c6' }} />
-                  Available
-                </span>
-                <span>
-                  <i style={{ background: 'var(--terra)' }} />
-                  Selected
-                </span>
-                <span>
-                  <i style={{ background: 'var(--sold)' }} />
-                  Booked
-                </span>
-              </div>
-            </div>
-
-            {/* Selected Plot Info Box */}
-            <div className={`pv-pick ${selectedPlot ? 'ok' : ''}`} id="pvPick">
-              {selectedPlot ? (
-                <span>
-                  ✓&nbsp;<b>Plot {selectedPlot.n}</b> ·{' '}
-                  {selectedPlot.sq.toLocaleString('en-IN')} sq.ft ·{' '}
-                  {currentProject?.name || 'Crystal Estates Layout'}
-                </span>
-              ) : (
-                'No plot selected yet. You can also skip and decide on site.'
-              )}
-            </div>
-
-            {/* Step 1 Actions */}
-            <div className="pv-btns">
-              <button
-                type="button"
-                className="pv-btn main"
-                id="pvNext"
-                onClick={() => setStep(2)}
-              >
-                <span>Continue</span>
-                <span className="arrow">→</span>
-              </button>
-            </div>
-            <p className="pv-foot">Free site visit · Free pickup · No obligation</p>
-          </div>
-
-          {/* ══════════════════════════════════════════════════════════ */}
-          {/* STEP 2: VISITOR DETAILS & SCHEDULING                      */}
-          {/* ══════════════════════════════════════════════════════════ */}
           <form
-            className={`pv-view ${step === 2 ? 'show' : ''}`}
+            className="pv-view show"
             id="pvV2"
             onSubmit={handleSubmit}
             noValidate
           >
+            {/* Project Selector */}
+            <div className="pv-field">
+              <span className="pv-lab">Select Project</span>
+              <select
+                className="pv-project-select"
+                id="pvProject"
+                value={selectedProjectIndex}
+                onChange={(e) => setSelectedProjectIndex(Number(e.target.value))}
+                aria-label="Select Project"
+                disabled={projectsLoading || projects.length === 0}
+              >
+                {projects.length === 0 ? (
+                  <option value={0}>
+                    {projectsLoading ? 'Loading projects…' : 'No projects available'}
+                  </option>
+                ) : (
+                  projects.map((proj, pIdx) => (
+                    <option key={`proj-${proj.id || proj._id || pIdx}-${pIdx}`} value={pIdx}>
+                      {proj.name}{proj.location ? ` · ${proj.location}` : ''}
+                    </option>
+                  ))
+                )}
+              </select>
+            </div>
+
             {/* Name Input */}
             <div className={`pv-field ${errors.name ? 'err' : ''}`} id="pvNF">
               <span className="pv-lab">Your name</span>
@@ -580,20 +362,18 @@ export default function SiteVisitPopup() {
               </div>
             </div>
 
-            {/* Step 2 Actions */}
+            {submitError && (
+              <p className="pv-msg" style={{ display: 'block', marginTop: '10px', color: '#dc2626' }}>
+                {submitError}
+              </p>
+            )}
+
+            {/* Submit Action */}
             <div className="pv-btns">
-              <button
-                type="button"
-                className="pv-btn ghost"
-                onClick={() => setStep(1)}
-                aria-label="Back to step 1"
-              >
-                ←
-              </button>
               <button
                 type="submit"
                 className={`pv-btn main ${isSubmitting ? 'load' : ''}`}
-                disabled={isSubmitting}
+                disabled={isSubmitting || projects.length === 0}
                 id="pvSubmit"
               >
                 {isSubmitting && <span className="pv-spin" />}
@@ -636,12 +416,8 @@ export default function SiteVisitPopup() {
                 <b id="pvTName">{name.split(' ')[0] || 'Guest'}</b>
               </div>
               <div>
-                <small>Plot</small>
-                <b id="pvTPlot">
-                  {selectedPlot
-                    ? `Plot ${selectedPlot.n} · ${selectedPlot.sq.toLocaleString('en-IN')} sq.ft`
-                    : 'Decide on site'}
-                </b>
+                <small>Project</small>
+                <b id="pvTPlot">{currentProject?.name || 'Crystal Estates'}</b>
               </div>
               <div>
                 <small>Date</small>
@@ -689,7 +465,13 @@ export default function SiteVisitPopup() {
               ✕
             </i>
             <b>Plots open for visit</b>
-            <span id="pvLeft">{totalFreeSlots} free slots</span> left this weekend
+            {totalFreeSlots > 0 ? (
+              <>
+                <span id="pvLeft">{totalFreeSlots} free slots</span> left this weekend
+              </>
+            ) : (
+              'Book a free guided tour'
+            )}
           </div>
         )}
 

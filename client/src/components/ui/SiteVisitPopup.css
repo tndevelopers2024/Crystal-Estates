@@ -4,7 +4,8 @@
    Typography: Montserrat, Manrope
    ========================================================================== */
 
-.pv, .pv * {
+.pv,
+.pv * {
   box-sizing: border-box;
   font-family: var(--font-body, 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif);
 }
@@ -198,6 +199,7 @@
     opacity: 0;
     transform: translateY(20px) scale(0.96);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -961,6 +963,7 @@
     opacity: 0;
     transform: translateY(40px) scale(0.9);
   }
+
   to {
     opacity: 1;
     transform: none;
@@ -972,6 +975,7 @@
     transform: scale(1);
     opacity: 0.7;
   }
+
   100% {
     transform: scale(1.8);
     opacity: 0;
@@ -979,18 +983,24 @@
 }
 
 @keyframes pv-float {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0);
   }
+
   50% {
     transform: translateY(-4px);
   }
 }
 
 @keyframes pv-wave {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: rotate(-8deg);
   }
+
   50% {
     transform: rotate(10deg);
   }
@@ -1001,6 +1011,7 @@
     opacity: 0;
     transform: translateX(30px);
   }
+
   to {
     opacity: 1;
     transform: none;
@@ -1012,6 +1023,7 @@
     opacity: 0;
     transform: translateX(-30px);
   }
+
   to {
     opacity: 1;
     transform: none;
@@ -1023,6 +1035,7 @@
     opacity: 0;
     transform: scale(0.6);
   }
+
   to {
     opacity: 1;
     transform: none;
@@ -1033,6 +1046,7 @@
   25% {
     transform: translateX(-5px);
   }
+
   75% {
     transform: translateX(5px);
   }
@@ -1055,6 +1069,7 @@
     opacity: 0;
     transform: translateY(24px) rotate(-3deg);
   }
+
   to {
     opacity: 1;
     transform: none;
@@ -1066,13 +1081,17 @@
     right: 12px;
     bottom: 12px;
   }
+
   .pv-bubble {
     display: none;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pv *, .pv *::before, .pv *::after {
+
+  .pv *,
+  .pv *::before,
+  .pv *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
