@@ -510,6 +510,47 @@ export async function fetchPlotActivity({ propertyId, plotUid, plotNo, phase, li
   return await res.json()
 }
 
+export async function fetchPlotActivitySummary({ propertyId } = {}) {
+  const params = new URLSearchParams()
+  if (propertyId) params.set('propertyId', propertyId)
+  const res = await fetch(getApiUrl(`/api/plot-activity/summary?${params.toString()}`))
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error || `Failed to load plot activity summary: HTTP ${res.status}`)
+  }
+  return await res.json()
+}
+
+export async function exportPlotActivityExcel({ propertyId, scope = 'project', phase = '', plotUids = [], plotNos = [] } = {}) {
+  const params = new URLSearchParams()
+  if (propertyId) params.set('propertyId', propertyId)
+  params.set('scope', scope)
+  if (phase) params.set('phase', phase)
+  if (plotUids.length) params.set('plotUids', plotUids.join(','))
+  if (plotNos.length) params.set('plotNos', plotNos.join(','))
+
+  const res = await fetch(getApiUrl(`/api/plot-activity/export?${params.toString()}`))
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error || `Export failed: HTTP ${res.status}`)
+  }
+
+  const blob = await res.blob()
+  const cd = res.headers.get('Content-Disposition') || ''
+  const match = cd.match(/filename="?([^";]+)"?/i)
+  const filename = match ? match[1] : `plot-activity-${scope}.xlsx`
+
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+  return filename
+}
+
 export async function addPlotActivity(entry) {
   const res = await fetch(getApiUrl('/api/plot-activity'), {
     method: 'POST',

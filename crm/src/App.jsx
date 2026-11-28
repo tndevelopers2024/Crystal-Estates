@@ -11,6 +11,7 @@ import MainLayout from './components/layout/MainLayout'
 import PropertyGrid from './components/properties/PropertyGrid'
 import AddEditPropertyPage from './components/properties/AddEditPropertyPage'
 import PlotsPage from './components/properties/PlotsPage'
+import PlotActivityPage from './components/properties/PlotActivityPage'
 import PaymentsPage from './components/payments/PaymentsPage'
 import CustomersPage from './components/customers/CustomersPage'
 import CustomerProfilePage from './components/customers/CustomerProfilePage'
@@ -505,6 +506,22 @@ export default function App() {
                 onShowToast={showToast}
                 onBack={() => navigate('/properties')}
               />
+            }
+          />
+
+          {/* Dedicated Project Plot Activity & History page */}
+          <Route
+            path="/plot-activity"
+            element={
+              can('properties', 'view') ? (
+                <PlotActivityPage
+                  properties={properties}
+                  loading={propertiesLoading}
+                  onShowToast={showToast}
+                />
+              ) : (
+                <Navigate to={home} replace />
+              )
             }
           />
 

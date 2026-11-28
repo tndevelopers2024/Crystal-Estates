@@ -8,8 +8,11 @@ export default function Sidebar({ onOpenUpload, dynamicBadges = {}, isOpen = fal
   const location = useLocation()
   const { user, logout, can, isSuperAdmin } = useAuth()
   // Only pages this role may open (Team & roles: Super Admin; Settings: everyone, for profile & password)
-  const allowed = (id) => (id === 'team' ? isSuperAdmin : id === 'settings' ? true : can(id))
-  const sections = NAVIGATION_SECTIONS.map((sec) => ({ ...sec, items: sec.items.filter((it) => allowed(it.id)) })).filter((sec) => sec.items.length)
+  const allowed = (item) => {
+    const id = typeof item === 'string' ? item : (item.permissionId || item.id)
+    return id === 'team' ? isSuperAdmin : id === 'settings' ? true : can(id)
+  }
+  const sections = NAVIGATION_SECTIONS.map((sec) => ({ ...sec, items: sec.items.filter((it) => allowed(it)) })).filter((sec) => sec.items.length)
 
   return (
     <>

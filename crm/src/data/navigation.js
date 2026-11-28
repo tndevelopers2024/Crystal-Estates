@@ -8,6 +8,7 @@ import {
   Building2,
   CreditCard,
   FileText,
+  History,
   MessageSquare,
   Briefcase,
   Map,
@@ -38,6 +39,7 @@ export const NAVIGATION_SECTIONS = [
     title: 'SALES',
     items: [
       { id: 'properties', label: 'Properties', icon: Building2, path: '/properties' },
+      { id: 'plot-activity', permissionId: 'properties', label: 'Plot activity', icon: History, path: '/plot-activity' },
       { id: 'payments', label: 'Payments', icon: CreditCard, path: '/payments' },
       { id: 'documents', label: 'Documents', icon: FileText, path: '/documents' },
       { id: 'whatsapp', label: 'WhatsApp', icon: MessageSquare, badge: '3', path: '/whatsapp' },

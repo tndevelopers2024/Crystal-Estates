@@ -1,5 +1,7 @@
 import { Router } from 'express'
 import { getDb } from '../config/db.js'
+import { actorOf } from '../lib/land.js'
+import { buildPlotActivityWorkbook } from '../lib/plotActivityExport.js'
 
 /**
  * Plot-wise activity log.
@@ -32,6 +34,12 @@ const TRACKED_FIELDS = [
   ['facing', 'Facing'],
   ['area', 'Area'],
   ['dimensions', 'Dimensions'],
+  ['width', 'Width'],
+  ['length', 'Length'],
+  ['frontage', 'Frontage'],
+  ['rearWidth', 'Rear Width'],
+  ['leftSideLength', 'Left Side Length'],
+  ['rightSideLength', 'Right Side Length'],
   ['roadWidth', 'Road width'],
   ['type', 'Plot type'],
   ['surveyNo', 'Survey no.'],
@@ -198,6 +206,8 @@ router.get('/', async (req, res) => {
 
     let legacyPayments = []
     let relatedLeads = []
+    let relatedVisits = []
+    let documents = []
     const propName = property?.name || property?.projectName
     if (plotNo && propName) {
       const plotRe = new RegExp(`(^|[^0-9A-Za-z])${escapeRegex(norm(plotNo))}([^0-9A-Za-z]|$)`, 'i')
@@ -212,9 +222,30 @@ router.get('/', async (req, res) => {
         .collection('leads')
         .find(
           { property: propRe, unit: plotRe },
-          { projection: { _id: 0, id: 1, name: 1, phone: 1, email: 1, stage: 1, unit: 1, advanceReceived: 1, budgetFormatted: 1, createdAt: 1 } },
+          { projection: { _id: 0, id: 1, name: 1, phone: 1, email: 1, stage: 1, unit: 1, followUpDate: 1, source: 1, advanceReceived: 1, budgetFormatted: 1, notes: 1, createdAt: 1, updatedAt: 1 } },
         )
-        .limit(20)
+        .sort({ createdAt: -1 })
+        .limit(50)
+        .toArray()
+
+      const leadIds = relatedLeads.map((l) => l.id).filter(Boolean)
+      const visitOr = [{ property: propRe, notes: plotRe }]
+      if (leadIds.length > 0) visitOr.push({ leadId: { $in: leadIds } })
+      relatedVisits = await db
+        .collection('site_visits')
+        .find({ $or: visitOr }, { projection: { _id: 0 } })
+        .sort({ visitDate: -1, createdAt: -1 })
+        .limit(50)
+        .toArray()
+
+      const docOr = []
+      if (plotUid) docOr.push({ plotUid })
+      docOr.push({ plotNo: norm(plotNo), ...(phase ? { phase } : {}) })
+      documents = await db
+        .collection('plot_documents')
+        .find({ propertyId: { $in: ids }, $or: docOr }, { projection: { _id: 0, fileId: 0 } })
+        .sort({ createdAt: -1 })
+        .limit(50)
         .toArray()
     }
 
@@ -227,7 +258,7 @@ router.get('/', async (req, res) => {
       booking = bdoc?.booking || null
     }
 
-    return res.json({ success: true, activities, legacyPayments, relatedLeads, booking })
+    return res.json({ success: true, activities, legacyPayments, relatedLeads, relatedVisits, documents, booking })
   } catch (err) {
     console.error('Error fetching plot activity:', err.message)
     return res.status(500).json({ success: false, error: err.message })
@@ -235,6 +266,86 @@ router.get('/', async (req, res) => {
 })
 
 const bookingKey = (b) => b.plotUid || `${b.phase || ''}#${b.plotNo}`
+
+/**
+ * GET /api/plot-activity/summary?propertyId=…
+ * Returns per-plot activity counts and latest activity timestamps for a project.
+ */
+router.get('/summary', async (req, res) => {
+  try {
+    const { propertyId } = req.query
+    if (!propertyId) return res.status(400).json({ success: false, error: 'propertyId is required' })
+    const db = await getDb()
+    const property = await db
+      .collection('featured_plots')
+      .findOne({ $or: [{ id: propertyId }, { projectId: propertyId }] }, { projection: { _id: 0, id: 1, projectId: 1 } })
+    const ids = [propertyId, property?.id, property?.projectId].filter(Boolean)
+
+    const rows = await db
+      .collection(COLLECTION)
+      .aggregate([
+        { $match: { propertyId: { $in: ids } } },
+        { $sort: { createdAt: -1 } },
+        {
+          $group: {
+            _id: { plotUid: '$plotUid', plotNo: '$plotNo', phase: '$phase' },
+            count: { $sum: 1 },
+            lastAt: { $first: '$createdAt' },
+            lastTitle: { $first: '$title' },
+          },
+        },
+      ])
+      .toArray()
+
+    return res.json({
+      success: true,
+      summary: rows.map((r) => ({
+        plotUid: r._id.plotUid || null,
+        plotNo: r._id.plotNo || '',
+        phase: r._id.phase || null,
+        count: r.count,
+        lastAt: r.lastAt,
+        lastTitle: r.lastTitle,
+      })),
+    })
+  } catch (err) {
+    console.error('Error fetching plot activity summary:', err.message)
+    return res.status(500).json({ success: false, error: err.message })
+  }
+})
+
+/**
+ * GET /api/plot-activity/export?propertyId=…&scope=single|selected|project&phase=…&plotUids=…&plotNos=…
+ * Streams a multi-sheet Excel (.xlsx) report for the selected plot(s) or full project.
+ */
+router.get('/export', async (req, res) => {
+  try {
+    const { propertyId, scope = 'project', phase = '', plotUids = '', plotNos = '' } = req.query
+    if (!propertyId) return res.status(400).json({ success: false, error: 'propertyId is required' })
+
+    const db = await getDb()
+    const built = await buildPlotActivityWorkbook(db, {
+      propertyId: String(propertyId),
+      scope: ['single', 'selected', 'project'].includes(scope) ? scope : 'project',
+      phase: String(phase || ''),
+      plotUids: String(plotUids || '').split(',').map((s) => s.trim()).filter(Boolean),
+      plotNos: String(plotNos || '').split(',').map((s) => s.trim()).filter(Boolean),
+      by: actorOf(req).name,
+    })
+
+    res.set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    res.set('Content-Disposition', `attachment; filename="${built.filename}"; filename*=UTF-8''${encodeURIComponent(built.filename)}`)
+    res.set('Access-Control-Expose-Headers', 'Content-Disposition')
+    res.set('Cache-Control', 'private, no-store')
+    await built.workbook.xlsx.write(res)
+    res.end()
+  } catch (err) {
+    console.error('Error exporting plot activity Excel:', err.message)
+    if (!res.headersSent) {
+      return res.status(err.status || 500).json({ success: false, error: err.message || 'Could not export plot activity.' })
+    }
+  }
+})
 
 /**
  * GET /api/plot-activity/bookings?propertyId=…
