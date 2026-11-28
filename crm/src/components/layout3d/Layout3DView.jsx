@@ -469,6 +469,14 @@ export default function Layout3DView({
         ['Dimensions', dimsOf(rec)],
         ['Facing', rec.facing ? titleCase(String(rec.facing).toLowerCase()) : ''],
         ['Road width', rec.roadWidth ? (/\d$/.test(String(rec.roadWidth)) ? `${rec.roadWidth} ft` : String(rec.roadWidth)) : ''],
+        ...(rec.frontage || rec.rearWidth || rec.leftSideLength || rec.rightSideLength
+          ? [
+              ['Frontage', rec.frontage || '—'],
+              ['Rear Width', rec.rearWidth || '—'],
+              ['Left Side Length', rec.leftSideLength || '—'],
+              ['Right Side Length', rec.rightSideLength || '—'],
+            ]
+          : []),
         ...(rec.north != null || rec.south != null || rec.east != null || rec.west != null
           ? [
               ['North', rec.north != null ? fmtFeet(rec.north) : '—'],

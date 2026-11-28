@@ -357,6 +357,10 @@ const EMPTY_DETAILS = {
   facing: 'East',
   area: '',
   dimensions: '',
+  frontage: '',
+  rearWidth: '',
+  leftSideLength: '',
+  rightSideLength: '',
   price: '',
   roadWidth: '',
   type: 'Residential Plot',
@@ -416,6 +420,10 @@ function PlotPanel({ property, plot, isNew, phaseName, existingPlots, onSavePlot
         facing: plot.facing || 'East',
         area: plot.area || '',
         dimensions: plot.dimensions || '',
+        frontage: plot.frontage || '',
+        rearWidth: plot.rearWidth || '',
+        leftSideLength: plot.leftSideLength || '',
+        rightSideLength: plot.rightSideLength || '',
         price: plot.price != null ? String(plot.price) : '',
         roadWidth: plot.roadWidth || '',
         type: plot.type || 'Residential Plot',
@@ -745,6 +753,22 @@ function PlotPanel({ property, plot, isNew, phaseName, existingPlots, onSavePlot
                   <input id="pp-dims" className={inputCls} value={details.dimensions} onChange={setD('dimensions')} placeholder={'e.g. 30\' x 40\''} />
                 </div>
                 <div>
+                  <label htmlFor="pp-frontage" className={labelCls}>Frontage</label>
+                  <input id="pp-frontage" className={inputCls} value={details.frontage} onChange={setD('frontage')} placeholder="e.g. 60 ft" />
+                </div>
+                <div>
+                  <label htmlFor="pp-rear" className={labelCls}>Rear Width</label>
+                  <input id="pp-rear" className={inputCls} value={details.rearWidth} onChange={setD('rearWidth')} placeholder="e.g. 60 ft" />
+                </div>
+                <div>
+                  <label htmlFor="pp-left" className={labelCls}>Left Side Length</label>
+                  <input id="pp-left" className={inputCls} value={details.leftSideLength} onChange={setD('leftSideLength')} placeholder="e.g. 40 ft" />
+                </div>
+                <div>
+                  <label htmlFor="pp-right" className={labelCls}>Right Side Length</label>
+                  <input id="pp-right" className={inputCls} value={details.rightSideLength} onChange={setD('rightSideLength')} placeholder="e.g. 40 ft" />
+                </div>
+                <div>
                   <label htmlFor="pp-facing" className={labelCls}>Facing</label>
                   <select id="pp-facing" className={inputCls} value={details.facing} onChange={setD('facing')}>
                     {FACINGS.map((f) => <option key={f} value={f}>{f}</option>)}
@@ -822,6 +846,10 @@ function PlotPanel({ property, plot, isNew, phaseName, existingPlots, onSavePlot
               {[
                 ['Area', plot.area],
                 ['Dimensions', plot.dimensions],
+                ['Frontage', plot.frontage],
+                ['Rear Width', plot.rearWidth],
+                ['Left Side Length', plot.leftSideLength],
+                ['Right Side Length', plot.rightSideLength],
                 ['Facing', plot.facing],
                 ['Road width', plot.roadWidth],
                 ['Plot type', plot.type],

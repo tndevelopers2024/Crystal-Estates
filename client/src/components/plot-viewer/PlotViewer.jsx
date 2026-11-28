@@ -1211,6 +1211,33 @@ export default function PlotViewer({
               )}
             </div>
 
+            {/* Four-Sided Plot Dimensions (Frontage, Rear Width, Left/Right Side Length) */}
+            {(selectedPlot.frontage || selectedPlot.rearWidth || selectedPlot.leftSideLength || selectedPlot.rightSideLength) && (
+              <div className="pv-bottom-card__boundaries pv-tiny-card__boundaries">
+                <div className="pv-bottom-card__boundaries-header pv-tiny-card__boundaries-header">
+                  <span className="pv-bottom-card__boundaries-title pv-tiny-card__boundaries-title">Plot Sides</span>
+                </div>
+                <div className="pv-bottom-card__boundaries-grid pv-tiny-card__boundaries-grid">
+                  <div className={`pv-boundary-chip ${selectedPlot.frontage ? 'pv-boundary-chip--active' : ''}`}>
+                    <span className="pv-boundary-chip__dir">Frontage</span>
+                    <span className="pv-boundary-chip__val">{selectedPlot.frontage || '—'}</span>
+                  </div>
+                  <div className={`pv-boundary-chip ${selectedPlot.rearWidth ? 'pv-boundary-chip--active' : ''}`}>
+                    <span className="pv-boundary-chip__dir">Rear Width</span>
+                    <span className="pv-boundary-chip__val">{selectedPlot.rearWidth || '—'}</span>
+                  </div>
+                  <div className={`pv-boundary-chip ${selectedPlot.leftSideLength ? 'pv-boundary-chip--active' : ''}`}>
+                    <span className="pv-boundary-chip__dir">Left Side</span>
+                    <span className="pv-boundary-chip__val">{selectedPlot.leftSideLength || '—'}</span>
+                  </div>
+                  <div className={`pv-boundary-chip ${selectedPlot.rightSideLength ? 'pv-boundary-chip--active' : ''}`}>
+                    <span className="pv-boundary-chip__dir">Right Side</span>
+                    <span className="pv-boundary-chip__val">{selectedPlot.rightSideLength || '—'}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Excel-based Boundary Dimensions (N, S, E, W in ft) */}
             {(selectedPlot.north != null || selectedPlot.south != null || selectedPlot.east != null || selectedPlot.west != null) && (
               <div className="pv-bottom-card__boundaries pv-tiny-card__boundaries">
