@@ -31,7 +31,7 @@ function fmtFeet(v) {
 
 function dimsOf(r) {
   if (!r) return ''
-  if (r.width && r.length) return `${fmtFeet(r.width)} × ${fmtFeet(r.length)}`
+  if (r.width || r.length) return `${r.width ? fmtFeet(r.width) : '—'} × ${r.length ? fmtFeet(r.length) : '—'}`
   const d = String(r.dimensions || '').trim()
   return d && !/sq|cent|acre/i.test(d) ? d : ''
 }
@@ -264,10 +264,16 @@ export default function Layout3DView({
   }, [projId])
 
   useEffect(() => {
+    const first = setTimeout(refresh, 0)
     const id = setInterval(() => {
       if (document.visibilityState === 'visible') refresh()
     }, POLL_MS)
-    return () => clearInterval(id)
+    window.addEventListener('focus', refresh)
+    return () => {
+      clearTimeout(first)
+      clearInterval(id)
+      window.removeEventListener('focus', refresh)
+    }
   }, [refresh])
 
   /* ───── Derived data ───── */
@@ -463,6 +469,14 @@ export default function Layout3DView({
         ['Dimensions', dimsOf(rec)],
         ['Facing', rec.facing ? titleCase(String(rec.facing).toLowerCase()) : ''],
         ['Road width', rec.roadWidth ? (/\d$/.test(String(rec.roadWidth)) ? `${rec.roadWidth} ft` : String(rec.roadWidth)) : ''],
+        ...(rec.north != null || rec.south != null || rec.east != null || rec.west != null
+          ? [
+              ['North', rec.north != null ? fmtFeet(rec.north) : '—'],
+              ['South', rec.south != null ? fmtFeet(rec.south) : '—'],
+              ['East', rec.east != null ? fmtFeet(rec.east) : '—'],
+              ['West', rec.west != null ? fmtFeet(rec.west) : '—'],
+            ]
+          : []),
       ]
     : []
 

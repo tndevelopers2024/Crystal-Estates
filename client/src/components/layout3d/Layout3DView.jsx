@@ -28,7 +28,7 @@ function fmtFeet(v) {
 
 function dimsOf(r) {
   if (!r) return ''
-  if (r.width && r.length) return `${fmtFeet(r.width)} × ${fmtFeet(r.length)}`
+  if (r.width || r.length) return `${r.width ? fmtFeet(r.width) : '—'} × ${r.length ? fmtFeet(r.length) : '—'}`
   const d = String(r.dimensions || '').trim()
   // Some records store the area here (e.g. "1200 sq.ft (Approx)"), which isn't a dimension
   return d && !/sq|cent|acre/i.test(d) ? d : ''
@@ -40,7 +40,8 @@ function areaOf(r) {
 }
 function priceOf(r) {
   const n = Number(r?.price)
-  return n > 0 ? formatPrice(n) : 'Price on request'
+  if (n > 0) return formatPrice(n)
+  return r?.price && String(r.price).trim() ? String(r.price).trim() : 'Price on request'
 }
 
 export default function Layout3DView({ project: initialProject }) {
@@ -595,6 +596,14 @@ export default function Layout3DView({ project: initialProject }) {
         ['Dimensions', dimsOf(rec)],
         ['Facing', rec.facing ? titleCase(String(rec.facing).toLowerCase()) : ''],
         ['Road width', rec.roadWidth ? (/\d$/.test(String(rec.roadWidth)) ? `${rec.roadWidth} ft` : String(rec.roadWidth)) : ''],
+        ...(rec.north != null || rec.south != null || rec.east != null || rec.west != null
+          ? [
+              ['North', rec.north != null ? fmtFeet(rec.north) : '—'],
+              ['South', rec.south != null ? fmtFeet(rec.south) : '—'],
+              ['East', rec.east != null ? fmtFeet(rec.east) : '—'],
+              ['West', rec.west != null ? fmtFeet(rec.west) : '—'],
+            ]
+          : []),
       ]
     : []
   const clearFilters = () => {

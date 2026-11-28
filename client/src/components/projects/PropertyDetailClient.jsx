@@ -48,33 +48,44 @@ export default function PropertyDetailClient({ initialProject, staticAllProjects
     }
   }, [isFullScreenOpen])
 
-  // Fetch updated project details dynamically from MongoDB
+  // Fetch updated project details dynamically from MongoDB (on mount and on window focus)
   useEffect(() => {
-    fetch('/api/plots')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success && Array.isArray(data.plots) && data.plots.length > 0) {
-          setAllProjects(data.plots)
+    const syncProject = () => {
+      fetch('/api/plots', { cache: 'no-store' })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && Array.isArray(data.plots) && data.plots.length > 0) {
+            setAllProjects(data.plots)
 
-          const found = data.plots.find(
-            (p) =>
-              p.slug === initialProject?.slug ||
-              p.id === initialProject?.id ||
-              p.projectId === initialProject?.projectId ||
-              p.projectId === initialProject?.id ||
-              p._id === initialProject?.id
-          )
-          // Merge so fields the server already normalized (e.g. `area`) are
-          // not blanked when the raw API record lacks them
-          if (found) {
-            const fresh = Object.fromEntries(
-              Object.entries(found).filter(([, v]) => v !== null && v !== undefined && v !== ''),
+            const found = data.plots.find(
+              (p) =>
+                p.slug === initialProject?.slug ||
+                p.id === initialProject?.id ||
+                p.projectId === initialProject?.projectId ||
+                p.projectId === initialProject?.id ||
+                p._id === initialProject?.id
             )
-            setProject((prev) => ({ ...prev, ...fresh }))
+            // Merge so fields the server already normalized (e.g. `area`) are
+            // not blanked when the raw API record lacks them
+            if (found) {
+              const fresh = Object.fromEntries(
+                Object.entries(found).filter(([, v]) => v !== null && v !== undefined && v !== ''),
+              )
+              setProject((prev) => ({ ...prev, ...fresh }))
+            }
           }
-        }
-      })
-      .catch(() => { })
+        })
+        .catch(() => { })
+    }
+    syncProject()
+    const id = setInterval(() => {
+      if (document.visibilityState === 'visible') syncProject()
+    }, 30000)
+    window.addEventListener('focus', syncProject)
+    return () => {
+      clearInterval(id)
+      window.removeEventListener('focus', syncProject)
+    }
   }, [initialProject])
 
   // ─────────────────────────────────────────────────────────────

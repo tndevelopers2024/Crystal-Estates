@@ -96,7 +96,7 @@ export function parseLayoutSvg(svgText, dbPlots = [], fallbackViewBox) {
     const numericRecords = new Map()
     for (const r of dbPlots) {
       const key = norm(r.plotNo)
-      if (key && !records.has(key) && r.svgPath && String(r.svgPath).trim()) {
+      if (key && !records.has(key)) {
         records.set(key, r)
         const numKey = norm(formatPlotNumberOnly(r.plotNo))
         if (numKey && !numericRecords.has(numKey)) numericRecords.set(numKey, r)
@@ -118,18 +118,20 @@ export function parseLayoutSvg(svgText, dbPlots = [], fallbackViewBox) {
       }
       const rKey = norm(r.plotNo)
       seen.add(rKey)
+      const hasDbPath = Boolean(r.svgPath && String(r.svgPath).trim())
       return {
         ...p,
         no: String(r.plotNo).trim(),
         key: rKey,
-        d: String(r.svgPath).trim(),
+        d: hasDbPath ? String(r.svgPath).trim() : p.d,
         labelX: Number.isFinite(Number(r.textX)) && r.textX !== null ? Number(r.textX) : p.labelX,
         labelY: Number.isFinite(Number(r.textY)) && r.textY !== null ? Number(r.textY) : p.labelY,
-        source: 'db',
+        source: hasDbPath ? 'db' : p.source,
       }
     })
     records.forEach((r, key) => {
       if (seen.has(key)) return
+      if (!r.svgPath || !String(r.svgPath).trim()) return
       plots.push({
         no: String(r.plotNo).trim(),
         key,
