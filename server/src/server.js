@@ -487,7 +487,7 @@ getDb()
   })
   .catch((err) => console.error('Auth setup failed:', err.message))
 
-const server = app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, () => {
   console.log(`Crystal Estates Server listening on port ${PORT}`)
   if (!isProduction) {
     console.log(`Health check: http://localhost:${PORT}/api/health`)
