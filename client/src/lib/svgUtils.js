@@ -47,3 +47,15 @@ export function parseViewBox(vbStr, defaultW = 1056, defaultH = 816) {
     viewBoxStr: `0 0 ${defaultW} ${defaultH}`,
   }
 }
+
+/**
+ * Extract only the numeric plot number for on-map rendering, stripping
+ * trailing letters, side descriptions, or parenthetical notes.
+ * Keeps Roman numerals or non-numeric identifiers intact when no digits exist.
+ */
+export function formatPlotNumberOnly(plotNo) {
+  const raw = String(plotNo ?? '').trim()
+  if (!raw) return ''
+  const match = raw.match(/^(?:plot\s*(?:no\.?\s*)?)?(\d+)/i)
+  return match ? match[1] : raw
+}

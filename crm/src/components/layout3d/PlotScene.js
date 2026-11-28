@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader.js'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { buildEnvironment } from './environment'
+import { formatPlotNumberOnly } from './parseLayoutSvg'
 
 /**
  * Reusable Three.js scene for an interactive 3D plot layout.
@@ -263,11 +264,33 @@ export default class PlotScene {
     ctx.textBaseline = 'middle'
     ctx.fillStyle = 'rgba(20,24,30,0.9)'
     for (const p of this.plots) {
-      const x = Number.isFinite(p.labelX) ? p.labelX : p.center.x + this.center.cx
-      const y = Number.isFinite(p.labelY) ? p.labelY : p.center.z + this.center.cz
-      const fit = Math.max(4.5, Math.min(9, Math.min(p.size.x, p.size.z) / Math.max(2.2, p.no.length * 0.62)))
+      const displayNo = formatPlotNumberOnly(p.no)
+      if (!displayNo) continue
+      const cxPlot = p.center.x + this.center.cx
+      const cyPlot = p.center.z + this.center.cz
+      const halfW = p.size.x / 2
+      const halfH = p.size.z / 2
+      const hasValidLabel =
+        Number.isFinite(p.labelX) &&
+        Number.isFinite(p.labelY) &&
+        p.labelX >= cxPlot - halfW &&
+        p.labelX <= cxPlot + halfW &&
+        p.labelY >= cyPlot - halfH &&
+        p.labelY <= cyPlot + halfH
+      const x = hasValidLabel ? p.labelX : cxPlot
+      const y = hasValidLabel ? p.labelY : cyPlot
+      const maxByWidth = (p.size.x * 0.78) / Math.max(1, displayNo.length * 0.65)
+      const maxByHeight = p.size.z * 0.52
+      let fit = Math.min(9, Math.min(p.size.x, p.size.z) * 0.36, maxByWidth, maxByHeight)
+      fit = Math.max(3.2, fit)
       ctx.font = `700 ${fit * scale}px Montserrat, system-ui, sans-serif`
-      ctx.fillText(p.no, (x - this.viewBox.x) * scale, (y - this.viewBox.y) * scale)
+      const measured = ctx.measureText(displayNo).width
+      const maxPxWidth = p.size.x * 0.82 * scale
+      if (measured > maxPxWidth && maxPxWidth > 0) {
+        fit = Math.max(2.5, fit * (maxPxWidth / measured))
+        ctx.font = `700 ${fit * scale}px Montserrat, system-ui, sans-serif`
+      }
+      ctx.fillText(displayNo, (x - this.viewBox.x) * scale, (y - this.viewBox.y) * scale)
     }
     const tex = new THREE.CanvasTexture(canvas)
     tex.colorSpace = THREE.SRGBColorSpace

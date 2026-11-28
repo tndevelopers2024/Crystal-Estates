@@ -16,7 +16,7 @@ import {
 } from 'lucide-react'
 import { WhatsAppIcon } from '../ui'
 import { computePathCentroid } from '@/lib/svgPathCentroid'
-import { parseViewBox } from '@/lib/svgUtils'
+import { parseViewBox, formatPlotNumberOnly } from '@/lib/svgUtils'
 import './PlotViewer.css'
 
 // Shared in-memory cache for parsed vector SVG blueprints (instant phase switching & 0ms re-renders)
@@ -999,32 +999,45 @@ export default function PlotViewer({
 
                     {/* Centered Plot Number Label directly inside plot (No circular background) */}
                     {(() => {
+                      const displayNo = formatPlotNumberOnly(plot.plotNo)
+                      if (!displayNo) return null
+
                       let centroid = null
                       try {
                         centroid = computePathCentroid(plot.svgPath)
                       } catch {
                         // ignore malformed path
                       }
+                      const hasFiniteTextCoords =
+                        Number.isFinite(Number(plot.textX)) &&
+                        Number.isFinite(Number(plot.textY)) &&
+                        plot.textX !== null &&
+                        plot.textY !== null
+                      const tx = hasFiniteTextCoords ? Number(plot.textX) : null
+                      const ty = hasFiniteTextCoords ? Number(plot.textY) : null
                       const isExplicitValid =
-                        plot.textX !== undefined &&
-                        plot.textY !== undefined &&
+                        tx !== null &&
+                        ty !== null &&
                         (!centroid || (
-                          plot.textX >= centroid.minX - 35 &&
-                          plot.textX <= centroid.maxX + 35 &&
-                          plot.textY >= centroid.minY - 35 &&
-                          plot.textY <= centroid.maxY + 35
+                          tx >= centroid.minX &&
+                          tx <= centroid.maxX &&
+                          ty >= centroid.minY &&
+                          ty <= centroid.maxY
                         ))
-                      const labelX = isExplicitValid ? plot.textX : (centroid?.textX ?? plot.textX ?? 0)
-                      const labelY = isExplicitValid ? plot.textY : (centroid?.textY ?? plot.textY ?? 0)
+                      const labelX = isExplicitValid ? tx : (centroid?.textX ?? tx ?? 0)
+                      const labelY = isExplicitValid ? ty : (centroid?.textY ?? ty ?? 0)
 
-                      // Compute font size based on plot bounding box dimensions so it fits cleanly
+                      // Compute font size based on plot bounding box dimensions and digit count so it fits cleanly
                       let fontSize = 8.5
                       if (centroid) {
                         const pw = centroid.maxX - centroid.minX
                         const ph = centroid.maxY - centroid.minY
                         const minDim = Math.min(pw, ph)
-                        if (minDim > 0) {
-                          fontSize = Math.min(Math.max(minDim * 0.36, 6.5), 13)
+                        if (pw > 0 && ph > 0) {
+                          const maxByWidth = (pw * 0.78) / Math.max(1, displayNo.length * 0.65)
+                          const maxByHeight = ph * 0.52
+                          const ideal = Math.min(minDim * 0.36, maxByWidth, maxByHeight)
+                          fontSize = Math.min(Math.max(ideal, 3.5), 13)
                         }
                       }
 
@@ -1038,7 +1051,7 @@ export default function PlotViewer({
                           className="pv-plot__label-text"
                           style={{ fontSize: `${fontSize}px` }}
                         >
-                          {plot.plotNo}
+                          {displayNo}
                         </text>
                       )
                     })()}

@@ -18,6 +18,17 @@ export function plotKey(no) {
   return norm(no)
 }
 
+/**
+ * Extract only the numeric plot number for on-plot rendering, stripping
+ * trailing letters, side descriptions, or parenthetical notes.
+ */
+export function formatPlotNumberOnly(plotNo) {
+  const raw = String(plotNo ?? '').trim()
+  if (!raw) return ''
+  const match = raw.match(/^(?:plot\s*(?:no\.?\s*)?)?(\d+)/i)
+  return match ? match[1] : raw
+}
+
 function readViewBox(svg) {
   const vb = (svg.getAttribute('viewBox') || '').split(/[\s,]+/).map(Number)
   if (vb.length === 4 && vb.every(Number.isFinite) && vb[2] > 0 && vb[3] > 0) {
@@ -82,17 +93,34 @@ export function parseLayoutSvg(svgText, dbPlots = [], fallbackViewBox) {
   // appear even though the SVG file doesn't have them.
   if (plots.length > 0) {
     const records = new Map()
+    const numericRecords = new Map()
     for (const r of dbPlots) {
       const key = norm(r.plotNo)
-      if (key && !records.has(key) && r.svgPath && String(r.svgPath).trim()) records.set(key, r)
+      if (key && !records.has(key) && r.svgPath && String(r.svgPath).trim()) {
+        records.set(key, r)
+        const numKey = norm(formatPlotNumberOnly(r.plotNo))
+        if (numKey && !numericRecords.has(numKey)) numericRecords.set(numKey, r)
+      }
     }
     const seen = new Set()
     plots = plots.map((p) => {
-      seen.add(p.key)
-      const r = records.get(p.key)
-      if (!r) return p
+      let r = records.get(p.key)
+      if (!r) {
+        const candidate = numericRecords.get(p.key)
+        if (candidate && !plots.some((other) => other.key === norm(candidate.plotNo))) {
+          r = candidate
+        }
+      }
+      if (!r) {
+        seen.add(p.key)
+        return p
+      }
+      const rKey = norm(r.plotNo)
+      seen.add(rKey)
       return {
         ...p,
+        no: String(r.plotNo).trim(),
+        key: rKey,
         d: String(r.svgPath).trim(),
         labelX: Number.isFinite(Number(r.textX)) && r.textX !== null ? Number(r.textX) : p.labelX,
         labelY: Number.isFinite(Number(r.textY)) && r.textY !== null ? Number(r.textY) : p.labelY,
