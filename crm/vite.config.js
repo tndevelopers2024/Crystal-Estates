@@ -11,6 +11,9 @@ export default defineConfig(({ command }) => ({
   plugins: [react(), tailwindcss()],
   // Production bundles drop debug logging; console.error stays for real failures
   esbuild: command === 'build' ? { pure: ['console.log', 'console.info', 'console.debug', 'console.warn'] } : undefined,
+  build: {
+    target: 'es2022',
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

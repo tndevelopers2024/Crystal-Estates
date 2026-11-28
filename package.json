@@ -24,6 +24,7 @@
     "lint": "npm run lint --prefix client"
   },
   "overrides": {
-    "esbuild": "^0.28.1"
+    "esbuild": "^0.28.1",
+    "uuid": "^11.1.1"
   }
 }
