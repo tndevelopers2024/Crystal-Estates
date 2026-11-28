@@ -37,7 +37,8 @@ export default function SiteVisitPopup() {
       const dateNum = d.getDate()
       const monthName = MONTH_NAMES[d.getMonth()]
       const fullLabel = `${DAY_NAMES[d.getDay()]}, ${dateNum} ${monthName}`
-      list.push({ dayName, dateNum, monthName, fullLabel })
+      const isoDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(dateNum).padStart(2, '0')}`
+      list.push({ dayName, dateNum, monthName, fullLabel, isoDate })
     }
     return list
   }, [])
@@ -54,16 +55,28 @@ export default function SiteVisitPopup() {
         .then((data) => {
           if (!isMounted) return
           const list = Array.isArray(data.plots) ? data.plots : Array.isArray(data) ? data : []
-          const activeProjects = list.filter((p) => {
-            const st = String(p.status || '').toLowerCase()
-            return st !== 'sold out' && st !== 'sold'
+          const availableProjects = list.filter((p) => {
+            if (!p) return false
+            if (p.isActive === false || p.active === false || p.siteVisitsOpen === false) return false
+            const st = String(p.status || '').trim().toLowerCase()
+            if (st !== 'available') return false
+            const allPlots = [
+              ...(Array.isArray(p.plots) ? p.plots : []),
+              ...(Array.isArray(p.layouts) ? p.layouts.flatMap((l) => (Array.isArray(l.plots) ? l.plots : [])) : []),
+            ]
+            if (allPlots.length > 0) {
+              return allPlots.some((pl) => String(pl.status || '').trim().toLowerCase() === 'available')
+            }
+            if (typeof p.availablePlots === 'number' && typeof p.totalPlots === 'number' && p.totalPlots > 0) {
+              return p.availablePlots > 0
+            }
+            return true
           })
-          const finalProjects = activeProjects.length > 0 ? activeProjects : list
-          setProjects(finalProjects)
+          setProjects(availableProjects)
 
-          if (finalProjects.length > 0 && pathname) {
+          if (availableProjects.length > 0 && pathname) {
             const currentSlug = pathname.replace(/^\/projects\/?/, '').split('/')[0].trim()
-            const matchIdx = finalProjects.findIndex(
+            const matchIdx = availableProjects.findIndex(
               (p) => p.slug === currentSlug || p.id === currentSlug || p.projectId === currentSlug
             )
             if (matchIdx >= 0) {
@@ -163,7 +176,9 @@ export default function SiteVisitPopup() {
 
     setIsSubmitting(true)
 
-    const chosenDay = daysList[dayIndex]?.fullLabel || 'This Weekend'
+    const chosenDayObj = daysList[dayIndex]
+    const chosenDay = chosenDayObj?.fullLabel || 'This Weekend'
+    const chosenIsoDate = chosenDayObj?.isoDate || null
     const projectName = currentProject?.name || 'Crystal Estates Layout'
     const projectId = currentProject?.id || currentProject?.projectId || null
     const plotNote = preselectedPlotNo ? ` | Plot: ${preselectedPlotNo}` : ''
@@ -175,9 +190,11 @@ export default function SiteVisitPopup() {
       propertyId: projectId,
       interest: preselectedPlotNo ? `${projectName} - Plot ${preselectedPlotNo}` : projectName,
       unit: preselectedPlotNo ? `Plot ${preselectedPlotNo}` : 'Not allotted',
+      visitDate: chosenIsoDate,
       datePreference: chosenDay,
       followUpDate: chosenDay,
       time: timeOfDay,
+      stage: 'sitevisit',
       notes: `Preferred Visit: ${chosenDay} (${timeOfDay})${plotNote}`,
       source: 'Website - Site Visit Popup',
       isSiteVisit: true,

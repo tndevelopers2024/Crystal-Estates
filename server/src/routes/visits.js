@@ -552,6 +552,8 @@ router.patch('/:id', async (req, res) => {
       }
 
       if (propertyChanged) {
+        leadUpdateSet.property = updatedVisit.property
+        if (updatedVisit.propertyId !== undefined) leadUpdateSet.propertyId = updatedVisit.propertyId
         newActivities.push({
           id: `act-${Date.now()}-visit-prop`,
           text: `Site visit property updated to ${updatedVisit.property}`,
@@ -601,6 +603,15 @@ router.patch('/:id', async (req, res) => {
           })
         } else if (updates.status === 'Cancelled') {
           leadUpdateSet.followUpDate = 'Visit Cancelled'
+          if (targetLead && targetLead.stage === 'sitevisit') {
+            leadUpdateSet.stage = 'followup'
+            newActivities.unshift({
+              id: `act-${Date.now()}-stage-cancel`,
+              text: 'Pipeline stage moved to "Follow-up" (Site visit cancelled)',
+              time: 'Just now',
+              createdAt: new Date(),
+            })
+          }
         } else if (updates.status === 'Scheduled' || updates.status === 'Confirmed') {
           leadUpdateSet.followUpDate = `${updatedVisit.dateLabel}, ${updatedVisit.visitTime}`
         }

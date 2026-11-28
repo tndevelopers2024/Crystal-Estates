@@ -358,6 +358,12 @@ app.post('/api/enquiry', async (req, res) => {
       }
     }
 
+    const isSiteVisitRequest = Boolean(
+      body.isSiteVisit ||
+      leadSource.toLowerCase().includes('site visit') ||
+      body.stage === 'sitevisit'
+    )
+
     const newLead = {
       id,
       name,
@@ -365,7 +371,7 @@ app.post('/api/enquiry', async (req, res) => {
       email,
       property: propertyName,
       propertyId: body.propertyId || null,
-      stage: 'new', // Always ensure it lands in "New leads"
+      stage: isSiteVisitRequest ? 'sitevisit' : 'new',
       source: leadSource,
       budget: Number(body.budget) || 0,
       budgetFormatted: body.budgetFormatted || body.expectedPrice || 'TBD',
@@ -392,11 +398,14 @@ app.post('/api/enquiry', async (req, res) => {
           { projection: { _id: 0, location: 1 } }
         )
         const location = (body.location || matchedPlot?.location || 'Chennai').trim()
-        const visitDateRaw = body.datePreference || body.date || 'This Saturday'
+        const visitDateRaw = body.visitDate || body.datePreference || body.date || 'This Saturday'
         
         let d = new Date()
         const raw = String(visitDateRaw).toLowerCase()
-        if (raw.includes('saturday')) {
+        if (/^\d{4}-\d{2}-\d{2}$/.test(String(visitDateRaw).trim())) {
+          const [y, m, day] = String(visitDateRaw).trim().split('-').map(Number)
+          d = new Date(y, m - 1, day)
+        } else if (raw.includes('saturday')) {
           const diff = (6 - d.getDay() + 7) % 7 || 7
           d.setDate(d.getDate() + diff)
         } else if (raw.includes('sunday')) {
@@ -420,12 +429,13 @@ app.post('/api/enquiry', async (req, res) => {
           leadPhone: phone,
           leadEmail: email,
           leadInitials: name.split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'CE',
+          propertyId: body.propertyId || null,
           property: propertyName,
           location,
           visitDate: isoDate,
           dateLabel,
           weekdayLabel,
-          visitTime: '11:00 am',
+          visitTime: body.time || '11:00 am',
           status: 'Pending',
           cabPickup: Boolean(body.cabPickup),
           assignedAgent,
